@@ -37,13 +37,15 @@ from AssimCclasses import pyConfigContext, pyNetAddr
 # pylint: disable=R0903
 class JSONtree(object):
     """Class to convert things to JSON strings - that's about all"""
-    REESC = re.compile('\\\\')
+
+    REESC = re.compile("\\\\")
     REQUOTE = re.compile('"')
-    filterprefixes = ['_', 'JSON__hash__']
+    filterprefixes = ["_", "JSON__hash__"]
 
     def __init__(self, tree, expandJSON=False, maxJSON=0, filterprefixes=None):
-        self.filterprefixes = filterprefixes if filterprefixes is not None \
-            else JSONtree.filterprefixes
+        self.filterprefixes = (
+            filterprefixes if filterprefixes is not None else JSONtree.filterprefixes
+        )
         self.tree = tree
         self.expandJSON = expandJSON
         self.maxJSON = maxJSON
@@ -55,7 +57,7 @@ class JSONtree(object):
     @staticmethod
     def _jsonesc(stringthing):
         """Escape this string according to JSON string escaping rules"""
-        stringthing = JSONtree.REESC.sub('\\\\\\\\', stringthing)
+        stringthing = JSONtree.REESC.sub("\\\\\\\\", stringthing)
         stringthing = JSONtree.REQUOTE.sub('\\\\"', stringthing)
         return stringthing
 
@@ -65,24 +67,24 @@ class JSONtree(object):
         """Recursively convert ("pickle") this thing to JSON"""
 
         if isinstance(thing, (list, tuple)):
-            ret = ''
-            comma = '['
+            ret = ""
+            comma = "["
             if len(thing) == 0:
-                ret += '['
+                ret += "["
             for item in thing:
-                ret += '%s%s' % (comma, self._jsonstr(item))
-                comma = ','
-            ret += ']'
+                ret += "%s%s" % (comma, self._jsonstr(item))
+                comma = ","
+            ret += "]"
             return ret
 
         if isinstance(thing, dict):
-            ret = '{'
-            comma = ''
+            ret = "{"
+            comma = ""
             for key in thing.keys():
                 value = thing[key]
                 ret += '%s"%s":%s' % (comma, JSONtree._jsonesc(key), self._jsonstr(value))
-                comma = ','
-            ret += '}'
+                comma = ","
+            ret += "}"
             return ret
 
         if isinstance(thing, pyNetAddr):
@@ -90,8 +92,8 @@ class JSONtree(object):
 
         if isinstance(thing, bool):
             if thing:
-                return 'true'
-            return 'false'
+                return "true"
+            return "false"
 
         if isinstance(thing, (int, float, pyConfigContext)):
             return str(thing)
@@ -100,18 +102,18 @@ class JSONtree(object):
             return '"%s"' % (JSONtree._jsonesc(str(thing)))
 
         if thing is None:
-            return 'null'
+            return "null"
 
         return self._jsonstr_other(thing)
 
     def _jsonstr_other(self, thing):
         """Do our best to make JSON out of a "normal" python object - the final "other" case"""
-        ret = '{'
-        comma = ''
+        ret = "{"
+        comma = ""
         attrs = sorted(list(thing.__dict__.keys()))
-        if hasattr(thing, 'association') and thing.association.node_id is not None:
+        if hasattr(thing, "association") and thing.association.node_id is not None:
             ret += '"_node_id": %s' % thing.association.node_id
-            comma = ','
+            comma = ","
         for attr in attrs:
             skip = False
             for prefix in self.filterprefixes:
@@ -121,13 +123,13 @@ class JSONtree(object):
             if skip:
                 continue
             value = getattr(thing, attr)
-            if self.maxJSON > 0 and attr.startswith('JSON_') and len(value) > self.maxJSON:
+            if self.maxJSON > 0 and attr.startswith("JSON_") and len(value) > self.maxJSON:
                 continue
-            if self.expandJSON and attr.startswith('JSON_') and value.startswith('{'):
+            if self.expandJSON and attr.startswith("JSON_") and value.startswith("{"):
                 js = pyConfigContext(value)
                 if js is not None:
                     value = js
             ret += '%s"%s":%s' % (comma, attr, self._jsonstr(value))
-            comma = ','
-        ret += '}'
+            comma = ","
+        ret += "}"
         return ret

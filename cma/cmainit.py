@@ -65,9 +65,7 @@ class Neo4jCreds(object):
         if filename is None:
             filename = NEO4JCREDFILENAME
         self.neo4j_cred_filename = filename
-        self.neoserver = NeoDockerServer(
-            version="3.5.6", edition="enterprise", accept_license=True
-        )
+        self.neoserver = NeoDockerServer(version="3.5.6", edition="enterprise", accept_license=True)
         self.neoserver.start()
         if not self.neoserver.is_password_set():
             if os.path.exists(self.neo4j_cred_filename):
@@ -123,8 +121,7 @@ class Neo4jCreds(object):
         self.auth = newauth
         if self.DEBUG:
             print(
-                '%s "%s:%s" successful.'
-                % (Neo4jCreds.passchange, self.name, self.auth),
+                '%s "%s:%s" successful.' % (Neo4jCreds.passchange, self.name, self.auth),
                 file=sys.stderr,
             )
         userinfo = getent.passwd(CMAUSERID)
@@ -137,9 +134,7 @@ class Neo4jCreds(object):
             # pylint: disable=E1101
             os.chown(self.neo4j_cred_filename, userinfo.uid, userinfo.gid)
             f.write("%s\n%s\n" % (self.name, self.auth))
-        self._log.info(
-            "Updated Neo4j credentials cached in %s." % self.neo4j_cred_filename
-        )
+        self._log.info("Updated Neo4j credentials cached in %s." % self.neo4j_cred_filename)
 
     def _save_credentials(self):
         """
@@ -155,9 +150,7 @@ class Neo4jCreds(object):
             # pylint: disable=E1101
             os.chown(self.neo4j_cred_filename, userinfo.uid, userinfo.gid)
             f.write("%s\n%s\n" % (self.name, self.auth))
-        self._log.info(
-            "Updated Neo4j credentials cached in %s." % self.neo4j_cred_filename
-        )
+        self._log.info("Updated Neo4j credentials cached in %s." % self.neo4j_cred_filename)
 
     def __str__(self, filename=None):
         """We return the current assimilation Neo4j credentials (login, password) as a string
@@ -207,9 +200,7 @@ class CMAInjectables(object):
         This is perfectly well-suited for being an injector of logging.Logger"""
         name = CMAInjectables.settings["LOG_NAME"] if name is None else name
         address = CMAInjectables.settings["LOG_DEVICE"] if address is None else address
-        facility = (
-            CMAInjectables.settings["LOG_FACILITY"] if facility is None else facility
-        )
+        facility = CMAInjectables.settings["LOG_FACILITY"] if facility is None else facility
         level = CMAInjectables.settings["LOG_LEVEL"] if level is None else level
         try:
             syslog = logging.handlers.SysLogHandler(address, facility)
@@ -249,9 +240,7 @@ class CMAInjectables(object):
 
     @staticmethod
     @inject.params(neo_credentials="Neo4jCreds", log="logging.Logger")
-    def setup_db(
-        neo_credentials, log, host=None, port=None, https=False, http=False, bolt=False
-    ):
+    def setup_db(neo_credentials, log, host=None, port=None, https=False, http=False, bolt=False):
         """Return a neo4j.Graph object (open channel to the Neo4j database)
         We're great as an injector for neo4j.Graph
         """
@@ -310,12 +299,9 @@ class CMAInjectables(object):
                     raise RuntimeError("Neo4j not running - giving up [%s]" % str(exc))
                 if (trycount % 60) == 1:
                     print(
-                        "Waiting for Neo4j [%s] to start [%s]." % (url, str(exc)),
-                        file=sys.stderr,
+                        "Waiting for Neo4j [%s] to start [%s]." % (url, str(exc)), file=sys.stderr
                     )
-                    log.warning(
-                        "Waiting for Neo4j [%s] to start [%s]." % (url, str(exc))
-                    )
+                    log.warning("Waiting for Neo4j [%s] to start [%s]." % (url, str(exc)))
                 # Let's try again in a second...
                 time.sleep(5)
         return neodb
@@ -340,8 +326,7 @@ class CMAInjectables(object):
                 raise oops
         if not os.access(store_dirname, os.W_OK + os.X_OK + os.R_OK):
             raise OSError(
-                'ERROR: Directory "%s" not is not "rwx" to uid %s'
-                % (store_dirname, os.geteuid())
+                'ERROR: Directory "%s" not is not "rwx" to uid %s' % (store_dirname, os.geteuid())
             )
 
         recreate_store = config.get("recreate_json_store", False)
@@ -364,9 +349,7 @@ class CMAInjectables(object):
         """Return a Store object for mapping our objects to the database (OGM model)
         We're happy to be an injector for Store objects...
         """
-        readonly = (
-            CMAInjectables.settings["NEO4J_READONLY"] if readonly is None else readonly
-        )
+        readonly = CMAInjectables.settings["NEO4J_READONLY"] if readonly is None else readonly
         store = Store(db=db, readonly=readonly, log=log)
         # print('RETURNING STORE: %s' % store, file=sys.stderr)
         return store
@@ -458,9 +441,7 @@ class CMAinit(object):
             from hbring import HbRing
             from transaction import NetTransaction
 
-            CMAdb.net_transaction = NetTransaction(
-                io=io, encryption_required=encryption_required
-            )
+            CMAdb.net_transaction = NetTransaction(io=io, encryption_required=encryption_required)
             print("CMAdb:", CMAdb, file=sys.stderr)
             print("CMAdb.store(cmadb.py):", CMAdb.store, file=sys.stderr)
             store.db_transaction = db.begin(autocommit=False)
@@ -471,14 +452,10 @@ class CMAinit(object):
             if CMAdb.use_network:
                 CMAdb.net_transaction.commit_trans()
             print("COMMITTING Store", file=sys.stderr)
-            print(
-                "NetTransaction Commit results:", CMAdb.store.commit(), file=sys.stderr
-            )
+            print("NetTransaction Commit results:", CMAdb.store.commit(), file=sys.stderr)
             if CMAdb.store.db_transaction and not CMAdb.store.db_transaction.finished():
                 CMAdb.store.commit()
-            CMAdb.net_transaction = NetTransaction(
-                io=io, encryption_required=encryption_required
-            )
+            CMAdb.net_transaction = NetTransaction(io=io, encryption_required=encryption_required)
         else:
             CMAdb.net_transaction = None
 

@@ -27,8 +27,13 @@ import time
 from consts import CMAconsts
 from cmadb import CMAdb
 from AssimCclasses import pyConfigContext
-from graphnodes import registergraphclass, GraphNode, JSONMapNode,  \
-        add_an_array_item, delete_an_array_item
+from graphnodes import (
+    registergraphclass,
+    GraphNode,
+    JSONMapNode,
+    add_an_array_item,
+    delete_an_array_item,
+)
 from cmaconfig import ConfigFile
 from AssimCtypes import CONFIGNAME_TYPE
 from frameinfo import FrameTypes, FrameSetTypes
@@ -37,16 +42,17 @@ from frameinfo import FrameTypes, FrameSetTypes
 @registergraphclass
 class SystemNode(GraphNode):
     """An object that represents a physical or virtual system (server, switch, etc)"""
-    HASH_PREFIX = 'JSON__hash__'
-    JSONattrnames = '''MATCH (d)-[r:jsonattr]->() WHERE ID(d) = $droneid
-                           return r.jsonname as key'''
-    JSONsingleattr = '''MATCH (d)-[r:jsonattr]->(json) WHERE r.jsonname=$jsonname AND
+
+    HASH_PREFIX = "JSON__hash__"
+    JSONattrnames = """MATCH (d)-[r:jsonattr]->() WHERE ID(d) = $droneid
+                           return r.jsonname as key"""
+    JSONsingleattr = """MATCH (d)-[r:jsonattr]->(json) WHERE r.jsonname=$jsonname AND
                              ID(d) = $droneid
-                             RETURN json'''
-    SYSTEMNODES_FROM_JHASH = '''MATCH (sys)-[:jsonattr]->(json) WHERE json.jhash in $hashlist %s
-                               RETURN DISTINCT sys'''
-    SYSTEMNODES_AND_HASH = '''MATCH (sys)-[:jsonattr]->(json) WHERE json.jhash in $hashlist %s
-                               RETURN sys, json'''
+                             RETURN json"""
+    SYSTEMNODES_FROM_JHASH = """MATCH (sys)-[:jsonattr]->(json) WHERE json.jhash in $hashlist %s
+                               RETURN DISTINCT sys"""
+    SYSTEMNODES_AND_HASH = """MATCH (sys)-[:jsonattr]->(json) WHERE json.jhash in $hashlist %s
+                               RETURN sys, json"""
 
     _JSONprocessors = None  # This will get updated
     debug = False
@@ -58,55 +64,61 @@ class SystemNode(GraphNode):
         if roles is None or roles == []:
             # Neo4j can't initialize node properties to empty arrays because
             # it wants to know what kind of array it is...
-            roles = ['']
+            roles = [""]
         self.roles = roles
 
     @classmethod
     def meta_key_attributes(cls):
         """Return our key attributes in order of significance"""
-        return ['designation', 'domain']
+        return ["designation", "domain"]
 
     def addrole(self, roles):
         """Add a role to our SystemNode"""
         self.roles = add_an_array_item(self.roles, roles)
         # Make sure the 'roles' attribute gets marked as dirty...
-        self.association.dirty_attrs.add('roles')
-        self.association.store.add_labels(self, ['Role_%s' % role
-                                                 for role in roles if role not in self.roles])
+        self.association.dirty_attrs.add("roles")
+        self.association.store.add_labels(
+            self, ["Role_%s" % role for role in roles if role not in self.roles]
+        )
         return self.roles
 
     def delrole(self, roles):
         """Delete a role from our SystemNode"""
         self.roles = delete_an_array_item(self.roles, roles)
-        self.association.dirty_attrs.add('roles')
-        self.association.store.add_labels(self, ['Role_%s' % role for role in roles])
-        self.association.store.add_labels(self, ['Role_%s' % role
-                                                 for role in roles if role in self.roles])
+        self.association.dirty_attrs.add("roles")
+        self.association.store.add_labels(self, ["Role_%s" % role for role in roles])
+        self.association.store.add_labels(
+            self, ["Role_%s" % role for role in roles if role in self.roles]
+        )
         return self.roles
 
     def logjson(self, origaddr, jsontext):
         """Process and save away JSON discovery data."""
         assert self.association.node_id is not None
         jsonobj = pyConfigContext(jsontext)
-        if 'instance' not in jsonobj or 'data' not in jsonobj:
-            CMAdb.log.warning('Invalid JSON discovery packet: %s' % jsontext)
+        if "instance" not in jsonobj or "data" not in jsonobj:
+            CMAdb.log.warning("Invalid JSON discovery packet: %s" % jsontext)
             return
-        dtype = jsonobj['instance']
+        dtype = jsonobj["instance"]
         discoverychanged = not self.json_eq(dtype, jsontext)
         if discoverychanged:
-            CMAdb.log.debug("Saved discovery type %s [%s] for endpoint %s."
-                            % (jsonobj['discovertype'], dtype, self.designation))
+            CMAdb.log.debug(
+                "Saved discovery type %s [%s] for endpoint %s."
+                % (jsonobj["discovertype"], dtype, self.designation)
+            )
         else:
             if CMAdb.debug:
-                CMAdb.log.debug('Discovery type %s for endpoint %s is unchanged.'
-                                % (dtype, self.designation))
+                CMAdb.log.debug(
+                    "Discovery type %s for endpoint %s is unchanged." % (dtype, self.designation)
+                )
         self._process_json(origaddr, jsonobj, discoverychanged)
         self[dtype] = jsontext  # This is stored in separate nodes for performance
 
     def __iter__(self):
         """Iterate over our child JSON attribute names"""
-        for tup in CMAdb.store.load_cypher_query(self.JSONattrnames,
-                                                 params={'droneid': self.association.node_id}):
+        for tup in CMAdb.store.load_cypher_query(
+            self.JSONattrnames, params={"droneid": self.association.node_id}
+        ):
             yield str(tup[0])
 
     def keys(self):
@@ -123,15 +135,15 @@ class SystemNode(GraphNode):
 
     def jsonval(self, jsontype):
         """Construct a python object associated with a particular JSON discovery value."""
-        attrname = unicode(self.HASH_PREFIX+jsontype)
+        attrname = unicode(self.HASH_PREFIX + jsontype)
         if not hasattr(self, attrname):
             # self._log.debug('DOES NOT HAVE ATTR "%s"' % attrname)
             # self._log.debug( 'ATTRIBUTES ARE: %s' % str(self.keys()))
             # self._log.debug('ALL attributes: %s' % str(self.__dict__))
             return None
-        params = {'droneid': self.association.node_id, 'jsonname': str(jsontype)}
+        params = {"droneid": self.association.node_id, "jsonname": str(jsontype)}
         if self.debug:
-            self._log.debug('LOADING %s // %s' % (self.JSONsingleattr, str(params)))
+            self._log.debug("LOADING %s // %s" % (self.JSONsingleattr, str(params)))
         node = CMAdb.store.load_cypher_node(self.JSONsingleattr, params=params)
         assert self.json_eq(jsontype, str(node))
         return node
@@ -145,12 +157,12 @@ class SystemNode(GraphNode):
         """Return the given JSON value or raise IndexError."""
         ret = self.jsonval(key)
         if ret is None:
-            raise IndexError('No such JSON attribute [%s].' % key)
+            raise IndexError("No such JSON attribute [%s]." % key)
         return ret
 
     def deepget(self, key, alternative=None):
         """Return value if object contains the given *structured* key - 'alternative' if not."""
-        keyparts = key.split('.', 1)
+        keyparts = key.split(".", 1)
         if len(keyparts) == 1:
             ret = self.jsonval(key)
             return ret if ret is not None else alternative
@@ -170,11 +182,12 @@ class SystemNode(GraphNode):
         jsonnode = self._store.load_or_create(JSONMapNode, json=value)
         # print('JUST CREATED JSON NODE: %s' % str(jsonnode))
         setattr(self, unicode(self.HASH_PREFIX + name), jsonnode.jhash)
-        self._store.relate(self, CMAconsts.REL_jsonattr, jsonnode,
-                           attrs={'jsonname':  name,
-                                  'time': long(round(time.time()))
-                                  }
-                           )
+        self._store.relate(
+            self,
+            CMAconsts.REL_jsonattr,
+            jsonnode,
+            attrs={"jsonname": name, "time": long(round(time.time()))},
+        )
 
     def __delitem__(self, name):
         """Delete the given JSON value from the SystemNode."""
@@ -183,15 +196,14 @@ class SystemNode(GraphNode):
         try:
             delattr(self, unicode(self.HASH_PREFIX + name))
         except AttributeError:
-            raise IndexError('No such JSON attribute [%s].' % name)
+            raise IndexError("No such JSON attribute [%s]." % name)
         if jsonnode is None:
-            CMAdb.log.warning('Missing JSON attribute: %s' % name)
-            print('Missing JSON attribute: %s' % name, file=stderr)
+            CMAdb.log.warning("Missing JSON attribute: %s" % name)
+            print("Missing JSON attribute: %s" % name, file=stderr)
             return
         should_delnode = True
         # See if it has any remaining references...
-        for node in self._store.load_in_related(jsonnode,
-                                                CMAconsts.REL_jsonattr):
+        for node in self._store.load_in_related(jsonnode, CMAconsts.REL_jsonattr):
             if node is not self:
                 should_delnode = False
                 break
@@ -199,7 +211,7 @@ class SystemNode(GraphNode):
         if should_delnode:
             # Avoid dangling properties...
 
-            CMAdb.log.warning('Deleting old attribute value: %s [%s]' % (name, str(jsonnode)))
+            CMAdb.log.warning("Deleting old attribute value: %s [%s]" % (name, str(jsonnode)))
             CMAdb.store.delete(jsonnode)
 
     def json_eq(self, key, newvalue):
@@ -222,8 +234,7 @@ class SystemNode(GraphNode):
 
     def send_frames(self, _framesettype, _frames):
         """Send messages to our parent - or their parent, or their parent..."""
-        raise ValueError('Cannot send frames to a %s - must be a subclass'
-                         % (str(self.__class__)))
+        raise ValueError("Cannot send frames to a %s - must be a subclass" % (str(self.__class__)))
 
     def request_discovery(self, args):
         """Send our System a request to perform discovery
@@ -239,42 +250,47 @@ class SystemNode(GraphNode):
         # fs = pyFrameSet(FrameSetTypes.DODISCOVER)
         frames = []
         for arg in args:
-            agent_params = ConfigFile.agent_params(CMAdb.config, 'discovery',
-                                                   arg[CONFIGNAME_TYPE], self.designation)
-            for key in ('repeat', 'warn' 'timeout', 'nice'):
+            agent_params = ConfigFile.agent_params(
+                CMAdb.config, "discovery", arg[CONFIGNAME_TYPE], self.designation
+            )
+            for key in ("repeat", "warn" "timeout", "nice"):
                 if key in agent_params and key not in arg:
                     arg[key] = agent_params[arg]
-            instance = arg['instance']
-            frames.append({'frametype': FrameTypes.DISCNAME, 'framevalue': instance})
-            if 'repeat' in arg:
-                interval = int(arg['repeat'])
-                frames.append({'frametype': FrameTypes.DISCINTERVAL, 'framevalue': int(interval)})
+            instance = arg["instance"]
+            frames.append({"frametype": FrameTypes.DISCNAME, "framevalue": instance})
+            if "repeat" in arg:
+                interval = int(arg["repeat"])
+                frames.append({"frametype": FrameTypes.DISCINTERVAL, "framevalue": int(interval)})
             else:
                 interval = 0
-            frames.append({'frametype': FrameTypes.DISCJSON, 'framevalue': str(arg)})
+            frames.append({"frametype": FrameTypes.DISCJSON, "framevalue": str(arg)})
         self.send_frames(FrameSetTypes.DODISCOVER, frames)
 
     def _process_json(self, origaddr, jsonobj, discoverychanged):
         """Pass the JSON data along to interested discovery plugins (if any)"""
-        dtype = jsonobj['discovertype']
+        dtype = jsonobj["discovertype"]
         foundone = False
         if CMAdb.debug:
-            CMAdb.log.debug('Processing JSON for discovery type [%s]' % dtype)
+            CMAdb.log.debug("Processing JSON for discovery type [%s]" % dtype)
         for prio in range(0, len(SystemNode._JSONprocessors)):
             if dtype in SystemNode._JSONprocessors[prio]:
                 foundone = True
                 classes = SystemNode._JSONprocessors[prio][dtype]
                 # print('PROC[%s][%s] = %s' % (prio, dtype, str(classes)), file=stderr)
                 for cls in classes:
-                    proc = cls(CMAdb.config, CMAdb.net_transaction, self._store,
-                               self._log, CMAdb.debug)
+                    proc = cls(
+                        CMAdb.config, CMAdb.net_transaction, self._store, self._log, CMAdb.debug
+                    )
                     proc.processpkt(self, origaddr, jsonobj, discoverychanged)
         if foundone:
-            CMAdb.log.info('Processed %schanged %s JSON data from %s into graph.'
-                           % ('' if discoverychanged else 'un', dtype, self.designation))
+            CMAdb.log.info(
+                "Processed %schanged %s JSON data from %s into graph."
+                % ("" if discoverychanged else "un", dtype, self.designation)
+            )
         elif discoverychanged:
-            CMAdb.log.info('Stored %s JSON data from %s without processing.'
-                           % (dtype, self.designation))
+            CMAdb.log.info(
+                "Stored %s JSON data from %s without processing." % (dtype, self.designation)
+            )
 
     @staticmethod
     def add_json_processor(clstoadd):
@@ -306,7 +322,7 @@ class SystemNode(GraphNode):
         :param where_params: parameters to plug into the where clause
         :return: Generator(SystemNode): system nodes that we found...
         """
-        query = SystemNode.SYSTEMNODES_FROM_JHASH % (where_conditions if where_conditions else '')
+        query = SystemNode.SYSTEMNODES_FROM_JHASH % (where_conditions if where_conditions else "")
         parameters = {}
         if isinstance(json_hashes, str) or not isinstance(json_hashes, (list, tuple)):
             json_hashes = (json_hashes,)
@@ -319,7 +335,7 @@ class SystemNode(GraphNode):
         if where_params:
             for k, v in where_params.items():
                 parameters[k] = v
-        parameters['hashlist'] = hashes
+        parameters["hashlist"] = hashes
         return store.load_cypher_nodes(query, params=parameters)
 
     @staticmethod
@@ -332,7 +348,7 @@ class SystemNode(GraphNode):
         :param where_params: parameters to plug into the where clause
         :return: Generator(SystemNode, str): system nodes that we found...
         """
-        query = SystemNode.SYSTEMNODES_AND_HASH % (where_conditions if where_conditions else '')
+        query = SystemNode.SYSTEMNODES_AND_HASH % (where_conditions if where_conditions else "")
         parameters = {}
         if isinstance(json_hashes, str) or not isinstance(json_hashes, (list, tuple)):
             json_hashes = (json_hashes,)
@@ -345,7 +361,7 @@ class SystemNode(GraphNode):
         if where_params:
             for k, v in where_params.items():
                 parameters[k] = v
-        parameters['hashlist'] = hashes
+        parameters["hashlist"] = hashes
         return store.load_cypher_query(query, params=parameters)
 
     def find_nic(self, ifname):
@@ -359,11 +375,9 @@ class SystemNode(GraphNode):
         WHERE ID(self) = $id AND nic.ifname = $ifname
         RETURN nic
         """
-        return self.association.store.load_cypher_node(query,
-                                                       {
-                                                           'id': self.association.node_id,
-                                                           'ifname': ifname
-                                                       })
+        return self.association.store.load_cypher_node(
+            query, {"id": self.association.node_id, "ifname": ifname}
+        )
 
 
 @registergraphclass
@@ -376,22 +390,33 @@ class ChildSystem(SystemNode):
     # and we never call the constructor directly - we call it via "childfactory" or the
     # database calls it with args
     # pylint: disable=R0913
-    def __init__(self, designation, _parentsystem=None, domain=None, roles=None, _selfjson=None,
-                 uniqueid=None, childpath=None):
+    def __init__(
+        self,
+        designation,
+        _parentsystem=None,
+        domain=None,
+        roles=None,
+        _selfjson=None,
+        uniqueid=None,
+        childpath=None,
+    ):
         # print('CONSTRUCTING CHILD NODE!====================: %s' % str(designation), file=stderr)
         if domain is None:
-            domain=_parentsystem.domain
+            domain = _parentsystem.domain
         SystemNode.__init__(self, domain=domain, designation=designation, roles=roles)
         self._selfjson = _selfjson
         if uniqueid is None:
             uniqueid = ChildSystem.compute_uniqueid(designation, _parentsystem, domain)
         self.uniqueid = uniqueid
         if childpath is None:
-            if hasattr(_parentsystem, 'childpath'):
-                childpath = '%s/%s:%s' % (self.__class__.DiscoveryPath, designation,
-                                          _parentsystem.childpath)
+            if hasattr(_parentsystem, "childpath"):
+                childpath = "%s/%s:%s" % (
+                    self.__class__.DiscoveryPath,
+                    designation,
+                    _parentsystem.childpath,
+                )
             else:
-                childpath = '%s/%s' % (self.__class__.DiscoveryPath, designation)
+                childpath = "%s/%s" % (self.__class__.DiscoveryPath, designation)
         self.childpath = childpath
         self.runas_user = None
         self.runas_group = None
@@ -401,14 +426,14 @@ class ChildSystem(SystemNode):
 
     def post_db_init(self):
         """Do post-constructor database updates"""
-        if not hasattr(self, '_parentsystem'):
+        if not hasattr(self, "_parentsystem"):
             for node in CMAdb.store.load_related(self, CMAconsts.REL_parentsys):
                 self._parentsystem = node
                 break
         if self._selfjson is not None:
-            self['selfjson'] = self._selfjson
-        if not hasattr(self, '_parentsystem'):
-            raise RuntimeError('Cannot find parent system for %s (%s)' % (type(self), self))
+            self["selfjson"] = self._selfjson
+        if not hasattr(self, "_parentsystem"):
+            raise RuntimeError("Cannot find parent system for %s (%s)" % (type(self), self))
         if self._parentsystem.__class__ is SystemNode:
             raise ValueError('Parent system cannot be a base "SystemNode" object')
 
@@ -421,54 +446,64 @@ class ChildSystem(SystemNode):
         """We compute the unique id we use to find this in the database"""
         if domain is None:
             domain = parentsystem.domain
-        if hasattr(parentsystem, 'uniqueid'):
-            return getattr(parentsystem, 'uniqueid') + '::' + designation
-        return '%s::%s::%s' % (designation, parentsystem.designation, domain)
+        if hasattr(parentsystem, "uniqueid"):
+            return getattr(parentsystem, "uniqueid") + "::" + designation
+        return "%s::%s::%s" % (designation, parentsystem.designation, domain)
 
     @staticmethod
     def childfactory(parentsystem, childtype, designation, jsonobj, roles=None, domain=None):
         """We construct an appropriate ChildSystem subclass object - or find it in the database"""
         store = parentsystem.association.store
-        if childtype == 'docker':
+        if childtype == "docker":
             cls = DockerSystem
-        elif childtype == 'vagrant':
+        elif childtype == "vagrant":
             cls = VagrantSystem
         else:
-            raise ValueError('Unknown ChildSystem type(%s)' % childtype)
+            raise ValueError("Unknown ChildSystem type(%s)" % childtype)
         uniqueid = ChildSystem.compute_uniqueid(designation, parentsystem, domain)
-        return store.load_or_create(cls, designation=designation, _selfjson=str(jsonobj),
-                                    _parentsystem=parentsystem, roles=roles, uniqueid=uniqueid)
+        return store.load_or_create(
+            cls,
+            designation=designation,
+            _selfjson=str(jsonobj),
+            _parentsystem=parentsystem,
+            roles=roles,
+            uniqueid=uniqueid,
+        )
 
     @classmethod
     def meta_key_attributes(cls):
         """Return our key attributes in order of significance"""
-        return ['uniqueid']
+        return ["uniqueid"]
 
 
 @registergraphclass
 class DockerSystem(ChildSystem):
     """A class representing a Docker container"""
-    DiscoveryPath='docker'
+
+    DiscoveryPath = "docker"
 
     def post_db_init(self):
         ChildSystem.post_db_init(self)
-        self.runas_user = 'nobody'
-        self.runas_group = 'docker'
+        self.runas_user = "nobody"
+        self.runas_group = "docker"
 
 
 @registergraphclass
 class VagrantSystem(ChildSystem):
     """A class representing a Vagrant VM"""
-    DiscoveryPath='vagrant'
+
+    DiscoveryPath = "vagrant"
 
     def post_db_init(self):
         ChildSystem.post_db_init(self)
-        if not hasattr(self, 'runas_user'):
+        if not hasattr(self, "runas_user"):
             jsonobj = pyConfigContext(self._selfjson)
-            self.runas_user = jsonobj['user']
-            self.runas_group = jsonobj['group']
+            self.runas_user = jsonobj["user"]
+            self.runas_group = jsonobj["group"]
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
+
     def maintest():
         """test main program"""
         return 0

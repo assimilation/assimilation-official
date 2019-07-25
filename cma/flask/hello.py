@@ -23,11 +23,12 @@
 # along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
 #
 #
-'''
+"""
 Prototype code for providing a REST interface for the Assimilation project.
-'''
+"""
 import sys
-sys.path.append('..')
+
+sys.path.append("..")
 from flask import Flask, request, Response
 from py2neo import neo4j
 from store import Store
@@ -35,34 +36,39 @@ from graphnodes import GraphNode
 from query import ClientQuery
 import cmainit
 from AssimCtypes import QUERYINSTALL_DIR
+
 # These next two imports are actually needed because they register
 # some types. But pylint doesn't know that.
 # pylint: disable=W0611
 from droneinfo import Drone
 from hbring import HbRing
+
 allqueries = {}
 
 app = Flask(__name__)
 
-@app.route('/')
+
+@app.route("/")
 def hello_world():
-    'Dummy code for printing hello world on the root (/) page'
-    return 'Hello World! %s' % str(request.args)
+    "Dummy code for printing hello world on the root (/) page"
+    return "Hello World! %s" % str(request.args)
 
-@app.route('/querymeta/<queryname>')
+
+@app.route("/querymeta/<queryname>")
 def query_meta(queryname):
-    '''Dummy code for returning the metadata for a particular query
-    - that doesn't do anything yet.'''
-    return 'Hello Query Metadata "%s"!'  % queryname
+    """Dummy code for returning the metadata for a particular query
+    - that doesn't do anything yet."""
+    return 'Hello Query Metadata "%s"!' % queryname
 
-@app.route('/doquery/<queryname>')
+
+@app.route("/doquery/<queryname>")
 def doquery(queryname):
-    '''Prototype code for executing a particular query.
+    """Prototype code for executing a particular query.
     The error cases are detected, but not handled correctly yet.
     They all return apparent success, just no JSON.
-    '''
+    """
     if queryname not in allqueries:
-        return 'No such query: %s' % queryname
+        return "No such query: %s" % queryname
     query = allqueries[queryname]
     try:
         req = {}
@@ -71,13 +77,17 @@ def doquery(queryname):
             req[arg] = str(argdict[arg][0])
         query.validate_parameters(req)
     except ValueError as e:
-        return 'Invalid Parameters to %s [%s]' % (queryname, str(e))
-    return Response(query.execute(None, idsonly=False, expandjson=True, maxjson=1024, **req)
-    ,               mimetype='application/javascript')
+        return "Invalid Parameters to %s [%s]" % (queryname, str(e))
+    return Response(
+        query.execute(None, idsonly=False, expandjson=True, maxjson=1024, **req),
+        mimetype="application/javascript",
+    )
 
-if __name__ == '__main__':
-    def setup(dbhost='localhost', dbport=7474, dburl=None, querypath=None):
-        '''
+
+if __name__ == "__main__":
+
+    def setup(dbhost="localhost", dbport=7474, dburl=None, querypath=None):
+        """
         Program to set up for running our REST server.
         We do these things:
             - Attach to the database
@@ -90,9 +100,9 @@ if __name__ == '__main__':
                 REST server, so fixing them just by restarting the REST server seems
                 to make a lot of sense (at the moment)
             - Remember the set of queries in the 'allqueries' hash table
-        '''
+        """
         if dburl is None:
-            dburl = ('http://%s:%d/db/data/' % (dbhost, dbport))
+            dburl = "http://%s:%d/db/data/" % (dbhost, dbport)
         print('CREATING Graph("%s")' % dburl, file=sys.stderr)
         neodb = neo4j.Graph(dburl)
         qstore = Store(neodb, None, None)
@@ -106,9 +116,9 @@ if __name__ == '__main__':
         qstore.commit()
         for q in allqueries:
             allqueries[q].bind_store(qstore)
-        #queryquery = 'START q1=node:ClientQuery({queryname}) RETURN q1 LIMIT 1'
-        #print 'Neodb =', neodb
-        #print 'qstore =', qstore
+        # queryquery = 'START q1=node:ClientQuery({queryname}) RETURN q1 LIMIT 1'
+        # print 'Neodb =', neodb
+        # print 'qstore =', qstore
 
     cmainit.CMAinit(io=None, readonly=True, use_network=False)
     setup(querypath=QUERYINSTALL_DIR)

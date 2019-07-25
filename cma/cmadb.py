@@ -19,9 +19,9 @@
 #  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
 #
 #
-'''
+"""
 This module defines our CMAdb class and so on...
-'''
+"""
 from __future__ import print_function
 import os
 import sys
@@ -37,18 +37,19 @@ DEBUG = False
 # pylint: disable=R0903
 class CMAdb(object):
     """Class defining our Neo4J database."""
+
     nodename = os.uname()[1]
     debug = False
     net_transaction = None
     log = None
     store = None
     config = {}
-    globaldomain = 'global'
+    globaldomain = "global"
     underdocker = None
     # versions we know we can't work with...
-    neo4jblacklist = ['2.0.0']
+    neo4jblacklist = ["2.0.0"]
 
-    @inject.params(db='py2neo.Graph', store='Store')
+    @inject.params(db="py2neo.Graph", store="Store")
     def __init__(self, db=None, store=None):
         self.db = db
         self.io = None
@@ -58,25 +59,31 @@ class CMAdb(object):
         vers = ""
         dot = ""
         for elem in self.dbversion:
-            if str(elem) == '':
+            if str(elem) == "":
                 continue
-            vers += '%s%s' % (dot, str(elem))
-            dot = '.'
+            vers += "%s%s" % (dot, str(elem))
+            dot = "."
         self.dbversstring = vers
-        if (self.dbversstring in CMAdb.neo4jblacklist
-                or self.dbversion[0] not in SUPPORTED_NEO4J_VERSIONS):
-            print("The Assimilation CMA isn't compatible with Neo4j version %s"
-                    %   self.dbversstring, file=stderr)
-            raise EnvironmentError('Neo4j version %s not supported' % self.dbversstring)
+        if (
+            self.dbversstring in CMAdb.neo4jblacklist
+            or self.dbversion[0] not in SUPPORTED_NEO4J_VERSIONS
+        ):
+            print(
+                "The Assimilation CMA isn't compatible with Neo4j version %s" % self.dbversstring,
+                file=stderr,
+            )
+            raise EnvironmentError("Neo4j version %s not supported" % self.dbversstring)
 
-        if db.dbms.config.get('cypher.forbid_shortestpath_common_nodes', True):
-            print('Neo4j must be configured with "cypher.forbid_shortestpath_common_nodes=false"',
-                    file=stderr)
+        if db.dbms.config.get("cypher.forbid_shortestpath_common_nodes", True):
+            print(
+                'Neo4j must be configured with "cypher.forbid_shortestpath_common_nodes=false"',
+                file=stderr,
+            )
             sys.exit(1)
 
         if CMAdb.debug:
-            CMAdb.log.debug('Neo4j version: %s' % str(self.dbversion))
-            print('HELP Neo4j version: %s' % str(self.dbversion), file=stderr)
+            CMAdb.log.debug("Neo4j version: %s" % str(self.dbversion))
+            print("HELP Neo4j version: %s" % str(self.dbversion), file=stderr)
 
     @staticmethod
     def running_under_docker():
@@ -84,17 +91,18 @@ class CMAdb(object):
         if CMAdb.underdocker is None:
             try:
                 initcmd = os.readlink("/proc/1/exe")
-                CMAdb.underdocker =  (os.path.basename(initcmd) != 'init')
+                CMAdb.underdocker = os.path.basename(initcmd) != "init"
             except OSError:
-                print('Assimilation needs to run --privileged under docker', file=stderr)
-                CMAdb.underdocker =  True
+                print("Assimilation needs to run --privileged under docker", file=stderr)
+                CMAdb.underdocker = True
         return CMAdb.underdocker
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # pylint: disable=C0413
     from cmainit import CMAinit, CMAInjectables
+
     inject.configure_once(CMAInjectables.test_config_injection)
-    print('Starting', file=stderr)
+    print("Starting", file=stderr)
     CMAinit(None, cleanoutdb=True, debug=True)
-    print('Init done', file=stderr)
+    print("Init done", file=stderr)

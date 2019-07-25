@@ -33,11 +33,26 @@ This is easy for us to do since we are using ctypes and ctypesgen anyway.
 
 from __future__ import print_function, absolute_import
 from ctypes import py_object, POINTER, CFUNCTYPE
-from AssimCtypes import \
-    G_IO_IN, G_IO_PRI, G_IO_ERR, G_IO_OUT, G_IO_HUP, \
-    g_main_loop_new, g_main_loop_run, g_main_loop_quit, g_main_context_default, \
-    assim_set_io_watch, g_source_remove, g_timeout_add, \
-    guint, gboolean, GIOChannel, GIOCondition, UNCHECKED, g_main_loop_unref
+from AssimCtypes import (
+    G_IO_IN,
+    G_IO_PRI,
+    G_IO_ERR,
+    G_IO_OUT,
+    G_IO_HUP,
+    g_main_loop_new,
+    g_main_loop_run,
+    g_main_loop_quit,
+    g_main_context_default,
+    assim_set_io_watch,
+    g_source_remove,
+    g_timeout_add,
+    guint,
+    gboolean,
+    GIOChannel,
+    GIOCondition,
+    UNCHECKED,
+    g_main_loop_unref,
+)
 
 IO_IN = G_IO_IN
 IO_PRI = G_IO_PRI
@@ -50,6 +65,7 @@ class MainLoop(object):
     """
     This class encapsulates the glib mainloop paradigm.
     """
+
     default = None
 
     def __init__(self):
@@ -83,6 +99,7 @@ g_timeout_add.argtypes = [guint, GSourceFunc, py_object]
 # pylint: disable=R0903
 class IOWatch(object):
     """This class encapsulates an I/O source based on the Glib g_io_add_watch"""
+
     save_callbacks = []
 
     def __init__(self, fileno, conditions, callback, otherobj=None):
@@ -115,6 +132,7 @@ class IOWatch(object):
 # pylint: disable=R0903
 class GMainTimeout(object):
     """This class encapsulates an timeout source based on the Glib g_timeout_add"""
+
     save_callbacks = []
 
     def __init__(self, interval, callback, otherobj=None):

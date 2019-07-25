@@ -34,39 +34,120 @@ import types
 from sys import stderr
 import gc
 import AssimCtypes
-from AssimCtypes import (POINTER, cast, addressof, pointer, string_at, create_string_buffer,
-    c_char_p, byref, memmove, c_int,
-    g_free, GSList, GDestroyNotify, g_slist_length, g_slist_next, struct__GSList,
+from AssimCtypes import (
+    POINTER,
+    cast,
+    addressof,
+    pointer,
+    string_at,
+    create_string_buffer,
+    c_char_p,
+    byref,
+    memmove,
+    c_int,
+    g_free,
+    GSList,
+    GDestroyNotify,
+    g_slist_length,
+    g_slist_next,
+    struct__GSList,
     g_slist_free,
     MALLOC,
     FRAMETYPE_SIG,
-    Frame, AssimObj, NetAddr, SeqnoFrame, ReliableUDP,
-    frame_new, addrframe_new,
-    nvpairframe_new, frameset_new, frameset_append_frame, frameset_prepend_frame,
-    seqnoframe_new, cstringframe_new, unknownframe_new,
-    ipportframe_netaddr_new, ipportframe_ipv4_new, ipportframe_ipv6_new,
-    frameset_construct_packet, frameset_get_flags, frameset_set_flags, frameset_clear_flags,
-    frameset_dump, frameset_sender_key_id, frameset_sender_identity,
-    LLDP_TLV_END, LLDP_TLV_CHID, LLDP_TLV_PID, LLDP_TLV_TTL, LLDP_TLV_PORT_DESCR,
-    LLDP_TLV_SYS_NAME, LLDP_TLV_SYS_DESCR, LLDP_TLV_SYS_CAPS, LLDP_TLV_MGMT_ADDR,
+    Frame,
+    AssimObj,
+    NetAddr,
+    SeqnoFrame,
+    ReliableUDP,
+    frame_new,
+    addrframe_new,
+    nvpairframe_new,
+    frameset_new,
+    frameset_append_frame,
+    frameset_prepend_frame,
+    seqnoframe_new,
+    cstringframe_new,
+    unknownframe_new,
+    ipportframe_netaddr_new,
+    ipportframe_ipv4_new,
+    ipportframe_ipv6_new,
+    frameset_construct_packet,
+    frameset_get_flags,
+    frameset_set_flags,
+    frameset_clear_flags,
+    frameset_dump,
+    frameset_sender_key_id,
+    frameset_sender_identity,
+    LLDP_TLV_END,
+    LLDP_TLV_CHID,
+    LLDP_TLV_PID,
+    LLDP_TLV_TTL,
+    LLDP_TLV_PORT_DESCR,
+    LLDP_TLV_SYS_NAME,
+    LLDP_TLV_SYS_DESCR,
+    LLDP_TLV_SYS_CAPS,
+    LLDP_TLV_MGMT_ADDR,
     LLDP_TLV_ORG_SPECIFIC,
-    LLDP_ORG802_1_VLAN_PVID, LLDP_ORG802_1_VLAN_PORTPROTO, LLDP_ORG802_1_VLAN_NAME,
-    LLDP_ORG802_1_VLAN_PROTOID, LLDP_ORG802_3_PHY_CONFIG, LLDP_ORG802_3_POWERVIAMDI,
-    LLDP_ORG802_3_LINKAGG, LLDP_ORG802_3_MTU,
-    LLDP_PIDTYPE_ALIAS, LLDP_PIDTYPE_IFNAME, LLDP_PIDTYPE_LOCAL, LLDP_CHIDTYPE_ALIAS,
-    LLDP_CHIDTYPE_IFNAME, LLDP_CHIDTYPE_LOCAL, LLDP_CHIDTYPE_MACADDR,
-    LLDP_CHIDTYPE_COMPONENT, LLDP_CHIDTYPE_NETADDR,
-    CDP_TLV_DEVID, CDP_TLV_ADDRESS, CDP_TLV_PORTID, CDP_TLV_CAPS, CDP_TLV_VERS, CDP_TLV_POWER,
-    CDP_TLV_PLATFORM, CDP_TLV_MTU, CDP_TLV_SYSTEM_NAME, CDP_TLV_MANAGEMENT_ADDR, CDP_TLV_DUPLEX,
-    CDP_TLV_LOCATION, CDP_TLV_EXT_PORTID, CDP_TLV_NATIVEVLAN, CDP_TLV_VLREPLY, CDP_TLV_VLQUERY,
-    CDP_TLV_VTPDOMAIN, CDP_TLV_TRUST_BITMAP, CDP_TLV_UNTRUSTED_COS, CDP_TLV_HELLO,
-    ADDR_FAMILY_IPV4, ADDR_FAMILY_IPV6, ADDR_FAMILY_802,
-    is_valid_lldp_packet, is_valid_cdp_packet,
-    netaddr_ipv4_new, netaddr_ipv6_new, netaddr_dns_new, netaddr_mac48_new, netaddr_mac64_new,
+    LLDP_ORG802_1_VLAN_PVID,
+    LLDP_ORG802_1_VLAN_PORTPROTO,
+    LLDP_ORG802_1_VLAN_NAME,
+    LLDP_ORG802_1_VLAN_PROTOID,
+    LLDP_ORG802_3_PHY_CONFIG,
+    LLDP_ORG802_3_POWERVIAMDI,
+    LLDP_ORG802_3_LINKAGG,
+    LLDP_ORG802_3_MTU,
+    LLDP_PIDTYPE_ALIAS,
+    LLDP_PIDTYPE_IFNAME,
+    LLDP_PIDTYPE_LOCAL,
+    LLDP_CHIDTYPE_ALIAS,
+    LLDP_CHIDTYPE_IFNAME,
+    LLDP_CHIDTYPE_LOCAL,
+    LLDP_CHIDTYPE_MACADDR,
+    LLDP_CHIDTYPE_COMPONENT,
+    LLDP_CHIDTYPE_NETADDR,
+    CDP_TLV_DEVID,
+    CDP_TLV_ADDRESS,
+    CDP_TLV_PORTID,
+    CDP_TLV_CAPS,
+    CDP_TLV_VERS,
+    CDP_TLV_POWER,
+    CDP_TLV_PLATFORM,
+    CDP_TLV_MTU,
+    CDP_TLV_SYSTEM_NAME,
+    CDP_TLV_MANAGEMENT_ADDR,
+    CDP_TLV_DUPLEX,
+    CDP_TLV_LOCATION,
+    CDP_TLV_EXT_PORTID,
+    CDP_TLV_NATIVEVLAN,
+    CDP_TLV_VLREPLY,
+    CDP_TLV_VLQUERY,
+    CDP_TLV_VTPDOMAIN,
+    CDP_TLV_TRUST_BITMAP,
+    CDP_TLV_UNTRUSTED_COS,
+    CDP_TLV_HELLO,
+    ADDR_FAMILY_IPV4,
+    ADDR_FAMILY_IPV6,
+    ADDR_FAMILY_802,
+    is_valid_lldp_packet,
+    is_valid_cdp_packet,
+    netaddr_ipv4_new,
+    netaddr_ipv6_new,
+    netaddr_dns_new,
+    netaddr_mac48_new,
+    netaddr_mac64_new,
     proj_class_classname,
-    assimobj_new, intframe_new, signframe_glib_new, packetdecoder_new, configcontext_new,
-    configcontext_new_JSON_string, netio_new, netioudp_new, reliableudp_new,
-    netio_is_dual_ipv4v6_stack, create_setconfig, create_sendexpecthb,
+    assimobj_new,
+    intframe_new,
+    signframe_glib_new,
+    packetdecoder_new,
+    configcontext_new,
+    configcontext_new_JSON_string,
+    netio_new,
+    netioudp_new,
+    reliableudp_new,
+    netio_is_dual_ipv4v6_stack,
+    create_setconfig,
+    create_sendexpecthb,
     get_lldptlv_type,
     get_lldptlv_len,
     get_lldptlv_body,
@@ -77,18 +158,47 @@ from AssimCtypes import (POINTER, cast, addressof, pointer, string_at, create_st
     get_cdptlv_body,
     get_cdptlv_first,
     get_cdptlv_next,
-    pcap_capture_iter_new, pcap_capture_iter_del, pcap_capture_iter_next,
-    tlv_get_guint8, tlv_get_guint16, tlv_get_guint24, tlv_get_guint32, tlv_get_guint64,
-    CFG_EEXIST, CFG_CFGCTX, CFG_STRING, CFG_NETADDR, CFG_FRAME, CFG_INT64, CFG_ARRAY,
-    CFG_FLOAT, CFG_BOOL, DEFAULT_FSP_QID, CFG_NULL, CMA_IDENTITY_NAME,
-    COMPRESS_ZLIB, FRAMETYPE_COMPRESS, compressframe_new_string,
-    cryptframe_associate_identity, cryptframe_set_dest_key_id, cryptframe_whois_key_id,
+    pcap_capture_iter_new,
+    pcap_capture_iter_del,
+    pcap_capture_iter_next,
+    tlv_get_guint8,
+    tlv_get_guint16,
+    tlv_get_guint24,
+    tlv_get_guint32,
+    tlv_get_guint64,
+    CFG_EEXIST,
+    CFG_CFGCTX,
+    CFG_STRING,
+    CFG_NETADDR,
+    CFG_FRAME,
+    CFG_INT64,
+    CFG_ARRAY,
+    CFG_FLOAT,
+    CFG_BOOL,
+    DEFAULT_FSP_QID,
+    CFG_NULL,
+    CMA_IDENTITY_NAME,
+    COMPRESS_ZLIB,
+    FRAMETYPE_COMPRESS,
+    compressframe_new_string,
+    cryptframe_associate_identity,
+    cryptframe_set_dest_key_id,
+    cryptframe_whois_key_id,
     cryptframe_get_dest_key_id,
-    cryptframe_new_by_destaddr, cryptframe_get_key_ids, cryptframe_set_signing_key_id,
-    cryptframe_private_key_by_id, cryptcurve25519_set_encryption_method,
-    cryptcurve25519_cache_all_keypairs, CMA_KEY_PREFIX, curve25519_key_id_to_filename,
-    cryptcurve25519_gen_persistent_keypair, cryptcurve25519_new, FRAMETYPE_CRYPTCURVE25519,
-    proj_class_live_object_count, proj_class_dump_live_objects)
+    cryptframe_new_by_destaddr,
+    cryptframe_get_key_ids,
+    cryptframe_set_signing_key_id,
+    cryptframe_private_key_by_id,
+    cryptcurve25519_set_encryption_method,
+    cryptcurve25519_cache_all_keypairs,
+    CMA_KEY_PREFIX,
+    curve25519_key_id_to_filename,
+    cryptcurve25519_gen_persistent_keypair,
+    cryptcurve25519_new,
+    FRAMETYPE_CRYPTCURVE25519,
+    proj_class_live_object_count,
+    proj_class_dump_live_objects,
+)
 from consts import CMAconsts
 from frameinfo import FrameTypes, FrameSetTypes
 
@@ -154,7 +264,7 @@ def CCunref(obj):
     """Unref an AssimObj object (or subclass)"""
     base = obj[0]
     # This 'hasattr' construct only works because we are the base C-class
-    while hasattr(base, 'baseclass'):
+    while hasattr(base, "baseclass"):
         base = base.baseclass
     base.unref(obj)
 
@@ -164,54 +274,54 @@ class pySwitchDiscovery(object):
     Class for interpreting switch discovery data via LLDP or CDP
     Currently LLDP is better implemented than CDP.
     """
+
     lldpnames = {
-        LLDP_TLV_END: ('END', True),
-        LLDP_TLV_CHID: ('ChassisId', True),
-        LLDP_TLV_PID: ('PortId', True),
-        LLDP_TLV_TTL: ('TTL', True),
-        LLDP_TLV_PORT_DESCR: ('PortDescription', False),
-        LLDP_TLV_SYS_NAME: ('SystemName', True),
-        LLDP_TLV_SYS_DESCR: ('SystemDescription', True),
-        LLDP_TLV_SYS_CAPS: ('SystemCapabilities', True),
-        LLDP_TLV_MGMT_ADDR: ('ManagementAddress', True),
-        LLDP_TLV_ORG_SPECIFIC: ('(OrgSpecific)', True),
+        LLDP_TLV_END: ("END", True),
+        LLDP_TLV_CHID: ("ChassisId", True),
+        LLDP_TLV_PID: ("PortId", True),
+        LLDP_TLV_TTL: ("TTL", True),
+        LLDP_TLV_PORT_DESCR: ("PortDescription", False),
+        LLDP_TLV_SYS_NAME: ("SystemName", True),
+        LLDP_TLV_SYS_DESCR: ("SystemDescription", True),
+        LLDP_TLV_SYS_CAPS: ("SystemCapabilities", True),
+        LLDP_TLV_MGMT_ADDR: ("ManagementAddress", True),
+        LLDP_TLV_ORG_SPECIFIC: ("(OrgSpecific)", True),
     }
     lldp802_1names = {
-        LLDP_ORG802_1_VLAN_PVID: ('VlanPvId', False),
-        LLDP_ORG802_1_VLAN_PORTPROTO: ('VlanPortProtocol', False),
-        LLDP_ORG802_1_VLAN_NAME: ('VlanName', False),
-        LLDP_ORG802_1_VLAN_PROTOID: ('VlanProtocolId', False),
+        LLDP_ORG802_1_VLAN_PVID: ("VlanPvId", False),
+        LLDP_ORG802_1_VLAN_PORTPROTO: ("VlanPortProtocol", False),
+        LLDP_ORG802_1_VLAN_NAME: ("VlanName", False),
+        LLDP_ORG802_1_VLAN_PROTOID: ("VlanProtocolId", False),
     }
     lldp802_3names = {
-        LLDP_ORG802_3_PHY_CONFIG: ('PhysicalConfiguration', False),
-        LLDP_ORG802_3_POWERVIAMDI: ('PowerViaMDI', False),
-        LLDP_ORG802_3_LINKAGG: ('LinkAggregation', False),
-
+        LLDP_ORG802_3_PHY_CONFIG: ("PhysicalConfiguration", False),
+        LLDP_ORG802_3_POWERVIAMDI: ("PowerViaMDI", False),
+        LLDP_ORG802_3_LINKAGG: ("LinkAggregation", False),
     }
 
     cdpnames = {
         # System-wide capabilities
-        CDP_TLV_DEVID: ('ChassisId', True),
-        CDP_TLV_CAPS: ('SystemCapabilities', True),
-        CDP_TLV_VERS: ('SystemVersion', True),
-        CDP_TLV_PLATFORM: ('SystemPlatform', True),
-        CDP_TLV_VTPDOMAIN: ('VLANManagementDomain', True),
-        CDP_TLV_ADDRESS: ('SystemAddress', True),
-        CDP_TLV_MANAGEMENT_ADDR: ('ManagementAddress', True),
-        CDP_TLV_SYSTEM_NAME: ('SystemName', True),
-        CDP_TLV_LOCATION: ('SystemDescription', True),
-        CDP_TLV_HELLO: ('CiscoHello', True),
+        CDP_TLV_DEVID: ("ChassisId", True),
+        CDP_TLV_CAPS: ("SystemCapabilities", True),
+        CDP_TLV_VERS: ("SystemVersion", True),
+        CDP_TLV_PLATFORM: ("SystemPlatform", True),
+        CDP_TLV_VTPDOMAIN: ("VLANManagementDomain", True),
+        CDP_TLV_ADDRESS: ("SystemAddress", True),
+        CDP_TLV_MANAGEMENT_ADDR: ("ManagementAddress", True),
+        CDP_TLV_SYSTEM_NAME: ("SystemName", True),
+        CDP_TLV_LOCATION: ("SystemDescription", True),
+        CDP_TLV_HELLO: ("CiscoHello", True),
         # Per-port capabilities follow
-        CDP_TLV_TRUST_BITMAP: ('CiscoTrustBitMap', False),
-        CDP_TLV_UNTRUSTED_COS: ('CiscoUnTrustedPortCOS', False),
-        CDP_TLV_NATIVEVLAN: ('VlanId', False),
-        CDP_TLV_VLQUERY: ('VlanQuery', False),
-        CDP_TLV_VLREPLY: ('VlanReply', False),
-        CDP_TLV_PORTID: ('PortId', False),
-        CDP_TLV_EXT_PORTID: ('PortDescription', False),
-        CDP_TLV_DUPLEX: ('duplex', False),
-        CDP_TLV_MTU: ('mtu', False),
-        CDP_TLV_POWER: ('PortPower', False),
+        CDP_TLV_TRUST_BITMAP: ("CiscoTrustBitMap", False),
+        CDP_TLV_UNTRUSTED_COS: ("CiscoUnTrustedPortCOS", False),
+        CDP_TLV_NATIVEVLAN: ("VlanId", False),
+        CDP_TLV_VLQUERY: ("VlanQuery", False),
+        CDP_TLV_VLREPLY: ("VlanReply", False),
+        CDP_TLV_PORTID: ("PortId", False),
+        CDP_TLV_EXT_PORTID: ("PortDescription", False),
+        CDP_TLV_DUPLEX: ("duplex", False),
+        CDP_TLV_MTU: ("mtu", False),
+        CDP_TLV_POWER: ("PortPower", False),
     }
 
     def __init__(self):
@@ -219,23 +329,23 @@ class pySwitchDiscovery(object):
 
     @staticmethod
     def _byte0(pktstart):
-        'Return the first (zeroth) byte from a memory blob'
+        "Return the first (zeroth) byte from a memory blob"
         return int(cast(pktstart, cClass.guint8)[0])
 
     @staticmethod
     def _byte1addr(pktstart):
-        'Return the address of byte 1 in a memory blob'
+        "Return the address of byte 1 in a memory blob"
         addr = addressof(pktstart.contents) + 1
         return pointer(type(pktstart.contents).from_address(addr))
 
     @staticmethod
     def _byteN(pktstart, n):
-        'Return the Nth byte from a memory blob'
+        "Return the Nth byte from a memory blob"
         return int(cast(pktstart, cClass.guint8)[n])
 
     @staticmethod
     def _byteNaddr(pktstart, n):
-        'Return the address of the Nth byte in a memory blob'
+        "Return the address of the Nth byte in a memory blob"
         addr = addressof(pktstart.contents) + n
         return pointer(type(pktstart.contents).from_address(addr))
 
@@ -264,26 +374,32 @@ class pySwitchDiscovery(object):
 
     @staticmethod
     def decode_discovery(host, interface, instance, wallclock, pktstart, pktend):
-        'Return a JSON packet corresponding to the given switch discovery packet'
+        "Return a JSON packet corresponding to the given switch discovery packet"
 
         if is_valid_lldp_packet(pktstart, pktend):
             # print('>>>>>>>>>>>>>>>LLDP PACKET', file=stderr)
-            return pySwitchDiscovery._decode_lldp(host, interface, instance,
-                                                  wallclock, pktstart, pktend)
+            return pySwitchDiscovery._decode_lldp(
+                host, interface, instance, wallclock, pktstart, pktend
+            )
 
         if is_valid_cdp_packet(pktstart, pktend):
             # print('>>>>>>>>>>>>>>>CDP PACKET', file=stderr)
-            return pySwitchDiscovery._decode_cdp(host, interface, instance,
-                                                 wallclock, pktstart, pktend)
-        raise ValueError('Malformed Switch Discovery Packet')
+            return pySwitchDiscovery._decode_cdp(
+                host, interface, instance, wallclock, pktstart, pktend
+            )
+        raise ValueError("Malformed Switch Discovery Packet")
 
     @staticmethod
     def _decode_lldp_chid(tlvptr, tlvlen):
-        'Decode the LLDP CHID field, and return an appropriate value'
+        "Decode the LLDP CHID field, and return an appropriate value"
         chidtype = pySwitchDiscovery._byte0(tlvptr)
 
-        if (chidtype == LLDP_CHIDTYPE_COMPONENT or chidtype == LLDP_CHIDTYPE_ALIAS
-                or chidtype == LLDP_CHIDTYPE_IFNAME or chidtype == LLDP_CHIDTYPE_LOCAL):
+        if (
+            chidtype == LLDP_CHIDTYPE_COMPONENT
+            or chidtype == LLDP_CHIDTYPE_ALIAS
+            or chidtype == LLDP_CHIDTYPE_IFNAME
+            or chidtype == LLDP_CHIDTYPE_LOCAL
+        ):
             sloc = pySwitchDiscovery._byte1addr(tlvptr)
             return string_at(sloc, tlvlen - 1)
         elif chidtype == LLDP_CHIDTYPE_MACADDR:
@@ -305,31 +421,31 @@ class pySwitchDiscovery(object):
     def _decode_lldp(host, interface, instance, wallclock, pktstart, pktend):
         """Decode LLDP packet into a JSON discovery packet"""
         # print('DECODING LLDP PACKET!<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<', file=stderr)
-        thisportinfo = pyConfigContext(init={
-            'ConnectsToHost': host,
-            'ConnectsToInterface': interface,
-        }
+        thisportinfo = pyConfigContext(
+            init={"ConnectsToHost": host, "ConnectsToInterface": interface}
         )
-        switchinfo = pyConfigContext(init={'ports': pyConfigContext()})
-        metadata = pyConfigContext(init={
-            'discovertype': '__LinkDiscovery',
-            'description': 'Link Level Switch Discovery (lldp)',
-            'source': '_decode_lldp()',
-            'host': host,
-            'instance': instance,
-            'localtime': str(wallclock),
-            'data': switchinfo,
-        }
+        switchinfo = pyConfigContext(init={"ports": pyConfigContext()})
+        metadata = pyConfigContext(
+            init={
+                "discovertype": "__LinkDiscovery",
+                "description": "Link Level Switch Discovery (lldp)",
+                "source": "_decode_lldp()",
+                "host": host,
+                "instance": instance,
+                "localtime": str(wallclock),
+                "data": switchinfo,
+            }
         )
-        capnames = [None,
-                    CMAconsts.ROLE_repeater,
-                    CMAconsts.ROLE_bridge,
-                    CMAconsts.ROLE_AccessPoint,
-                    CMAconsts.ROLE_router,
-                    CMAconsts.ROLE_phone,
-                    CMAconsts.ROLE_DOCSIS,
-                    CMAconsts.ROLE_Station
-                    ]
+        capnames = [
+            None,
+            CMAconsts.ROLE_repeater,
+            CMAconsts.ROLE_bridge,
+            CMAconsts.ROLE_AccessPoint,
+            CMAconsts.ROLE_router,
+            CMAconsts.ROLE_phone,
+            CMAconsts.ROLE_DOCSIS,
+            CMAconsts.ROLE_Station,
+        ]
 
         sourcemacptr = pySwitchDiscovery._byteNaddr(cast(pktstart, cClass.guint8), 6)
         if not sourcemacptr:
@@ -337,8 +453,7 @@ class pySwitchDiscovery(object):
         Cmacaddr = netaddr_mac48_new(sourcemacptr)
         sourcemac = pyNetAddr(None, Cstruct=Cmacaddr)
 
-        this = cast(get_lldptlv_first(pktstart, pktend),
-                    cClass.guint8)
+        this = cast(get_lldptlv_first(pktstart, pktend), cClass.guint8)
         while this:
             tlvtype = get_lldptlv_type(this, pktend)
             tlvlen = get_lldptlv_len(this, pktend)
@@ -346,19 +461,25 @@ class pySwitchDiscovery(object):
             # print("EXAMINE:", tlvptr, tlvtype, tlvlen, file=stderr)
             value = None
             if tlvtype not in pySwitchDiscovery.lldpnames:
-                print('Cannot find tlvtype %d' % tlvtype, file=stderr)
+                print("Cannot find tlvtype %d" % tlvtype, file=stderr)
                 tlvtype = None
             else:
                 (tlvname, isswitchinfo) = pySwitchDiscovery.lldpnames[tlvtype]
 
-            if (tlvtype == LLDP_TLV_PORT_DESCR or tlvtype == LLDP_TLV_SYS_NAME or
-                    tlvtype == LLDP_TLV_SYS_DESCR):  #########################################
+            if (
+                tlvtype == LLDP_TLV_PORT_DESCR
+                or tlvtype == LLDP_TLV_SYS_NAME
+                or tlvtype == LLDP_TLV_SYS_DESCR
+            ):  #########################################
                 value = string_at(tlvptr, tlvlen)
 
             elif tlvtype == LLDP_TLV_PID:  ###############################################
                 pidtype = pySwitchDiscovery._byte0(tlvptr)
-                if (pidtype == LLDP_PIDTYPE_ALIAS or pidtype == LLDP_PIDTYPE_IFNAME
-                        or pidtype == LLDP_PIDTYPE_LOCAL):
+                if (
+                    pidtype == LLDP_PIDTYPE_ALIAS
+                    or pidtype == LLDP_PIDTYPE_IFNAME
+                    or pidtype == LLDP_PIDTYPE_LOCAL
+                ):
                     sloc = pySwitchDiscovery._byte1addr(tlvptr)
                     value = string_at(sloc, tlvlen - 1)
 
@@ -375,25 +496,26 @@ class pySwitchDiscovery(object):
                 byte1 = pySwitchDiscovery._byteN(tlvptr, 1)
                 byte2 = pySwitchDiscovery._byteN(tlvptr, 2)
                 byte3 = pySwitchDiscovery._byteN(tlvptr, 3)
-                caps0 = (byte0 << 8 | byte1)
-                caps1 = (byte2 << 8 | byte3)
+                caps0 = byte0 << 8 | byte1
+                caps1 = byte2 << 8 | byte3
                 # The values we assign here have many possibilities
                 # pylint: disable=R0204
                 value = pyConfigContext()
                 mask = 2
                 for j in range(1, 7):
                     if caps0 & mask:
-                        value[capnames[j]] = ((caps1 & mask) != 0)
+                        value[capnames[j]] = (caps1 & mask) != 0
                     mask <<= 1
 
             elif tlvtype == LLDP_TLV_ORG_SPECIFIC:  ######################################
-                pySwitchDiscovery._decode_lldp_org_specific(switchinfo, thisportinfo,
-                                                            tlvptr, tlvlen, pktend)
+                pySwitchDiscovery._decode_lldp_org_specific(
+                    switchinfo, thisportinfo, tlvptr, tlvlen, pktend
+                )
 
             if value is not None:
                 if tlvtype == LLDP_TLV_PID:
-                    switchinfo['ports'][value] = thisportinfo
-                    thisportinfo['PortId'] = value
+                    switchinfo["ports"][value] = thisportinfo
+                    thisportinfo["PortId"] = value
                     numericpart = value
                     while len(numericpart) > 0 and not numericpart.isdigit():
                         numericpart = numericpart[1:]
@@ -404,9 +526,8 @@ class pySwitchDiscovery(object):
                         switchinfo[tlvname] = value
                     else:
                         thisportinfo[tlvname] = value
-            this = cast(get_lldptlv_next(this, pktend),
-                        cClass.guint8)
-        thisportinfo['sourceMAC'] = sourcemac
+            this = cast(get_lldptlv_next(this, pktend), cClass.guint8)
+        thisportinfo["sourceMAC"] = sourcemac
         return metadata
 
     @staticmethod
@@ -414,7 +535,7 @@ class pySwitchDiscovery(object):
         """Dump out data from a given C-style address"""
         dump = "%s: DUMP (%d bytes):" % (prefix, tlvlen)
         for offset in range(0, tlvlen):
-            dump += ' %02x' % pySwitchDiscovery._byteN(tlvstart, offset)
+            dump += " %02x" % pySwitchDiscovery._byteN(tlvstart, offset)
         print(dump, file=stderr)
 
     @staticmethod
@@ -423,24 +544,32 @@ class pySwitchDiscovery(object):
         oui = tlv_get_guint24(tlvptr, pktend)
         # print ('ORG_OUI: 0x%06x' % oui, file=stderr)
         tlv3ptr = pySwitchDiscovery._byteNaddr(tlvptr, 3)
-        if oui == 0x0080c2:
-            pySwitchDiscovery._decode_lldp_802_1(switchinfo, thisportinfo,
-                                                 tlv3ptr, tlvlen - 3, pktend)
-        elif oui == 0x00120f:
-            pySwitchDiscovery._decode_lldp_802_3(switchinfo, thisportinfo,
-                                                 tlv3ptr, tlvlen - 3, pktend)
-        elif oui == 0x0012bb:
-            pySwitchDiscovery._decode_lldp_med(switchinfo, thisportinfo,
-                                               tlv3ptr, tlvlen - 3, pktend)
-        elif oui == 0x00ceff:
-            pySwitchDiscovery._decode_lldp_profibus(switchinfo, thisportinfo,
-                                                    tlv3ptr, tlvlen - 3, pktend)
-        elif oui == 0x00cecf:
-            pySwitchDiscovery._decode_lldp_hytec(switchinfo, thisportinfo,
-                                                 tlv3ptr, tlvlen - 3, pktend)
+        if oui == 0x0080C2:
+            pySwitchDiscovery._decode_lldp_802_1(
+                switchinfo, thisportinfo, tlv3ptr, tlvlen - 3, pktend
+            )
+        elif oui == 0x00120F:
+            pySwitchDiscovery._decode_lldp_802_3(
+                switchinfo, thisportinfo, tlv3ptr, tlvlen - 3, pktend
+            )
+        elif oui == 0x0012BB:
+            pySwitchDiscovery._decode_lldp_med(
+                switchinfo, thisportinfo, tlv3ptr, tlvlen - 3, pktend
+            )
+        elif oui == 0x00CEFF:
+            pySwitchDiscovery._decode_lldp_profibus(
+                switchinfo, thisportinfo, tlv3ptr, tlvlen - 3, pktend
+            )
+        elif oui == 0x00CECF:
+            pySwitchDiscovery._decode_lldp_hytec(
+                switchinfo, thisportinfo, tlv3ptr, tlvlen - 3, pktend
+            )
         else:
-            print('Ignored %d bytes of unknown LLDP org-specific extensions. OUI: %06x.'
-                  % (tlvlen, oui), file=stderr)
+            print(
+                "Ignored %d bytes of unknown LLDP org-specific extensions. OUI: %06x."
+                % (tlvlen, oui),
+                file=stderr,
+            )
 
     @staticmethod
     def _decode_lldp_802_1(_switchinfo, thisportinfo, tlvptr, tlvlen, pktend):
@@ -448,43 +577,50 @@ class pySwitchDiscovery(object):
         subtype = pySwitchDiscovery._byte0(tlvptr)
         tlvstart = pySwitchDiscovery._byte1addr(tlvptr)
         if subtype == 1:
-            thisportinfo['pvid'] = tlv_get_guint16(tlvstart, pktend)
+            thisportinfo["pvid"] = tlv_get_guint16(tlvstart, pktend)
         elif subtype == 2:
             ppstatus = pySwitchDiscovery._byte0(tlvstart)
-            thisportinfo['pp_vlan_capable'] = ((ppstatus & 2) == 2)
-            thisportinfo['pp_vlan_enabled'] = ((ppstatus & 4) == 4)
-            thisportinfo['ppvid'] = tlv_get_guint16(
-                pySwitchDiscovery._byte1addr(tlvstart), pktend)
+            thisportinfo["pp_vlan_capable"] = (ppstatus & 2) == 2
+            thisportinfo["pp_vlan_enabled"] = (ppstatus & 4) == 4
+            thisportinfo["ppvid"] = tlv_get_guint16(pySwitchDiscovery._byte1addr(tlvstart), pktend)
         elif subtype == 3:
             vlannameaddr = pySwitchDiscovery._byteNaddr(tlvptr, 3)
             namelen = pySwitchDiscovery._byte0(vlannameaddr)
             if namelen != tlvlen - 4:
-                print('F.4: invalid name length %s out of total of %s'
-                      % (namelen, tlvlen), file=stderr)
-                pySwitchDiscovery._dump_c_bytes('PACKET:', tlvptr, tlvlen)
+                print(
+                    "F.4: invalid name length %s out of total of %s" % (namelen, tlvlen),
+                    file=stderr,
+                )
+                pySwitchDiscovery._dump_c_bytes("PACKET:", tlvptr, tlvlen)
             else:
-                thisportinfo['vid'] = tlv_get_guint16(tlvstart, pktend)
-                thisportinfo['vlan_name'] = string_at(pySwitchDiscovery._byte1addr(vlannameaddr),
-                                                      namelen).strip()
+                thisportinfo["vid"] = tlv_get_guint16(tlvstart, pktend)
+                thisportinfo["vlan_name"] = string_at(
+                    pySwitchDiscovery._byte1addr(vlannameaddr), namelen
+                ).strip()
         else:
-            print('Ignored %d bytes of LLDP 802.1 extensions (Annex F, subtype %d).'
-                  % (tlvlen, subtype), file=stderr)
+            print(
+                "Ignored %d bytes of LLDP 802.1 extensions (Annex F, subtype %d)."
+                % (tlvlen, subtype),
+                file=stderr,
+            )
 
     @staticmethod
     def _decode_lldp_802_3(switchinfo, thisportinfo, tlvptr, tlvlen, pktend):
         """Decode 802.3 LLDP org-specific TLV sets (or not...)"""
         subtype = pySwitchDiscovery._byte0(tlvptr)
         if subtype == 1:
-            pySwitchDiscovery._decode_lldp_802_3_mac_phy(switchinfo, thisportinfo,
-                                                         pySwitchDiscovery._byte1addr(tlvptr),
-                                                         tlvlen - 1, pktend)
+            pySwitchDiscovery._decode_lldp_802_3_mac_phy(
+                switchinfo, thisportinfo, pySwitchDiscovery._byte1addr(tlvptr), tlvlen - 1, pktend
+            )
             return
         if subtype == LLDP_ORG802_3_MTU:  # G.5: Maximum Frame Size TLV (4)
             mtuaddr = pySwitchDiscovery._byte1addr(tlvptr)
-            thisportinfo['mtu'] = tlv_get_guint16(mtuaddr, pktend)
+            thisportinfo["mtu"] = tlv_get_guint16(mtuaddr, pktend)
             return
-        print('Ignored %d bytes of LLDP 802.3 extensions (Annex G, subtype %d).'
-              % (tlvlen, subtype), file=stderr)
+        print(
+            "Ignored %d bytes of LLDP 802.3 extensions (Annex G, subtype %d)." % (tlvlen, subtype),
+            file=stderr,
+        )
 
     @staticmethod
     def dot3MauTypes(mautype):
@@ -494,73 +630,60 @@ class pySwitchDiscovery(object):
         This is my take on that information.
         """
         mautypes = {
-            1: {'speed': 10, 'duplex': 'half', 'media': 'thick coax'},
-            2: {'speed': 10, 'duplex': 'half', 'media': 'FOIRL'},
-            3: {'speed': 10, 'duplex': 'half', 'media': 'thick coax'},
-            4: {'speed': 10, 'duplex': 'half', 'media': 'thin coax'},
-            5: {'speed': 10, 'media': 'UTP'},
-
-            6: {'speed': 10, 'media': 'passive fiber'},
-            7: {'speed': 10, 'media': 'sync fiber'},
-            8: {'speed': 10, 'media': 'async fiber'},
-            9: {'speed': 10, 'media': 'broadband DTE'},
-            10: {'speed': 10, 'duplex': 'half', 'media': 'UTP'},
-
-            11: {'speed': 10, 'duplex': 'full', 'media': 'UTP'},
-            12: {'speed': 10, 'duplex': 'half', 'media': 'async fiber'},
-            13: {'speed': 10, 'duplex': 'full', 'media': 'async fiber'},
-            14: {'speed': 100, 'media': '4 pair category 3 UTP'},
-            15: {'speed': 100, 'duplex': 'half', 'media': '2 pair category 5 UTP'},
-
-            16: {'speed': 100, 'duplex': 'half', 'media': '2 pair category 5 UTP'},
-            17: {'speed': 100, 'duplex': 'half', 'media': 'X fiber over PMT'},
-            18: {'speed': 100, 'duplex': 'full', 'media': 'X fiber over PMT'},
-            19: {'speed': 100, 'duplex': 'half', 'media': '2 pair category 3 UTP'},
-            20: {'speed': 100, 'duplex': 'full', 'media': '2 pair category 3 UTP'},
-
-            21: {'speed': 1000, 'duplex': 'half', 'media': 'PCS/PMA, unknown PMD'},
-            22: {'speed': 1000, 'duplex': 'full', 'media': 'PCS/PMA, unknown PMD'},
-            23: {'speed': 1000, 'duplex': 'half', 'media':
-                'fiber over long-wavelength laser'},
-            24: {'speed': 1000, 'duplex': 'full', 'media':
-                'fiber over long-wavelength laser'},
-            25: {'speed': 1000, 'duplex': 'half', 'media':
-                'fiber over short-wavelength laser'},
-
-            26: {'speed': 1000, 'duplex': 'full', 'media':
-                'fiber over short-wavelength laser'},
-            27: {'speed': 1000, 'duplex': 'half', 'media':
-                'copper over 150-ohm balanced cable'},
-            28: {'speed': 1000, 'duplex': 'full', 'media':
-                'copper over 150-ohm balanced cable'},
-            29: {'speed': 1000, 'duplex': 'half', 'media': 'Four-pair Category 5 UTP'},
-            30: {'speed': 1000, 'duplex': 'full', 'media': 'Four-pair Category 5 UTP'},
-
-            31: {'speed': 10000, 'media': 'X PCS/PMA, unknown MD'},
-            32: {'speed': 10000, 'media': 'X fiber over WWDM optics'},
-            33: {'speed': 10000, 'media': 'R PCS/PMA, unknown PMD'},
-            34: {'speed': 10000, 'media': 'R fiber over 1550 nm optics'},
-            35: {'speed': 10000, 'media': 'R fiber over 1310 nm optics'},
-
-            36: {'speed': 10000, 'media': 'R fiber over 850 nm optics'},
-            37: {'speed': 10000, 'media': 'W PCS/PMA, unknown PMD'},
-            38: {'speed': 10000, 'media': 'W fiber over 1550 nm optics'},
-            39: {'speed': 10000, 'media': 'R fiber over 1310 nm optics'},
-            40: {'speed': 10000, 'media': 'R fiber over 850 nm optics'},
+            1: {"speed": 10, "duplex": "half", "media": "thick coax"},
+            2: {"speed": 10, "duplex": "half", "media": "FOIRL"},
+            3: {"speed": 10, "duplex": "half", "media": "thick coax"},
+            4: {"speed": 10, "duplex": "half", "media": "thin coax"},
+            5: {"speed": 10, "media": "UTP"},
+            6: {"speed": 10, "media": "passive fiber"},
+            7: {"speed": 10, "media": "sync fiber"},
+            8: {"speed": 10, "media": "async fiber"},
+            9: {"speed": 10, "media": "broadband DTE"},
+            10: {"speed": 10, "duplex": "half", "media": "UTP"},
+            11: {"speed": 10, "duplex": "full", "media": "UTP"},
+            12: {"speed": 10, "duplex": "half", "media": "async fiber"},
+            13: {"speed": 10, "duplex": "full", "media": "async fiber"},
+            14: {"speed": 100, "media": "4 pair category 3 UTP"},
+            15: {"speed": 100, "duplex": "half", "media": "2 pair category 5 UTP"},
+            16: {"speed": 100, "duplex": "half", "media": "2 pair category 5 UTP"},
+            17: {"speed": 100, "duplex": "half", "media": "X fiber over PMT"},
+            18: {"speed": 100, "duplex": "full", "media": "X fiber over PMT"},
+            19: {"speed": 100, "duplex": "half", "media": "2 pair category 3 UTP"},
+            20: {"speed": 100, "duplex": "full", "media": "2 pair category 3 UTP"},
+            21: {"speed": 1000, "duplex": "half", "media": "PCS/PMA, unknown PMD"},
+            22: {"speed": 1000, "duplex": "full", "media": "PCS/PMA, unknown PMD"},
+            23: {"speed": 1000, "duplex": "half", "media": "fiber over long-wavelength laser"},
+            24: {"speed": 1000, "duplex": "full", "media": "fiber over long-wavelength laser"},
+            25: {"speed": 1000, "duplex": "half", "media": "fiber over short-wavelength laser"},
+            26: {"speed": 1000, "duplex": "full", "media": "fiber over short-wavelength laser"},
+            27: {"speed": 1000, "duplex": "half", "media": "copper over 150-ohm balanced cable"},
+            28: {"speed": 1000, "duplex": "full", "media": "copper over 150-ohm balanced cable"},
+            29: {"speed": 1000, "duplex": "half", "media": "Four-pair Category 5 UTP"},
+            30: {"speed": 1000, "duplex": "full", "media": "Four-pair Category 5 UTP"},
+            31: {"speed": 10000, "media": "X PCS/PMA, unknown MD"},
+            32: {"speed": 10000, "media": "X fiber over WWDM optics"},
+            33: {"speed": 10000, "media": "R PCS/PMA, unknown PMD"},
+            34: {"speed": 10000, "media": "R fiber over 1550 nm optics"},
+            35: {"speed": 10000, "media": "R fiber over 1310 nm optics"},
+            36: {"speed": 10000, "media": "R fiber over 850 nm optics"},
+            37: {"speed": 10000, "media": "W PCS/PMA, unknown PMD"},
+            38: {"speed": 10000, "media": "W fiber over 1550 nm optics"},
+            39: {"speed": 10000, "media": "R fiber over 1310 nm optics"},
+            40: {"speed": 10000, "media": "R fiber over 850 nm optics"},
         }
         return mautypes[mautype] if mautype in mautypes else {}
 
     @staticmethod
-    def _decode_lldp_802_3_mac_phy(_switchinfo, thisportinfo,
-                                   tlvptr, tlvlen, pktend):
+    def _decode_lldp_802_3_mac_phy(_switchinfo, thisportinfo, tlvptr, tlvlen, pktend):
         """Decode 802.3 MAC/PHY TLV org-specific TLV (or not...)"""
         if tlvlen != 5:
-            print('Invalid %d byte LLDP 802.3 MAC/PHY information (Annex G.2).'
-                  % tlvlen, file=stderr)
+            print(
+                "Invalid %d byte LLDP 802.3 MAC/PHY information (Annex G.2)." % tlvlen, file=stderr
+            )
             return
         autoneg_status = pySwitchDiscovery._byte0(tlvptr)
-        thisportinfo['autoneg_supported'] = (autoneg_status & 0x01) == 0x01
-        thisportinfo['autoneg_enabled'] = (autoneg_status & 0x10) == 0x10
+        thisportinfo["autoneg_supported"] = (autoneg_status & 0x01) == 0x01
+        thisportinfo["autoneg_enabled"] = (autoneg_status & 0x10) == 0x10
         # @TODO: Need to add info about autonegotiation speeds/duplexes supported (pmd_autoneg)
         # I'm ignoring the PMD_AUTONEG field because it's not horribly important
         # and it's incorrect on the switches in my test lab - and it's kinda
@@ -602,22 +725,24 @@ class pySwitchDiscovery(object):
         # The Civic Address location data format uses common street address format, as described
         # in RFC4776.
         if subtype == 5:
-            pySwitchDiscovery._get_med_string(switchinfo, 'hardware_revision', tlvptr, tlvlen)
+            pySwitchDiscovery._get_med_string(switchinfo, "hardware_revision", tlvptr, tlvlen)
         elif subtype == 6:
-            pySwitchDiscovery._get_med_string(switchinfo, 'firmware_revision', tlvptr, tlvlen)
+            pySwitchDiscovery._get_med_string(switchinfo, "firmware_revision", tlvptr, tlvlen)
         elif subtype == 7:
-            pySwitchDiscovery._get_med_string(switchinfo, 'software_revision', tlvptr, tlvlen)
+            pySwitchDiscovery._get_med_string(switchinfo, "software_revision", tlvptr, tlvlen)
         elif subtype == 8:
-            pySwitchDiscovery._get_med_string(switchinfo, 'serial_number', tlvptr, tlvlen)
+            pySwitchDiscovery._get_med_string(switchinfo, "serial_number", tlvptr, tlvlen)
         elif subtype == 9:
-            pySwitchDiscovery._get_med_string(switchinfo, 'manufacturer', tlvptr, tlvlen)
+            pySwitchDiscovery._get_med_string(switchinfo, "manufacturer", tlvptr, tlvlen)
         elif subtype == 10:
-            pySwitchDiscovery._get_med_string(switchinfo, 'model', tlvptr, tlvlen)
+            pySwitchDiscovery._get_med_string(switchinfo, "model", tlvptr, tlvlen)
         elif subtype == 11:
-            pySwitchDiscovery._get_med_string(switchinfo, 'asset_id', tlvptr, tlvlen)
+            pySwitchDiscovery._get_med_string(switchinfo, "asset_id", tlvptr, tlvlen)
         else:
-            print('Ignored %d bytes of LLDP-MED extensions (subtype %d).'
-                  % (tlvlen, subtype), file=stderr)
+            print(
+                "Ignored %d bytes of LLDP-MED extensions (subtype %d)." % (tlvlen, subtype),
+                file=stderr,
+            )
 
     @staticmethod
     def _get_med_string(info, name, tlvptr, tlvlen):
@@ -628,31 +753,30 @@ class pySwitchDiscovery(object):
     @staticmethod
     def _decode_lldp_profibus(_switchinfo, _thisportinfo, _tlvptr, tlvlen, _pktend):
         """Decode LLDP Profibus org-specific TLV (or not...)"""
-        print('Ignored %d bytes of Profibus International LLDP extensions.' % tlvlen, file=stderr)
+        print("Ignored %d bytes of Profibus International LLDP extensions." % tlvlen, file=stderr)
 
     @staticmethod
     def _decode_lldp_hytec(_switchinfo, _thisportinfo, _tlvptr, tlvlen, _pktend):
         """Decode LLDP Hytec org-specific TLV (or not...)"""
-        print('Ignored %d bytes of Hytec Geraetebau GmbH LLDP extensions.' % tlvlen, file=stderr)
+        print("Ignored %d bytes of Hytec Geraetebau GmbH LLDP extensions." % tlvlen, file=stderr)
 
     @staticmethod
     def _decode_cdp(host, interface, instance, wallclock, pktstart, pktend):
-        'Decode CDP packet into a JSON discovery packet'
-        thisportinfo = pyConfigContext(init={
-            'ConnectsToHost': host,
-            'ConnectsToInterface': interface,
-        }
+        "Decode CDP packet into a JSON discovery packet"
+        thisportinfo = pyConfigContext(
+            init={"ConnectsToHost": host, "ConnectsToInterface": interface}
         )
-        switchinfo = pyConfigContext(init={'ports': pyConfigContext()})
-        metadata = pyConfigContext(init={
-            'discovertype': '__LinkDiscovery',
-            'description': 'Link Level Switch Discovery (cdp)',
-            'source': '_decode_cdp()',
-            'host': host,
-            'instance': instance,
-            'localtime': str(wallclock),
-            'data': switchinfo,
-        }
+        switchinfo = pyConfigContext(init={"ports": pyConfigContext()})
+        metadata = pyConfigContext(
+            init={
+                "discovertype": "__LinkDiscovery",
+                "description": "Link Level Switch Discovery (cdp)",
+                "source": "_decode_cdp()",
+                "host": host,
+                "instance": instance,
+                "localtime": str(wallclock),
+                "data": switchinfo,
+            }
         )
         sourcemacptr = pySwitchDiscovery._byteNaddr(cast(pktstart, cClass.guint8), 6)
         if not sourcemacptr:
@@ -669,7 +793,7 @@ class pySwitchDiscovery(object):
             # Each of the different cases handles 'value' differently
             # pylint: disable=R0204
             if tlvtype not in pySwitchDiscovery.cdpnames:
-                tlvname = ('TLV_0x%02x' % tlvtype)
+                tlvname = "TLV_0x%02x" % tlvtype
                 isswitchinfo = True  # Gotta do _something_...
             else:
                 (tlvname, isswitchinfo) = pySwitchDiscovery.cdpnames[tlvtype]
@@ -707,25 +831,27 @@ class pySwitchDiscovery(object):
             elif tlvtype == CDP_TLV_UNTRUSTED_COS:
                 value = pySwitchDiscovery._byte0(tlvptr)
             elif tlvtype == CDP_TLV_DUPLEX:
-                value = 'half' if pySwitchDiscovery._byte0(tlvptr) == 0 else 'full'
+                value = "half" if pySwitchDiscovery._byte0(tlvptr) == 0 else "full"
             elif tlvtype == CDP_TLV_LOCATION:
                 value = string_at(tlvptr, tlvlen - 4)
             elif tlvtype == CDP_TLV_EXT_PORTID:
                 value = string_at(tlvptr, tlvlen - 4)
             else:
-                value = '0x'
+                value = "0x"
                 for offset in range(0, tlvlen):
-                    value += ('%02x' % pySwitchDiscovery._byteN(tlvptr, offset))
+                    value += "%02x" % pySwitchDiscovery._byteN(tlvptr, offset)
                 # print('Ignoring CDP field %s: %s' % (tlvname, value), file=stderr)
                 value = None
 
             if value is None:
-                print('Ignored %d bytes for %s field [0x%02x]'
-                      % (tlvlen, tlvname, tlvtype), file=stderr)
+                print(
+                    "Ignored %d bytes for %s field [0x%02x]" % (tlvlen, tlvname, tlvtype),
+                    file=stderr,
+                )
             else:
                 if tlvtype == CDP_TLV_PORTID:
-                    switchinfo['ports'][value] = thisportinfo
-                    thisportinfo['PortId'] = value
+                    switchinfo["ports"][value] = thisportinfo
+                    thisportinfo["PortId"] = value
                     numericpart = value
                     while len(numericpart) > 0 and not numericpart.isdigit():
                         numericpart = numericpart[1:]
@@ -738,7 +864,7 @@ class pySwitchDiscovery(object):
                         thisportinfo[tlvname] = value
                 # print(('TLVNAME[%s] %s has value "%s" -- len: %d', file=stderr)
                 # %   (tlvtype, tlvname, value, len(str(value))))
-        thisportinfo['sourceMAC'] = sourcemac
+        thisportinfo["sourceMAC"] = sourcemac
         return metadata
 
     @staticmethod
@@ -760,14 +886,15 @@ class pySwitchDiscovery(object):
     @staticmethod
     def construct_cdp_caps(capval):
         """Construct Capability value from the CDP capability integer"""
-        capnames = [CMAconsts.ROLE_router,
-                    CMAconsts.ROLE_tb_bridge,
-                    CMAconsts.ROLE_srcbridge,
-                    CMAconsts.ROLE_bridge,
-                    CMAconsts.ROLE_host,
-                    CMAconsts.ROLE_igmp,
-                    CMAconsts.ROLE_repeater
-                    ]
+        capnames = [
+            CMAconsts.ROLE_router,
+            CMAconsts.ROLE_tb_bridge,
+            CMAconsts.ROLE_srcbridge,
+            CMAconsts.ROLE_bridge,
+            CMAconsts.ROLE_host,
+            CMAconsts.ROLE_igmp,
+            CMAconsts.ROLE_repeater,
+        ]
         mask = 1
         value = []
         for j in range(0, len(capnames)):
@@ -809,8 +936,9 @@ class pySwitchDiscovery(object):
             addr = None
             if (offset + minlength) > tlvlen:
                 break
-            protolen = pySwitchDiscovery.getNint(pySwitchDiscovery._byteNaddr
-                                                 (cast(tlvstart, cClass.guint8), offset), 1, pktend)
+            protolen = pySwitchDiscovery.getNint(
+                pySwitchDiscovery._byteNaddr(cast(tlvstart, cClass.guint8), offset), 1, pktend
+            )
             offset += 2
             if protolen < 1:
                 break
@@ -820,25 +948,30 @@ class pySwitchDiscovery(object):
                 prototype = pySwitchDiscovery._byteN(tlvstart, offset + protolen - 1)
             elif protolen == 16:
                 prototype = pySwitchDiscovery.getNint(
-                    pySwitchDiscovery._byteNaddr(cast(tlvstart, cClass.guint8),
-                                                 offset + protolen - 2)
-                    , 2, pktend)
+                    pySwitchDiscovery._byteNaddr(
+                        cast(tlvstart, cClass.guint8), offset + protolen - 2
+                    ),
+                    2,
+                    pktend,
+                )
             else:
-                prototype = 0xdeadbeef
+                prototype = 0xDEADBEEF
             offset += protolen
             if offset > tlvlen:
                 break
-            addrlen = pySwitchDiscovery.getNint(pySwitchDiscovery._byteNaddr
-                                                (cast(tlvstart, cClass.guint8), offset), 2, pktend)
+            addrlen = pySwitchDiscovery.getNint(
+                pySwitchDiscovery._byteNaddr(cast(tlvstart, cClass.guint8), offset), 2, pktend
+            )
             if protolen == 1 and addrlen == 4 and prototype == 0xCC:
-                addrstr = ''
+                addrstr = ""
                 for j in (offset + 2, offset + 3, offset, offset + 1):
                     addrstr += chr(pySwitchDiscovery._byteN(tlvstart, j))
                 addr = netaddr_ipv4_new(c_char_p(addrstr), 0)
             elif protolen == 8 and addrlen == 16 and prototype == 0x86DD:
                 # protocol type == 0xAAAA0300000086DD
-                addr = netaddr_ipv6_new(pySwitchDiscovery._byteNaddr(cast(tlvstart, cClass.guint8)
-                                                                     , offset), 0)
+                addr = netaddr_ipv6_new(
+                    pySwitchDiscovery._byteNaddr(cast(tlvstart, cClass.guint8), offset), 0
+                )
             if addr is not None:
                 pyaddr = pyNetAddr(Cstruct=addr, addrstring=None)
                 retlist.append(pyaddr)
@@ -855,7 +988,7 @@ class pyAssimObj(object):
     """The base object for all the C-class objects"""
 
     def __init__(self, Cstruct=None):
-        'Create a base pyAssimObj object'
+        "Create a base pyAssimObj object"
         self._Cstruct = None
         if Cstruct is not None:
             assert not isinstance(Cstruct, int)
@@ -869,7 +1002,7 @@ class pyAssimObj(object):
         return proj_class_classname(self._Cstruct)
 
     def __str__(self):
-        'Convert this AssimObj into a printable string'
+        "Convert this AssimObj into a printable string"
         if not self._Cstruct:
             return "[None]"
         base = self._Cstruct[0]
@@ -882,7 +1015,7 @@ class pyAssimObj(object):
 
     # pylint: disable=W0603
     def __del__(self):
-        'Free up the underlying Cstruct for this pyAssimObj object.'
+        "Free up the underlying Cstruct for this pyAssimObj object."
         if not self._Cstruct or self._Cstruct is None:
             return
         global badfree
@@ -897,7 +1030,7 @@ class pyAssimObj(object):
     def refcount(self):
         """Return the reference count for this object"""
         base = self._Cstruct[0]
-        while hasattr(base, 'baseclass'):
+        while hasattr(base, "baseclass"):
             base = base.baseclass
         return base._refcount
 
@@ -970,7 +1103,7 @@ class pyNetAddr(pyAssimObj):
             assert port == 0
             NA = netaddr_mac64_new(addr, port)
         else:
-            raise ValueError('Invalid address length - not 4, 6, 8, or 16')
+            raise ValueError("Invalid address length - not 4, 6, 8, or 16")
         pyAssimObj.__init__(self, Cstruct=cast(NA, cClass.NetAddr))
 
     def port(self):
@@ -1028,8 +1161,8 @@ class pyNetAddr(pyAssimObj):
 
     def toIPv6(self, port=None):
         """Return an equivalent IPv6 address to the one that was given. Guaranteed to be a copy"""
-        if str(self) == '127.0.0.1':  # FIXME: Fix C code to not do this, and us to not rely on it!
-            return pyNetAddr('::ffff:127.0.0.1')
+        if str(self) == "127.0.0.1":  # FIXME: Fix C code to not do this, and us to not rely on it!
+            return pyNetAddr("::ffff:127.0.0.1")
         base = self._Cstruct[0]
         while not_this_exact_type(base, NetAddr):
             base = base.baseclass
@@ -1044,7 +1177,7 @@ class pyNetAddr(pyAssimObj):
             base = base.baseclass
         newcs = cast(base.toIPv4(self._Cstruct), cClass.NetAddr)
         if not newcs:
-            raise ValueError('Could not be converted to IPv4: %s' % (str(self)))
+            raise ValueError("Could not be converted to IPv4: %s" % (str(self)))
         return pyNetAddr(None, Cstruct=newcs, port=port)
 
     def __repr__(self):
@@ -1060,7 +1193,7 @@ class pyNetAddr(pyAssimObj):
 
     def __eq__(self, other):
         """Return True if the two pyNetAddrs are equal"""
-        if not hasattr(other, '_Cstruct') or not other._Cstruct or not self._Cstruct:
+        if not hasattr(other, "_Cstruct") or not other._Cstruct or not self._Cstruct:
             return False
         base = self._Cstruct[0]
         while not_this_exact_type(base, NetAddr):
@@ -1091,18 +1224,18 @@ class pyFrame(pyAssimObj):
     """
 
     #
-    #	Our subclasses need to implement these methods:
-    #		__init__ - subclass initializer
-    #		from_Cstruct classmethod - call the corresponding xxxframe_tlvconstructor() function
-    #			to act as a pseudo-constructor.  This method/constructor is used to create
-    #			Python objects from incoming packet data.
+    # 	Our subclasses need to implement these methods:
+    # 		__init__ - subclass initializer
+    # 		from_Cstruct classmethod - call the corresponding xxxframe_tlvconstructor() function
+    # 			to act as a pseudo-constructor.  This method/constructor is used to create
+    # 			Python objects from incoming packet data.
     #
     def __init__(self, initval, Cstruct=None):
         """Initializer for the pyFrame object."""
         if Cstruct is None:
             try:
                 frametype = initval.tlvtype
-            except(AttributeError):
+            except (AttributeError):
                 frametype = int(initval)
             # If we don't do this, then a subclass __init__ function must do it instead...
             pyAssimObj.__init__(self, Cstruct=cast(frame_new(frametype, 0), cClass.Frame))
@@ -1152,7 +1285,7 @@ class pyFrame(pyAssimObj):
         #        pstart = pointer(cast(base.value, c_char_p))
         #        if pstart[0] is None:
         #            return False
-        return (int(base.isvalid(self._Cstruct, None, None)) != 0)
+        return int(base.isvalid(self._Cstruct, None, None)) != 0
 
     def setvalue(self, value):
         """Assign a chunk of memory to the Value portion of this Frame"""
@@ -1191,7 +1324,7 @@ class pyFrame(pyAssimObj):
         cstringret = cast(base.toString(self._Cstruct), c_char_p)
         ret = string_at(cstringret)
         g_free(cstringret)
-        return '%s: %s' % (FrameTypes.get(self.frametype())[1], ret)
+        return "%s: %s" % (FrameTypes.get(self.frametype())[1], ret)
 
     @staticmethod
     def Cstruct2Frame(frameptr):
@@ -1201,15 +1334,24 @@ class pyFrame(pyAssimObj):
         frametype = frameptr[0].type
         Cclassname = proj_class_classname(frameptr)
         pyclassname = "py" + Cclassname
-        if Cclassname == 'NetAddr':
-            statement = ("%s(%d, None, Cstruct=cast(frameptr, cClass.%s))"
-                         % (pyclassname, frametype, Cclassname))
-        elif Cclassname == Cclassname == 'IpPortFrame':
-            statement = ("%s(%d, None, None, Cstruct=cast(frameptr, cClass.%s))"
-                        % (pyclassname, frametype, Cclassname))
+        if Cclassname == "NetAddr":
+            statement = "%s(%d, None, Cstruct=cast(frameptr, cClass.%s))" % (
+                pyclassname,
+                frametype,
+                Cclassname,
+            )
+        elif Cclassname == Cclassname == "IpPortFrame":
+            statement = "%s(%d, None, None, Cstruct=cast(frameptr, cClass.%s))" % (
+                pyclassname,
+                frametype,
+                Cclassname,
+            )
         else:
-            statement = ("%s(%d, Cstruct=cast(frameptr, cClass.%s))"
-                         % (pyclassname, frametype, Cclassname))
+            statement = "%s(%d, Cstruct=cast(frameptr, cClass.%s))" % (
+                pyclassname,
+                frametype,
+                Cclassname,
+            )
         # print("EVAL:", statement, file=stderr)
         # We construct the string from our data, so it's trusted data...
         # pylint: disable=W0123
@@ -1222,8 +1364,9 @@ class pyCompressFrame(pyFrame):
     what kind of compression we want in our communication stream.
     """
 
-    def __init__(self, frametype=FRAMETYPE_COMPRESS, compression_method=COMPRESS_ZLIB
-                 , Cstruct=None):
+    def __init__(
+        self, frametype=FRAMETYPE_COMPRESS, compression_method=COMPRESS_ZLIB, Cstruct=None
+    ):
         self._Cstruct = None  # Keep error legs from complaining.
         if Cstruct is None:
             Cstruct = compressframe_new_string(frametype, compression_method)
@@ -1253,8 +1396,9 @@ class pyAddrFrame(pyFrame):
             assert addrstring is None
             # Allow for prefixed address type - two bytes
             addrlen = Cstruct[0].baseclass.length - 2
-            assert (addrlen == 4 or addrlen == 6 or addrlen == 8 or addrlen == 16,
-                    ("addrlen is %d" % addrlen))
+            assert addrlen == 4 or addrlen == 6 or addrlen == 8 or addrlen == 16, (
+                "addrlen is %d" % addrlen
+            )
             addrstr = Cstruct[0].baseclass.value + 2
             addrstring = create_string_buffer(addrlen)
             memmove(addrstring, addrstr, addrlen)
@@ -1270,8 +1414,7 @@ class pyAddrFrame(pyFrame):
         return self._pyNetAddr
 
     def __str__(self):
-        return ("pyAddrFrame(%s, (%s))"
-                % (FrameTypes.get(self.frametype())[1], str(self._pyNetAddr)))
+        return "pyAddrFrame(%s, (%s))" % (FrameTypes.get(self.frametype())[1], str(self._pyNetAddr))
 
 
 class pyIpPortFrame(pyFrame):
@@ -1319,7 +1462,7 @@ class pyIpPortFrame(pyFrame):
         elif addrlen == 16:
             Cstruct = ipportframe_ipv6_new(frametype, port, addrstr)
         else:
-            raise ValueError('Bad address length: %d' % addrlen)
+            raise ValueError("Bad address length: %d" % addrlen)
         self.port = port
         if port == 0:
             raise ValueError("zero port")
@@ -1358,7 +1501,7 @@ class pyCstringFrame(pyFrame):
     def getstr(self):
         """Return the String part of this pyCstringFrame"""
         base = self._Cstruct[0]
-        while not hasattr(base, 'value'):
+        while not hasattr(base, "value"):
             base = base.baseclass
         return string_at(base.value)
 
@@ -1388,7 +1531,7 @@ class pyIntFrame(pyFrame):
 
     def __str__(self):
         """Return a string representation of this pyIntFrame (the integer value)."""
-        return ("pyIntFrame(%s, (%d))" % (FrameTypes.get(self.frametype())[1], int(self)))
+        return "pyIntFrame(%s, (%d))" % (FrameTypes.get(self.frametype())[1], int(self))
 
     def getint(self):
         """Return the integer value of this pyIntFrame - same as __int__."""
@@ -1420,7 +1563,7 @@ class pySeqnoFrame(pyFrame):
     """Class for a Sequence Number Frame - for reliable UDP packet transmission."""
 
     def __init__(self, frametype, initval=None, Cstruct=None):
-        'Initializer for pySeqnoFrame'
+        "Initializer for pySeqnoFrame"
         self._Cstruct = None
         # TODO(?): Need to allow for initialization of seqno frames.
         if Cstruct is None:
@@ -1457,8 +1600,11 @@ class pySeqnoFrame(pyFrame):
 
     def __str__(self):
         """Convert this pySeqnoFrame to a String"""
-        return ("pySeqNo(%s: (%d, %d))"
-                % (FrameTypes.get(self.frametype())[1], self.getqid(), self.getreqid()))
+        return "pySeqNo(%s: (%d, %d))" % (
+            FrameTypes.get(self.frametype())[1],
+            self.getqid(),
+            self.getreqid(),
+        )
 
 
 class pySignFrame(pyFrame):
@@ -1479,7 +1625,7 @@ class pyNVpairFrame(pyFrame):
     """Class for a Frame containing a single name/value pair"""
 
     def __init__(self, frametype, name, value, Cstruct=None):
-        'Initializer for pyNVpairFrame'
+        "Initializer for pyNVpairFrame"
         self._Cstruct = None
         if Cstruct is None:
             Cstruct = nvpairframe_new(frametype, name, value, 0)
@@ -1503,6 +1649,7 @@ class pyCryptFrame(pyFrame):
     The underlying C code then automatically creates the correct
     CryptFrame objects for outgoing packets.
     """
+
     NOTAKEY = AssimCtypes.NOTAKEY
     PUBLICKEY = AssimCtypes.PUBLICKEY
     PRIVATEKEY = AssimCtypes.PRIVATEKEY
@@ -1510,7 +1657,7 @@ class pyCryptFrame(pyFrame):
     def __init__(self, destaddr=None, Cstruct=None):
         self._Cstruct = None
         if Cstruct is None and destaddr is None:
-            raise ValueError('pyCryptFrame requires destaddr or Cstruct')
+            raise ValueError("pyCryptFrame requires destaddr or Cstruct")
         if Cstruct is None:
             Cstruct = cryptframe_new_by_destaddr(destaddr._Cstruct)
         pyFrame.__init__(self, None, Cstruct=Cstruct)
@@ -1584,7 +1731,7 @@ class pyCryptFrame(pyFrame):
         address (including port).
         """
         if not destaddr._Cstruct or key_id is None:
-            raise ValueError('illegal parameters')
+            raise ValueError("illegal parameters")
         if not cryptframe_set_dest_key_id(destaddr._Cstruct, str(key_id)):
             raise ValueError("Inappropriate key_id %s" % key_id)
 
@@ -1634,23 +1781,24 @@ class pyCryptCurve25519(pyCryptFrame):
         cryptcurve25519_cache_all_keypairs()
         cma_ids = sorted(pyCryptFrame.get_cma_key_ids())
         if len(cma_ids) == 0:
-            warnings.append('No CMA keys found. Generating two CMA key-pairs to start.')
+            warnings.append("No CMA keys found. Generating two CMA key-pairs to start.")
             for keyid in (0, 1):
                 print("Generating key id", keyid, file=stderr)
-                cryptcurve25519_gen_persistent_keypair('%s%05d' % (CMA_KEY_PREFIX, keyid))
+                cryptcurve25519_gen_persistent_keypair("%s%05d" % (CMA_KEY_PREFIX, keyid))
             cryptcurve25519_cache_all_keypairs()
             cma_ids = pyCryptFrame.get_cma_key_ids()
         elif len(cma_ids) == 1:
             lastkey = cma_ids[0]
-            lastseqno = int(lastkey[len(CMA_KEY_PREFIX):])
-            newkeyid = ('%s%05d' % (CMA_KEY_PREFIX, lastseqno + 1))
-            warnings.append('Generating an additional CMA key-pair.')
+            lastseqno = int(lastkey[len(CMA_KEY_PREFIX) :])
+            newkeyid = "%s%05d" % (CMA_KEY_PREFIX, lastseqno + 1)
+            warnings.append("Generating an additional CMA key-pair.")
             cryptcurve25519_gen_persistent_keypair(newkeyid)
             cryptcurve25519_cache_all_keypairs()
             cma_ids = pyCryptFrame.get_cma_key_ids()
         if len(cma_ids) != 2:
-            warnings.append('Unexpected number of CMA keys.  Expecting 2, but got %d.'
-                            % len(cma_ids))
+            warnings.append(
+                "Unexpected number of CMA keys.  Expecting 2, but got %d." % len(cma_ids)
+            )
         # We want to use the lowest-numbered private key we have access to.
         privatecount = 0
         extras = []
@@ -1664,15 +1812,17 @@ class pyCryptCurve25519(pyCryptFrame):
                 else:
                     extras.append(keyid)
         if privatecount < 1:
-            raise RuntimeError('FATAL: No CMA private keys to sign with!')
+            raise RuntimeError("FATAL: No CMA private keys to sign with!")
         if privatecount != 1:
-            warnings.append('Incorrect number of Private CMA keys.  Expecting 1, but got %d.'
-                            % len(cma_ids))
-            warnings.append('YOU MUST SECURELY HIDE all but one private CMA key.')
+            warnings.append(
+                "Incorrect number of Private CMA keys.  Expecting 1, but got %d." % len(cma_ids)
+            )
+            warnings.append("YOU MUST SECURELY HIDE all but one private CMA key.")
             for keyid in extras:
-                warnings.append('SECURELY HIDE *private* key %s'
-                                % pyCryptCurve25519.key_id_to_filename(keyid,
-                                                                       pyCryptFrame.PRIVATEKEY))
+                warnings.append(
+                    "SECURELY HIDE *private* key %s"
+                    % pyCryptCurve25519.key_id_to_filename(keyid, pyCryptFrame.PRIVATEKEY)
+                )
         cryptcurve25519_set_encryption_method()
         return warnings
 
@@ -1681,7 +1831,7 @@ class pyFrameSet(pyAssimObj):
     """Class for Frame Sets - for collections of Frames making up a logical packet"""
 
     def __init__(self, framesettype, Cstruct=None):
-        'Initializer for pyFrameSet'
+        "Initializer for pyFrameSet"
         if Cstruct is None:
             Cstruct = frameset_new(framesettype)
         pyAssimObj.__init__(self, Cstruct=Cstruct)
@@ -1779,17 +1929,22 @@ class pyFrameSet(pyAssimObj):
         raise NotImplementedError("FrameSet does not implement __setitem__()")
 
     def iter(self):
-        'Generator yielding the set of pyFrames in this pyFrameSet'
+        "Generator yielding the set of pyFrames in this pyFrameSet"
         curframe = self._Cstruct[0].framelist
         while curframe:
             cast(curframe[0].data, struct__GSList._fields_[0][1])
             yieldval = pyFrame.Cstruct2Frame(cast(curframe[0].data, cClass.Frame))
             # print(("Constructed frame IS [%s]" % str(yieldval)), file=stderr)
             if not yieldval.isvalid():
-                print("OOPS! Constructed %d byte frame from iter() is not valid [%s]"
-                      % (yieldval.framelen(), str(yieldval)), file=stderr)
-                raise ValueError("Constructed %d byte frame from iter() is not valid [%s]"
-                                 % (yieldval.framelen(), str(yieldval)))
+                print(
+                    "OOPS! Constructed %d byte frame from iter() is not valid [%s]"
+                    % (yieldval.framelen(), str(yieldval)),
+                    file=stderr,
+                )
+                raise ValueError(
+                    "Constructed %d byte frame from iter() is not valid [%s]"
+                    % (yieldval.framelen(), str(yieldval))
+                )
             # print "Yielding:", str(yieldval), "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<"
             yield yieldval
             curframe = g_slist_next(curframe)
@@ -1800,11 +1955,11 @@ class pyFrameSet(pyAssimObj):
 
     def __str__(self):
         """Convert this pyFrameSet to a String"""
-        result = '%s:{' % self.fstypestr()
-        comma = ''
+        result = "%s:{" % self.fstypestr()
+        comma = ""
         for frame in self.iter():
-            result += '%s[%d]%s' % (comma, frame.framelen(), str(frame))
-            comma = ', '
+            result += "%s[%d]%s" % (comma, frame.framelen(), str(frame))
+            comma = ", "
         result += "}"
         return result
 
@@ -1823,9 +1978,9 @@ class pyPacketDecoder(pyAssimObj):
         base = self._Cstruct[0]
         while not_this_exact_type(base, AssimCtypes.PacketDecoder):
             base = base.baseclass
-        fs_gslistint = base.pktdata_to_framesetlist(self._Cstruct,
-                                                    cast(pktlocation[0], cClass.guint8),
-                                                    cast(pktlocation[1], cClass.guint8))
+        fs_gslistint = base.pktdata_to_framesetlist(
+            self._Cstruct, cast(pktlocation[0], cClass.guint8), cast(pktlocation[1], cClass.guint8)
+        )
         return pyPacketDecoder.fslist_to_pyfs_array(fs_gslistint)
 
     @staticmethod
@@ -1849,19 +2004,19 @@ class pyConfigContext(pyAssimObj):
     """Class for Holding configuration information - now a general JSON-compatible data bag"""
 
     def __init__(self, init=None, filename=None, Cstruct=None):
-        'Initializer for pyConfigContext'
+        "Initializer for pyConfigContext"
         self._Cstruct = None  # Keep error legs from complaining.
         if not Cstruct:
             # Cstruct overrides init and filename
             if filename is not None:
-                f = open(filename, 'r')
+                f = open(filename, "r")
                 # filename overrides init
                 init = f.read()
                 f.close()
             if isinstance(init, six.string_types):
                 Cstruct = configcontext_new_JSON_string(str(init))
                 if not Cstruct:
-                    raise ValueError('Bad JSON [%s]' % str(init))
+                    raise ValueError("Bad JSON [%s]" % str(init))
                 init = None
             else:
                 Cstruct = configcontext_new(0)
@@ -1996,7 +2151,7 @@ class pyConfigContext(pyAssimObj):
         newobj = pyConfigContext()
         for key in list(dictval.keys()):
             keyval = dictval[key]
-            if hasattr(keyval, 'keys'):
+            if hasattr(keyval, "keys"):
                 keyval = pyConfigContext.from_dict(dictval[key])
             newobj[key] = dictval[key]
         return newobj
@@ -2042,19 +2197,19 @@ class pyConfigContext(pyAssimObj):
     def deepget(self, key, alternative=None):
         """return value if object contains the given *structured* key - 'alternative' if not"""
         try:
-            (prefix, suffix) = key.split('.', 1)
+            (prefix, suffix) = key.split(".", 1)
         except ValueError:
             suffix = None
             prefix = key
         if prefix not in self:
             # Note that very similar code exists in GraphNodes get member function
-            if not prefix.endswith(']'):
+            if not prefix.endswith("]"):
                 return alternative
             else:
                 # Looks like we have an array index
-                proper = prefix[0:len(prefix) - 1]
+                proper = prefix[0 : len(prefix) - 1]
                 try:
-                    (preprefix, idx) = proper.split('[', 1)
+                    (preprefix, idx) = proper.split("[", 1)
                 except ValueError:
                     return alternative
                 if preprefix not in self:
@@ -2137,7 +2292,7 @@ class pyConfigContext(pyAssimObj):
             return self.setconfig(name, value)
         if isinstance(value, dict):
             return self.setconfig(name, pyConfigContext(value))
-        if isinstance(value, (list, tuple)) or hasattr(value, '__iter__'):
+        if isinstance(value, (list, tuple)) or hasattr(value, "__iter__"):
             return self.setarray(name, value)
         if isinstance(value, float):
             return self.setfloat(name, value)
@@ -2199,11 +2354,12 @@ class pyConfigValue(pyAssimObj):
             return ret
         elif vtype == CFG_NULL:
             return None
-        raise ValueError('Invalid valtype (%s)in pyConfigValue object' % self._Cstruct.valtype)
+        raise ValueError("Invalid valtype (%s)in pyConfigValue object" % self._Cstruct.valtype)
 
 
 class pyNetIO(pyAssimObj):
     """A Network I/O object - with a variety of subclasses"""
+
     CONN_NONE = 0  # FSPR_NONE  -- Apparently ctypesgen doesn't do enum values...
     CONN_INIT = 1  # FSPR_INIT
     CONN_UP = 2  # FSPR_UP
@@ -2215,13 +2371,12 @@ class pyNetIO(pyAssimObj):
         """Initializer for pyNetIO"""
         self._Cstruct = None  # Keep error legs from complaining.
         if Cstruct is None:
-            Cstruct = cast(netio_new(0, configobj._Cstruct,
-                                     packetdecoder._Cstruct), cClass.NetIO)
+            Cstruct = cast(netio_new(0, configobj._Cstruct, packetdecoder._Cstruct), cClass.NetIO)
             self.config = configobj
         else:
             self._Cstruct = Cstruct
             base = self._Cstruct[0]
-            while not hasattr(base, '_configinfo'):
+            while not hasattr(base, "_configinfo"):
                 base = base.baseclass
             self.config = pyConfigContext(Cstruct=base._configinfo)
             CCref(base._configinfo)
@@ -2230,28 +2385,28 @@ class pyNetIO(pyAssimObj):
     def setblockio(self, mode):
         """Set this NetIO object to blocking IO mode"""
         base = self._Cstruct[0]
-        while not hasattr(base, 'setblockio'):
+        while not hasattr(base, "setblockio"):
             base = base.baseclass
         return base.setblockio(self._Cstruct, int(mode))
 
     def fileno(self):
         """Return the file descriptor for this pyNetIO object"""
         base = self._Cstruct[0]
-        while not hasattr(base, 'getfd'):
+        while not hasattr(base, "getfd"):
             base = base.baseclass
         return base.getfd(self._Cstruct)
 
     def bindaddr(self, addr, silent=False):
         """Bind the socket underneath this NetIO object to the given address"""
         base = self._Cstruct[0]
-        while not hasattr(base, 'bindaddr'):
+        while not hasattr(base, "bindaddr"):
             base = base.baseclass
         return base.bindaddr(self._Cstruct, addr._Cstruct, silent)
 
     def boundaddr(self):
         """Return the socket underlying this NetIO object"""
         base = self._Cstruct[0]
-        while not hasattr(base, 'bindaddr'):
+        while not hasattr(base, "bindaddr"):
             base = base.baseclass
         boundaddr = base.boundaddr(self._Cstruct)
         # We're creating a new reference to the pre-existing NetAddr
@@ -2262,49 +2417,49 @@ class pyNetIO(pyAssimObj):
     def getrcvbufsize(self):
         """Return the receive buffer size for this socket"""
         base = self._Cstruct[0]
-        while not hasattr(base, 'getsockbufsize'):
+        while not hasattr(base, "getsockbufsize"):
             base = base.baseclass
         return base.getsockbufsize(self._Cstruct, True)
 
     def setrcvbufsize(self, bufsize):
         """Set and return the receive buffer size for this socket"""
         base = self._Cstruct[0]
-        while not hasattr(base, 'setsockbufsize'):
+        while not hasattr(base, "setsockbufsize"):
             base = base.baseclass
         return base.setsockbufsize(self._Cstruct, True, bufsize)
 
     def getsendbufsize(self):
         """Return the output buffer size for this socket"""
         base = self._Cstruct[0]
-        while not hasattr(base, 'getsockbufsize'):
+        while not hasattr(base, "getsockbufsize"):
             base = base.baseclass
         return base.getsockbufsize(self._Cstruct, False)
 
     def setsendbufsize(self, bufsize):
         """Return the output buffer size for this socket"""
         base = self._Cstruct[0]
-        while not hasattr(base, 'setsockbufsize'):
+        while not hasattr(base, "setsockbufsize"):
             base = base.baseclass
         return base.setsockbufsize(self._Cstruct, False, bufsize)
 
     def mcastjoin(self, addr):
         """Join the underlying socket to the given multicast address"""
         base = self._Cstruct[0]
-        while not hasattr(base, 'mcastjoin'):
+        while not hasattr(base, "mcastjoin"):
             base = base.baseclass
         return base.mcastjoin(self._Cstruct, addr._Cstruct, None)
 
     def getmaxpktsize(self):
         """Return the max packet size for this pyNetIO"""
         base = self._Cstruct[0]
-        while not hasattr(base, 'getmaxpktsize'):
+        while not hasattr(base, "getmaxpktsize"):
             base = base.baseclass
         return base.getmaxpktsize(self._Cstruct)
 
     def setmaxpktsize(self, size):
         """Set the max packet size for this pyNetIO"""
         base = self._Cstruct[0]
-        while not hasattr(base, 'setmaxpktsize'):
+        while not hasattr(base, "setmaxpktsize"):
             base = base.baseclass
         return base.setmaxpktsize(self._Cstruct, int(size))
 
@@ -2312,14 +2467,14 @@ class pyNetIO(pyAssimObj):
         """Return the compression frame for this pyNetIO - may be None"""
         # Doesn't make a py class object out of it yet...
         base = self._Cstruct[0]
-        while not hasattr(base, 'compressframe'):
+        while not hasattr(base, "compressframe"):
             base = base.baseclass
         return base.compressframe(self._Cstruct)
 
     def signframe(self):
         """Return the digital signature frame for this pyNetIO"""
         base = self._Cstruct[0]
-        while not hasattr(base, 'signframe'):
+        while not hasattr(base, "signframe"):
             base = base.baseclass
         return pySignFrame(0, Cstruct=cast(base.signframe(self._Cstruct), cClass.SignFrame))
 
@@ -2344,7 +2499,7 @@ class pyNetIO(pyAssimObj):
         if not isinstance(framesetlist, collections.Sequence):
             framesetlist = (framesetlist,)
         base = self._Cstruct[0]
-        while not hasattr(base, 'sendaframeset'):
+        while not hasattr(base, "sendaframeset"):
             base = base.baseclass
         # We ought to eventually construct a GSList of them and then call sendframesets
         # But this is easy for now...
@@ -2358,13 +2513,15 @@ class pyNetIO(pyAssimObj):
         if not isinstance(framesetlist, collections.Sequence):
             framesetlist = (framesetlist,)
         base = self._Cstruct[0]
-        while not hasattr(base, 'sendaframeset'):
+        while not hasattr(base, "sendaframeset"):
             base = base.baseclass
         for frameset in framesetlist:
             success = base.sendareliablefs(
                 cast(self._Cstruct, cClass.NetIO),
                 cast(destaddr._Cstruct, cClass.NetAddr),
-                qid, frameset._Cstruct)
+                qid,
+                frameset._Cstruct,
+            )
             if not success:
                 raise IOError("sendareliablefs(%s, %s) failed." % (destaddr, frameset))
 
@@ -2372,33 +2529,33 @@ class pyNetIO(pyAssimObj):
         """ACK (acknowledge) this frameset - (presumably sent reliably)."""
 
         base = self._Cstruct[0]
-        while not hasattr(base, 'ackmessage'):
+        while not hasattr(base, "ackmessage"):
             base = base.baseclass
         base.ackmessage(self._Cstruct, destaddr._Cstruct, frameset._Cstruct)
 
     def closeconn(self, qid, destaddr):
         """Close (reset) our connection to this address"""
         base = self._Cstruct[0]
-        while not hasattr(base, 'closeconn'):
+        while not hasattr(base, "closeconn"):
             base = base.baseclass
-        print('RESETTING CONNECTION (closeconn) TO %s' % str(destaddr), file=stderr)
+        print("RESETTING CONNECTION (closeconn) TO %s" % str(destaddr), file=stderr)
         base.closeconn(self._Cstruct, qid, destaddr._Cstruct)
 
     def addalias(self, fromaddr, toaddr):
         """Close (reset) our connection to this address"""
 
         base = self._Cstruct[0]
-        while not hasattr(base, 'addalias'):
+        while not hasattr(base, "addalias"):
             base = base.baseclass
         base.addalias(self._Cstruct, fromaddr._Cstruct, toaddr._Cstruct)
 
     def recvframesets(self):
-        '''Receive a collection of framesets read from this pyNetIO - all from the same Address.
-         @return The return value is a tuple (address, framesetlist). '''
+        """Receive a collection of framesets read from this pyNetIO - all from the same Address.
+         @return The return value is a tuple (address, framesetlist). """
         # GSList * 	_netio_recvframesets (NetIO *self,NetAddr **src)
 
         base = self._Cstruct[0]
-        while not hasattr(base, 'recvframesets'):
+        while not hasattr(base, "recvframesets"):
             base = base.baseclass
         netaddrint = netaddr_ipv4_new(create_string_buffer(4), 101)
         netaddr = cast(netaddrint, cClass.NetAddr)
@@ -2470,8 +2627,7 @@ class CMAlib(object):
     @staticmethod
     def create_sendexpecthb(cfg, msgtype, address):
         """Create a Send/Expect heartbeat FrameSet"""
-        ucfs = create_sendexpecthb(cfg._Cstruct, int(msgtype)
-                                   , address._Cstruct, 1)
+        ucfs = create_sendexpecthb(cfg._Cstruct, int(msgtype), address._Cstruct, 1)
         fs = cast(ucfs, cClass.FrameSet)
         return pyFrameSet(None, Cstruct=fs)
 
@@ -2482,7 +2638,7 @@ class pyPcapCapture(object):
     def __init__(self, filename):
         self._Cstruct = pcap_capture_iter_new(filename)
         if not self._Cstruct:
-            raise ValueError('Invalid parameters to pyPcapCapture constructor')
+            raise ValueError("Invalid parameters to pyPcapCapture constructor")
         # I'm saving this here because for some unclear reason it goes to None...
         self.destructor = pcap_capture_iter_del
 
@@ -2505,48 +2661,56 @@ class pyPcapCapture(object):
 
 def dump_c_objects():
     """Dump out live objects to help locate memory leaks"""
-    print('GC Garbage: [%s]' % str(gc.garbage), file=stderr)
-    print('***************LOOKING FOR pyAssimObjs***********', file=stderr)
+    print("GC Garbage: [%s]" % str(gc.garbage), file=stderr)
+    print("***************LOOKING FOR pyAssimObjs***********", file=stderr)
     get_referrers = True
     cobjcount = 0
     gc.collect()
     for obj in gc.get_objects():
         if isinstance(obj, (pyAssimObj, pyCstringFrame)):
             cobjcount += 1
-            cobj = 'None'
-            if hasattr(obj, '_Cstruct') and obj._Cstruct is not None:
-                cobj = ('0x%x' % addressof(getattr(obj, '_Cstruct')[0]))
-            print('FOUND C object class(%s): %s -> %s'
-                  % (obj.__class__.__name__, str(obj)[:512], cobj), file=stderr)
+            cobj = "None"
+            if hasattr(obj, "_Cstruct") and obj._Cstruct is not None:
+                cobj = "0x%x" % addressof(getattr(obj, "_Cstruct")[0])
+            print(
+                "FOUND C object class(%s): %s -> %s"
+                % (obj.__class__.__name__, str(obj)[:512], cobj),
+                file=stderr,
+            )
             if get_referrers:
                 follow_referrer_back(obj)
 
-    print('%d python wrappers referring to %d C-objects'
-          % (cobjcount, proj_class_live_object_count()), file=stderr)
+    print(
+        "%d python wrappers referring to %d C-objects"
+        % (cobjcount, proj_class_live_object_count()),
+        file=stderr,
+    )
     proj_class_dump_live_objects()
 
 
 def follow_referrer_back(obj, level=0, maxlevel=4):
     """Follow and print object referrer chains back through "maxlevel" levels"""
-    print('++++%sREFERRERS' % (level * '**'), file=stderr)
+    print("++++%sREFERRERS" % (level * "**"), file=stderr)
     for referrer in gc.get_referrers(obj):
         if isinstance(referrer, (list, types.FrameType)):
             continue
-        print('++++%sReferred to by(%s): %s'
-              % (level * '**', type(referrer), str(referrer)[:512]), file=stderr)
+        print(
+            "++++%sReferred to by(%s): %s" % (level * "**", type(referrer), str(referrer)[:512]),
+            file=stderr,
+        )
         if level < maxlevel:
             follow_referrer_back(referrer, level + 1)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
+
     def test_pcap_captures():
         """Code to minimally exercise the pyPcapCapture class"""
-        for f in ('../pcap/cdp_v2.pcap', '../pcap/lldp.detailed.pcap'):
-            print('Capture file: %s' % f)
+        for f in ("../pcap/cdp_v2.pcap", "../pcap/lldp.detailed.pcap"):
+            print("Capture file: %s" % f)
             capture = pyPcapCapture(f)
             for results in capture:
                 (pkt, pktend, pktlen) = results
-                print('Pkt', pkt, 'pktend', pktend, 'pktlen', pktlen)
-
+                print("Pkt", pkt, "pktend", pktend, "pktlen", pktlen)
 
     test_pcap_captures()

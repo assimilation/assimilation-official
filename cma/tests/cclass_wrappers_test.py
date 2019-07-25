@@ -1186,7 +1186,7 @@ class TestpyNetIOudp(TestCase):
         for frame in flist:
             fs.append(frame)
         io = pyNetIOudp(pyConfigContext(init={"outsig": pySignFrame(1)}), pyPacketDecoder())
-        print('Binding to UDP address', anyaddr, file=stderr)
+        print("Binding to UDP address", anyaddr, file=stderr)
         assert io.bindaddr(anyaddr)
         io.sendframesets(
             home, fs

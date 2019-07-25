@@ -31,8 +31,8 @@ sys.path.insert(0, "../cma")
 sys.path.insert(0, "..")
 sys.path.insert(0, ".")
 sys.path.append("/usr/local/lib/python2.7/dist-packages")
-sys.path.extend(['.', '..', '../cma', "/usr/local/lib/python2.7/dist-packages"])
-print('SYS.PATH: %s' % sys.path)
+sys.path.extend([".", "..", "../cma", "/usr/local/lib/python2.7/dist-packages"])
+print("SYS.PATH: %s" % sys.path)
 from frameinfo import *
 from AssimCclasses import *
 from graphnodes import ProcessNode
@@ -40,9 +40,13 @@ from cmainit import CMAInjectables, CMAinit
 from cmadb import CMAdb
 from packetlistener import PacketListener
 from messagedispatcher import MessageDispatcher
-from dispatchtarget import DispatchSTARTUP, DispatchHBDEAD, DispatchJSDISCOVERY, \
-    DispatchSWDISCOVER, \
-    DispatchHBSHUTDOWN
+from dispatchtarget import (
+    DispatchSTARTUP,
+    DispatchHBDEAD,
+    DispatchJSDISCOVERY,
+    DispatchSWDISCOVER,
+    DispatchHBSHUTDOWN,
+)
 from hbring import HbRing
 from droneinfo import Drone
 from graphnodes import GraphNode, Subnet, IPaddrNode, NICNode
@@ -57,9 +61,9 @@ from store import Store
 
 stderr = sys.stderr
 
-_suites = ['all', 'cma']
+_suites = ["all", "cma"]
 
-os.environ['G_MESSAGES_DEBUG'] = 'all'
+os.environ["G_MESSAGES_DEBUG"] = "all"
 WorstDanglingCount = 0
 
 CheckForDanglingClasses = False
@@ -87,7 +91,7 @@ class TestFoo:
     WorstDanglingCount = 0
 
     @staticmethod
-    @inject.params(db='py2neo.Graph', log='logging.Logger', store='Store')
+    @inject.params(db="py2neo.Graph", log="logging.Logger", store="Store")
     def config_foo(db=None, log=None, store=None):
         # print "config_foo(%s, %s, %s)" % (db, log, store)
         # log.warning("config_foo(%s, %s, %s)" % (db, log, store))
@@ -99,9 +103,9 @@ class TestFoo:
     @staticmethod
     def new_transaction():
         """Doc string"""
-        if hasattr(TestFoo.store, 'db_transaction') and TestFoo.store.db_transaction is not None:
+        if hasattr(TestFoo.store, "db_transaction") and TestFoo.store.db_transaction is not None:
             if not TestFoo.store.db_transaction.finished:
-                print('COMMITTING PENDING TRANSACTION', file=stderr)
+                print("COMMITTING PENDING TRANSACTION", file=stderr)
                 TestFoo.store.db_transaction.commit()
         TestFoo.store.db_transaction = TestFoo.store.db.begin(autocommit=False)
 
@@ -132,19 +136,21 @@ if BuildListOnly:
     DEBUG = False
 
 t1 = MaxDrone
-if t1 < 1000: t1 = 1000
+if t1 < 1000:
+    t1 = 1000
 t2 = MaxDrone / 100
-if t2 < 10: t2 = 10
+if t2 < 10:
+    t2 = 10
 t3 = t2
 
 if not DoAudit:
-    print('WARNING: Audits suppressed.', file=stderr)
+    print("WARNING: Audits suppressed.", file=stderr)
 if not doHBDEAD:
-    print('WARNING: Server death tests disabled.', file=stderr)
+    print("WARNING: Server death tests disabled.", file=stderr)
 if not CheckForDanglingClasses:
-    print('WARNING: Memory Leak Detection disabled.', file=stderr)
+    print("WARNING: Memory Leak Detection disabled.", file=stderr)
 elif not AssertOnDanglingClasses:
-    print('WARNING: Memory Leak assertions disabled (detection still enabled).', file=stderr)
+    print("WARNING: Memory Leak assertions disabled (detection still enabled).", file=stderr)
 
 # gc.set_threshold(t1, t2, t3)
 
@@ -168,10 +174,10 @@ def assert_no_dangling_Cclasses(doassert=None):
     if count > WorstDanglingCount and CheckForDanglingClasses:
         WorstDanglingCount = count
         if doassert:
-            print('STARTING OBJECT DUMP', file=stderr)
+            print("STARTING OBJECT DUMP", file=stderr)
             dump_c_objects()
-            print('OBJECT DUMP COMPLETE', file=stderr)
-            print('stdout OBJECT DUMP COMPLETE')
+            print("OBJECT DUMP COMPLETE", file=stderr)
+            print("stdout OBJECT DUMP COMPLETE")
             raise AssertionError("Dangling C-class objects - %d still around" % count)
         else:
             print("*****ERROR: Dangling C-class objects - %d still around" % count, file=stderr)
@@ -194,12 +200,12 @@ class TestCase(object):
     def assertRaises(self, exception, function, *args):
         try:
             function(*args)
-            raise Exception('Did not raise exception %s: %s(%s)', exception, function, str(args))
+            raise Exception("Did not raise exception %s: %s(%s)", exception, function, str(args))
         except exception as e:
             return True
 
     def teardown_method(self, method):
-        print('%s::teardown_method' % str(method), file=stderr)
+        print("%s::teardown_method" % str(method), file=stderr)
         TestFoo.cleanstore()
         IOTestIO.shutdown()
         assert_no_dangling_Cclasses()
@@ -207,7 +213,7 @@ class TestCase(object):
 
 # Values to substitute into this string via '%' operator:
 # dronedesignation (%s) MAC address byte (%02x), MAC address byte (%02x), IP address (%s)
-netdiscoveryformat = '''
+netdiscoveryformat = """
 {
   "discovertype": "netconfig",
   "description": "IP Network Configuration",
@@ -236,7 +242,7 @@ netdiscoveryformat = '''
     }
   }
 }
-'''
+"""
 
 byte1 = 10
 byte2 = 20
@@ -250,7 +256,7 @@ def droneipaddress(hostnumber):
 
 
 def dronedesignation(hostnumber):
-    return 'drone%06d' % hostnumber
+    return "drone%06d" % hostnumber
 
 
 def hostdiscoveryinfo(hostnumber):
@@ -264,9 +270,9 @@ def hostdiscoveryinfo(hostnumber):
 
 def geninitconfig(ouraddr):
     configinfo = ConfigFile()
-    for j in ('cmainit', 'cmaaddr', 'cmadisc', 'cmafail'):
+    for j in ("cmainit", "cmaaddr", "cmadisc", "cmafail"):
         configinfo[j] = ouraddr
-    configinfo['outsig'] = pySignFrame(1)
+    configinfo["outsig"] = pySignFrame(1)
     return configinfo.complete_config()
 
 
@@ -284,21 +290,21 @@ class AUDITS(TestCase):
         ipaddrs = [pyNetAddr(str(ip.ipaddr)) for ip in ipnodes]
         ipnode = ipnodes[0]
         ipnodeaddr = pyNetAddr(ipnode.ipaddr)
-        json = drone['netconfig']
+        json = drone["netconfig"]
         jsobj = pyConfigContext(init=json)
-        jsdata = jsobj['data']
-        eth0obj = jsdata['eth0']
-        for eth0addrcidr in eth0obj['ipaddrs']:
-            eth0addr = pyNetAddr(eth0addrcidr.split('/')[0])
+        jsdata = jsobj["data"]
+        eth0obj = jsdata["eth0"]
+        for eth0addrcidr in eth0obj["ipaddrs"]:
+            eth0addr = pyNetAddr(eth0addrcidr.split("/")[0])
             self.assertTrue(eth0addr in ipaddrs)
 
         # Do we know that eth0 is the default gateway?
-        self.assertEqual(eth0obj['default_gw'], True)
+        self.assertEqual(eth0obj["default_gw"], True)
 
         # the JSON should have exactly 6 top-level keys
         self.assertEqual(len(jsobj.keys()), 6)
         # Was the JSON host name saved away correctly?
-        self.assertEqual(jsobj['host'], designation)
+        self.assertEqual(jsobj["host"], designation)
         assert drone.get_active_nic_count() == 1
 
     def auditSETCONFIG(self, packetreturn, droneid, configinit):
@@ -314,7 +320,7 @@ class AUDITS(TestCase):
         self.assertEqual(1, len(sentfs))  # Was it the right size?
 
     def auditaRing(self, ring):
-        'Verify that each ring has its neighbor pairs set up properly'
+        "Verify that each ring has its neighbor pairs set up properly"
         # Check that each element of the ring is connected to its neighbors...
         print("Ring %s" % (str(ring)), file=stderr)
         listmembers = {}
@@ -327,7 +333,7 @@ class AUDITS(TestCase):
         for drone in listmembers.keys():
             self.assertTrue(drone in ringmembers)
         for drone in ringmembers.keys():
-            print('RINGMEMBERS: %s: members:%s' % (str(drone), listmembers), file=stderr)
+            print("RINGMEMBERS: %s: members:%s" % (str(drone), listmembers), file=stderr)
             self.assertTrue(drone in listmembers)
 
 
@@ -346,7 +352,7 @@ def auditalldrones():
     for droneid in range(0, numdrones):
         droneid = int(droneobjs[droneid].designation[6:])
         audit.auditadrone(droneid)
-    queryobjs = CMAdb.store.load_cypher_nodes('''MATCH(n:Class_Drone) RETURN n''')
+    queryobjs = CMAdb.store.load_cypher_nodes("""MATCH(n:Class_Drone) RETURN n""")
     queryobjs = [drone for drone in queryobjs]
     dronetbl = {}
     for drone in droneobjs:
@@ -356,9 +362,9 @@ def auditalldrones():
         querytbl[drone.designation] = drone
     # Now compare them
     for drone in dronetbl:
-        assert (querytbl[drone] is dronetbl[drone])
+        assert querytbl[drone] is dronetbl[drone]
     for drone in querytbl:
-        assert (querytbl[drone] is dronetbl[drone])
+        assert querytbl[drone] is dronetbl[drone]
     # print 'DRONE3: CMADB', CMAdb
     # print 'DRONE3: CMADB.IO:', CMAdb.io
     # print 'DRONE3: CMADB.store', CMAdb.store
@@ -370,8 +376,8 @@ def auditallrings():
     # print 'AUDIT: CMADB.store', CMAdb.store
 
     if CMAdb.store is None:
-        print('SKIPPING RING AUDIT', file=stderr)
-        raise ValueError('STORE IS NONE')
+        print("SKIPPING RING AUDIT", file=stderr)
+        raise ValueError("STORE IS NONE")
     # print 'PERFORMING RING AUDIT'
     audit = AUDITS()
     for ring in CMAdb.store.load_cypher_nodes("MATCH (n:Class_HbRing) RETURN n"):
@@ -389,13 +395,16 @@ def audit_all_subnets():
     """
     query = "MATCH (subnet:Class_Subnet) RETURN DISTINCT subnet"
     all_subnets = [subnet for subnet in CMAdb.store.load_cypher_nodes(query)]
-    print('SUBNETS: %s' % str([str(subnet) for subnet in all_subnets]), file=stderr)
+    print("SUBNETS: %s" % str([str(subnet) for subnet in all_subnets]), file=stderr)
     names = {}
     for subnet in all_subnets:
         subnet_str = str(subnet)
         if subnet_str in names:
-            print("ERROR: Subnet [%s][%d] duplicates node %d"
-                  % (subnet_str, subnet.association.node_id, names[subnet]), file=stderr)
+            print(
+                "ERROR: Subnet [%s][%d] duplicates node %d"
+                % (subnet_str, subnet.association.node_id, names[subnet]),
+                file=stderr,
+            )
         else:
             names[subnet_str] = subnet.association.node_id
 
@@ -406,17 +415,17 @@ def audit_all_subnets():
     pass
 
 
-ASSIMCLI = 'assimcli'
+ASSIMCLI = "assimcli"
 inityet = False
 
 
 def assimcli_check(command, expectedcount=None):
-    'This code only works if you have assimcli installed'
+    "This code only works if you have assimcli installed"
     return 0
-    cmd = '%s %s' % (ASSIMCLI, command)
+    cmd = "%s %s" % (ASSIMCLI, command)
     # print('RUNNING COMMAND: %s' % str(command), file=stderr)
     if expectedcount is None:
-        subprocess.check_call(('sh', '-c', cmd))
+        subprocess.check_call(("sh", "-c", cmd))
     else:
         linecount = 0
         fd = os.popen(cmd)
@@ -426,10 +435,11 @@ def assimcli_check(command, expectedcount=None):
             linecount += 1
         rc = fd.close()
         if expectedcount != linecount:
-            print('Rerunning query [%s]:' % cmd, file=stderr)
-            subprocess.check_call(('sh', '-c', cmd))
-            raise RuntimeError('%s command produced %s lines instead of %s'
-                               % (cmd, linecount, expectedcount))
+            print("Rerunning query [%s]:" % cmd, file=stderr)
+            subprocess.check_call(("sh", "-c", cmd))
+            raise RuntimeError(
+                "%s command produced %s lines instead of %s" % (cmd, linecount, expectedcount)
+            )
         assert rc is None or rc == 0
 
 
@@ -437,6 +447,7 @@ class IOTestIO:
     """A pyNetIOudp replacement for testing.  It is given a list of packets to be 'read'
     and in turn saves all the packets it 'writes' for us to inspect.
     """
+
     mainloop = None
     singleinstance = None
 
@@ -460,7 +471,7 @@ class IOTestIO:
         self.timeout = None
         self.config = ConfigFile().complete_config()
         (self.pipe_read, self.pipe_write) = os.pipe()
-        os.write(self.pipe_write, ' ')
+        os.write(self.pipe_write, " ")
         os.close(self.pipe_write)
         self.pipe_write = -1
         self.atend = False
@@ -482,8 +493,9 @@ class IOTestIO:
                 auditallrings()
         if self.index >= len(self.inframes):
             if not self.atend:
-                self.timeout = glib.GMainTimeout(int(self.sleepatend * 1000),
-                                                 IOTestIO.shutdown_on_timeout, self)
+                self.timeout = glib.GMainTimeout(
+                    int(self.sleepatend * 1000), IOTestIO.shutdown_on_timeout, self
+                )
                 self.atend = True
                 # self.config = None
             else:
@@ -494,7 +506,7 @@ class IOTestIO:
                         self.pipe_read = -1
             self.readfails += 1
             if self.readfails > self.initpackets + 20:
-                print('MAINLOOP QUIT', file=stderr)
+                print("MAINLOOP QUIT", file=stderr)
                 self.mainloop.quit()
             return None, None
         ret = self.inframes[self.index]
@@ -564,14 +576,14 @@ class IOTestIO:
         return
 
     def dumppackets(self):
-        print('Sent %d packets' % len(self.packetswritten), file=stderr)
+        print("Sent %d packets" % len(self.packetswritten), file=stderr)
         for packet in self.packetswritten:
-            print('PACKET: %s (%s)' % (packet[0], packet[1]), file=stderr)
+            print("PACKET: %s (%s)" % (packet[0], packet[1]), file=stderr)
 
 
 class FakeDrone(dict):
     def __init__(self, json):
-        self['_init_monitoringagents'] = json
+        self["_init_monitoringagents"] = json
 
     def get(self, name, ret):
         return ret
@@ -579,32 +591,34 @@ class FakeDrone(dict):
 
 class TestTestInfrastructure(TestCase):
     def test_eof(self):
-        'Get EOF with empty input'
-        if BuildListOnly: return
+        "Get EOF with empty input"
+        if BuildListOnly:
+            return
         if DEBUG:
-            print('Running test_test_eof()', file=stderr)
+            print("Running test_test_eof()", file=stderr)
         AssimEvent.disable_all_observers()
         framesets = []
-        print('Constructing IOTestIO')
+        print("Constructing IOTestIO")
         io = IOTestIO(framesets, 0)
-        print('Pre-init IO:', io)
-        print('Calling CMAinit')
+        print("Pre-init IO:", io)
+        print("Calling CMAinit")
         CMAinit(io, cleanoutdb=True, debug=DEBUG)
-        print('IO:', io)
-        print('CMADB', CMAdb)
-        print('CMADB.store', CMAdb.store)
+        print("IO:", io)
+        print("CMADB", CMAdb)
+        print("CMADB.store", CMAdb.store)
         # just make sure it seems to do the right thing
         (foo, bar) = io.recvframesets()
         assert foo is None
         # assert_no_dangling_Cclasses()
 
     def test_get1pkt(self):
-        'Read a single packet'
-        if BuildListOnly: return
+        "Read a single packet"
+        if BuildListOnly:
+            return
         if DEBUG:
-            print('Running test_test_eof()', file=stderr)
+            print("Running test_test_eof()", file=stderr)
         AssimEvent.disable_all_observers()
-        otherguy = pyNetAddr([1, 2, 3, 4], )
+        otherguy = pyNetAddr([1, 2, 3, 4])
         strframe1 = pyCstringFrame(FrameTypes.CSTRINGVAL, "Hello, world.")
         fs = pyFrameSet(42)
         fs.append(strframe1)
@@ -620,15 +634,16 @@ class TestTestInfrastructure(TestCase):
         # assert_no_dangling_Cclasses()
 
     def test_echo1pkt(self):
-        'Read a packet and write it back out'
-        if BuildListOnly: return
+        "Read a packet and write it back out"
+        if BuildListOnly:
+            return
         if DEBUG:
-            print('Running test_echo1pkt()', file=stderr)
+            print("Running test_echo1pkt()", file=stderr)
         AssimEvent.disable_all_observers()
         strframe1 = pyCstringFrame(FrameTypes.CSTRINGVAL, "Hello, world.")
         fs = pyFrameSet(42)
         fs.append(strframe1)
-        otherguy = pyNetAddr([1, 2, 3, 4], )
+        otherguy = pyNetAddr([1, 2, 3, 4])
         framesets = ((otherguy, (strframe1,)),)
         io = IOTestIO(framesets, 0)
         CMAinit(io, cleanoutdb=True, debug=DEBUG)
@@ -644,7 +659,7 @@ class TestTestInfrastructure(TestCase):
 
 
 class TestCMABasic(TestCase):
-    OS_DISCOVERY = '''{
+    OS_DISCOVERY = """{
   "discovertype": "os",
   "description": "OS information",
   "host": "drone000001",
@@ -665,8 +680,8 @@ class TestCMABasic(TestCase):
     "Release":  "15.04",
     "Codename": "vivid"
   }
-}'''
-    ULIMIT_DISCOVERY = '''{
+}"""
+    ULIMIT_DISCOVERY = """{
   "discovertype": "ulimit",
   "description": "ulimit values for root",
   "host": "drone000001",
@@ -679,16 +694,16 @@ class TestCMABasic(TestCase):
     "soft": {"c":0,"d":null,"f":null,"l":null,"m":null,"n":1024,"p":63557,"s":8192,"t":null,
     "v":null}
   }
-}'''
-    DRAWING_PRODUCER = 'drawwithdot'
+}"""
+    DRAWING_PRODUCER = "drawwithdot"
 
     def check_discovery(self, drone, expectedjson):
-        'We check to see if the discovery JSON object thingy is working...'
+        "We check to see if the discovery JSON object thingy is working..."
         disctypes = []
 
         for json in expectedjson:
             jsobj = pyConfigContext(json)
-            dtype = jsobj['instance']
+            dtype = jsobj["instance"]
             # print 'FAILURE DEBUG:', json, 'keys:', drone.keys(), str(drone)
             # Fetch string from the database and compare for string equality
             self.assertEqual(str(pyConfigContext(json)), str(drone[dtype]))
@@ -706,9 +721,10 @@ class TestCMABasic(TestCase):
         SETCONFIG message with lots of good stuff in it.
         and for good measure, we also send along some discovery packets.
         """
-        if BuildListOnly: return
+        if BuildListOnly:
+            return
         if DEBUG:
-            print('Running test_startup()', file=stderr)
+            print("Running test_startup()", file=stderr)
         CMAdb.debug = True
         CMAInjectables.set_config(ConfigFile().complete_config())
         AssimEvent.disable_all_observers()
@@ -742,8 +758,9 @@ class TestCMABasic(TestCase):
         config = pyConfigContext(init=configinit)
         CMAInjectables.set_config(config)
         CMAinit(io, cleanoutdb=True, debug=DEBUG)
-        assimcli_check('loadqueries')
+        assimcli_check("loadqueries")
         from dispatchtarget import DispatchTarget
+
         disp = MessageDispatcher(DispatchTarget.dispatchtable, encryption_required=False)
         listener = PacketListener(config, disp, io=io, encryption_required=False)
         io.mainloop = listener.mainloop
@@ -768,8 +785,9 @@ class TestCMABasic(TestCase):
         assimcli_check("query unknownips", 0)
         drones = [drone for drone in CMAdb.store.load_cypher_nodes("MATCH(n:Class_Drone) RETURN n")]
         for drone in drones:
-            self.check_discovery(drone, (
-            drone_network_discovery, self.OS_DISCOVERY, self.ULIMIT_DISCOVERY))
+            self.check_discovery(
+                drone, (drone_network_discovery, self.OS_DISCOVERY, self.ULIMIT_DISCOVERY)
+            )
         self.assertEqual(len(drones), 1)  # Should only be one drone
         del ulimitdiscovery, osdiscovery, drones, disp, listener
         DispatchTarget.dispatchtable = {}
@@ -782,7 +800,7 @@ class TestCMABasic(TestCase):
         livecount = 0
         ringcount = 0
         for drone1 in drones:
-            if drone1.status != 'dead':
+            if drone1.status != "dead":
                 livecount += 1
             for partner in CMAdb.store.load_related(drone1, CMAdb.TheOneRing.ournexttype):
                 partnercount += 1
@@ -790,9 +808,9 @@ class TestCMABasic(TestCase):
                 partnercount += 1
             for ring in CMAdb.store.load_in_related(drone1, CMAdb.TheOneRing.ourreltype):
                 ringcount += 1
-        print('PARTNERCOUNT: (%s, %s)' % (partnercount, expectedpartnercount), file=stderr)
-        print('LIVECOUNT: (%s, %s)' % (livecount, expectedlivecount), file=stderr)
-        print('RINGCOUNT: (%s, %s)' % (ringcount, expectedringmembercount), file=stderr)
+        print("PARTNERCOUNT: (%s, %s)" % (partnercount, expectedpartnercount), file=stderr)
+        print("LIVECOUNT: (%s, %s)" % (livecount, expectedlivecount), file=stderr)
+        print("RINGCOUNT: (%s, %s)" % (ringcount, expectedringmembercount), file=stderr)
         self.assertEqual(partnercount, expectedpartnercount)
         self.assertEqual(livecount, expectedlivecount)
         self.assertEqual(ringcount, expectedringmembercount)
@@ -801,8 +819,9 @@ class TestCMABasic(TestCase):
         'Construct a "drawithdot" diagram and then validate it'
         return True  # Diagram construction is broken at the moment...
         # print('PROCESSING DIAGRAM TYPE: %s' % diagramtype, file=stderr)
-        dot = subprocess.Popen((self.DRAWING_PRODUCER, diagramtype), stdout=subprocess.PIPE,
-                               shell=True)
+        dot = subprocess.Popen(
+            (self.DRAWING_PRODUCER, diagramtype), stdout=subprocess.PIPE, shell=True
+        )
         foundcounts = {}
         for line in dot.stdout.readlines():
             # print('GOT: %s' % line.strip(), file=stderr)
@@ -817,26 +836,28 @@ class TestCMABasic(TestCase):
         for pattern in patterncounts:
             found = foundcounts[pattern] if pattern in foundcounts else 0
             if found != patterncounts[pattern]:
-                print('Expecting %d matches of %s. Found %d instead.'
-                      % (patterncounts[pattern], pattern, found), file=stderr)
+                print(
+                    "Expecting %d matches of %s. Found %d instead."
+                    % (patterncounts[pattern], pattern, found),
+                    file=stderr,
+                )
                 errcount += 1
         self.assertEqual(errcount, 0)
 
     def diagram_patterns(self, diagramtype, nodecount):
         upnode = 'shape=house color=green penwidth=3.*label="%s'
         downnode = 'shape=house style="filled,dashed" fillcolor=gray90 .*label="%s'
-        anynode = 'shape=house'
-        ringnext = 'node_.*->node_.* \[label=RingNext_The_One_Ring\]'
+        anynode = "shape=house"
+        ringnext = "node_.*->node_.* \[label=RingNext_The_One_Ring\]"
 
         pats = {
-            'node_.*->node_.* label=nicowner': nodecount * 2,
+            "node_.*->node_.* label=nicowner": nodecount * 2,
             '\[shape=octagon color=navy label="00-00-00-00-00-00': 1,
             # Is having only one loopback NIC a bug?? I think maybe so!
             # Some Python versions have this wrong...
             # '\[shape=octagon color=navy label="00-1b-fc-.*ASUSTek COMPUTER INC\.': nodecount,
             '\[shape=octagon color=navy label="00-1b-fc-': nodecount,
-
-            'node_.*->node_.* label=ipowner': nodecount,
+            "node_.*->node_.* label=ipowner": nodecount,
         }
         pats[upnode % dronedesignation(1)] = 1
         if doHBDEAD:
@@ -851,12 +872,12 @@ class TestCMABasic(TestCase):
 
     # Drone and Ring tables are automatically audited after each packet
     def test_several_startups(self):
-        '''A very interesting test: We send a STARTUP message and get back a
-        SETCONFIG message and then send back a bunch of discovery requests.'''
+        """A very interesting test: We send a STARTUP message and get back a
+        SETCONFIG message and then send back a bunch of discovery requests."""
         # if Store.debug:
         #    raise ValueError('Debug enabled')
         if DEBUG:
-            print('Running test_several_startups()', file=stderr)
+            print("Running test_several_startups()", file=stderr)
         AssimEvent.disable_all_observers()
         OurAddr = pyNetAddr((10, 10, 10, 5), 1984)
         configinit = geninitconfig(OurAddr)
@@ -890,12 +911,15 @@ class TestCMABasic(TestCase):
                 fsin.append((droneip, (fs,)))
         io = IOTestIO(fsin)
         CMAinit(io, cleanoutdb=True, debug=DEBUG)
-        assimcli_check('loadqueries')
-        disp = MessageDispatcher({
-            FrameSetTypes.STARTUP: DispatchSTARTUP(),
-            FrameSetTypes.HBDEAD: DispatchHBDEAD(),
-            FrameSetTypes.HBSHUTDOWN: DispatchHBSHUTDOWN(),
-        }, encryption_required=False)
+        assimcli_check("loadqueries")
+        disp = MessageDispatcher(
+            {
+                FrameSetTypes.STARTUP: DispatchSTARTUP(),
+                FrameSetTypes.HBDEAD: DispatchHBDEAD(),
+                FrameSetTypes.HBSHUTDOWN: DispatchHBSHUTDOWN(),
+            },
+            encryption_required=False,
+        )
         config = pyConfigContext(init=configinit)
         CMAInjectables.set_config(config)
         listener = PacketListener(config, disp, io=io, encryption_required=False)
@@ -941,7 +965,7 @@ class TestCMABasic(TestCase):
         if DoAudit:
             auditalldrones()
             auditallrings()
-        for dtype in ('monitoring', 'network', 'service', 'monring', 'everything'):
+        for dtype in ("monitoring", "network", "service", "monring", "everything"):
             self.construct_and_verify_diagram(dtype, self.diagram_patterns(dtype, MaxDrone))
 
         if DEBUG:
@@ -950,7 +974,7 @@ class TestCMABasic(TestCase):
         # io.dumppackets()
         # assert_no_dangling_Cclasses()
         sys.stdout.flush()
-        print('TEST COMPLETED', file=stderr)
+        print("TEST COMPLETED", file=stderr)
 
 
 class TestMonitorBasic(TestCase):
@@ -961,16 +985,18 @@ class TestMonitorBasic(TestCase):
         CMAinit(io, cleanoutdb=True, debug=DEBUG)
         TestFoo.new_transaction()
         # TODO: This guy needs an 'argv' supplied...
-        dummy = CMAdb.store.load_or_create(MonitorAction,
-                                           domain='global',
-                                           monitorname='DummyName',
-                                           monitorclass='OCF',
-                                           monitortype='Dummy',
-                                           interval=1,
-                                           timeout=120,
-                                           provider='heartbeat')
+        dummy = CMAdb.store.load_or_create(
+            MonitorAction,
+            domain="global",
+            monitorname="DummyName",
+            monitorclass="OCF",
+            monitortype="Dummy",
+            interval=1,
+            timeout=120,
+            provider="heartbeat",
+        )
 
-        self.assertEqual(len(CMAdb.net_transaction.tree['packets']), 0)
+        self.assertEqual(len(CMAdb.net_transaction.tree["packets"]), 0)
         CMAdb.store.commit()
         CMAdb.net_transaction.commit_trans()
         TestFoo.new_transaction()
@@ -981,8 +1007,9 @@ class TestMonitorBasic(TestCase):
         droneip = droneipaddress(droneid)
         designation = dronedesignation(droneid)
         droneAddr = pyNetAddr((127, 0, 0, 1), 1984)
-        droneone = CMAdb.store.load_or_create(Drone, designation=designation, port=1984,
-                                              startaddr=droneip, primary_ip_addr=droneip)
+        droneone = CMAdb.store.load_or_create(
+            Drone, designation=designation, port=1984, startaddr=droneip, primary_ip_addr=droneip
+        )
         self.assertTrue(not dummy.isactive)
         dummy.activate(droneone)
         CMAdb.store.commit()
@@ -1013,14 +1040,19 @@ class TestMonitorBasic(TestCase):
                 for frame in frameset.iter():
                     self.assertEqual(frame.frametype(), FrameTypes.RSCJSON)
                     table = pyConfigContext(init=frame.getstr())
-                    for field in ('class', 'type', 'instance', 'repeat'):
+                    for field in ("class", "type", "instance", "repeat"):
                         self.assertTrue(field in table)
-                        if field == 'monitorclass' and table['monitorclass'] == 'OCF':
-                            self.assertTrue('provider' in table)
-                    for tup in (('class', str), ('type', str), ('resourcename', str)
-                                , ('monitorclass', str), ('provider', str)
-                                , ('repeat_interval', (int, long))
-                                , ('timeout', (int, long))):
+                        if field == "monitorclass" and table["monitorclass"] == "OCF":
+                            self.assertTrue("provider" in table)
+                    for tup in (
+                        ("class", str),
+                        ("type", str),
+                        ("resourcename", str),
+                        ("monitorclass", str),
+                        ("provider", str),
+                        ("repeat_interval", (int, long)),
+                        ("timeout", (int, long)),
+                    ):
                         (n, t) = tup
                         if n in table:
                             self.assertTrue(isinstance(table[n], t))
@@ -1030,84 +1062,107 @@ class TestMonitorBasic(TestCase):
 
     def test_automonitor_LSB_basic(self):
         AssimEvent.disable_all_observers()
-        drone = FakeDrone({
-            'data': {
-                'lsb': {
-                    'ssh',
-                    'neo4j-service',
-                }
-            }
-        })
+        drone = FakeDrone({"data": {"lsb": {"ssh", "neo4j-service"}}})
         neoargs = (
-            ('$argv[0]', r'.*/[^/]*java[^/]*$'),  # Might be overkill
-            ('$argv[3]', r'-server$'),  # Probably overkill
-            ('$argv[-1]', r'org\.neo4j\.server\.Bootstrapper$'),
+            ("$argv[0]", r".*/[^/]*java[^/]*$"),  # Might be overkill
+            ("$argv[3]", r"-server$"),  # Probably overkill
+            ("$argv[-1]", r"org\.neo4j\.server\.Bootstrapper$"),
         )
-        neorule = LSBMonitoringRule('neo4j-service', neoargs)
+        neorule = LSBMonitoringRule("neo4j-service", neoargs)
 
-        sshnode = ProcessNode('global', 'foofred', 'fred', '/usr/bin/sshd', ['/usr/bin/sshd', '-D']
-                              # ProcessNode:
-                              #   (domain, host, nodename, pathname, argv, uid, gid, cwd,
-                              # roles=None):
-                              , 'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
+        sshnode = ProcessNode(
+            "global",
+            "foofred",
+            "fred",
+            "/usr/bin/sshd",
+            ["/usr/bin/sshd", "-D"]
+            # ProcessNode:
+            #   (domain, host, nodename, pathname, argv, uid, gid, cwd,
+            # roles=None):
+            ,
+            "root",
+            "root",
+            "/",
+            roles=(CMAconsts.ROLE_server,),
+        )
 
         sshargs = (
             # This means one of our nodes should have a value called
             # pathname, and it should end in '/sshd'
-            ('@basename()', 'sshd$'),
+            ("@basename()", "sshd$"),
         )
-        sshrule = LSBMonitoringRule('ssh', sshargs)
+        sshrule = LSBMonitoringRule("ssh", sshargs)
 
-        udevnode = ProcessNode('global', 'foofred', 'fred', '/usr/bin/udevd', ['/usr/bin/udevd']
-                               , 'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
+        udevnode = ProcessNode(
+            "global",
+            "foofred",
+            "fred",
+            "/usr/bin/udevd",
+            ["/usr/bin/udevd"],
+            "root",
+            "root",
+            "/",
+            roles=(CMAconsts.ROLE_server,),
+        )
 
-        neoprocargs = ("/usr/bin/java", "-cp"
-                       , "/var/lib/neo4j/lib/concurrentlinkedhashmap-lru-1.3.1.jar:"
-                         "AND SO ON:"
-                         "/var/lib/neo4j/system/lib/slf4j-api-1.6.2.jar:"
-                         "/var/lib/neo4j/conf/", "-server", "-XX:"
-                                                            "+DisableExplicitGC"
-                       , "-Dorg.neo4j.server.properties=conf/neo4j-server.properties"
-                       , "-Djava.util.logging.config.file=conf/logging.properties"
-                       , "-Dlog4j.configuration=file:conf/log4j.properties"
-                       , "-XX:+UseConcMarkSweepGC"
-                       , "-XX:+CMSClassUnloadingEnabled"
-                       , "-Dneo4j.home=/var/lib/neo4j"
-                       , "-Dneo4j.instance=/var/lib/neo4j"
-                       , "-Dfile.encoding=UTF-8"
-                       , "org.neo4j.server.Bootstrapper")
+        neoprocargs = (
+            "/usr/bin/java",
+            "-cp",
+            "/var/lib/neo4j/lib/concurrentlinkedhashmap-lru-1.3.1.jar:"
+            "AND SO ON:"
+            "/var/lib/neo4j/system/lib/slf4j-api-1.6.2.jar:"
+            "/var/lib/neo4j/conf/",
+            "-server",
+            "-XX:" "+DisableExplicitGC",
+            "-Dorg.neo4j.server.properties=conf/neo4j-server.properties",
+            "-Djava.util.logging.config.file=conf/logging.properties",
+            "-Dlog4j.configuration=file:conf/log4j.properties",
+            "-XX:+UseConcMarkSweepGC",
+            "-XX:+CMSClassUnloadingEnabled",
+            "-Dneo4j.home=/var/lib/neo4j",
+            "-Dneo4j.instance=/var/lib/neo4j",
+            "-Dfile.encoding=UTF-8",
+            "org.neo4j.server.Bootstrapper",
+        )
 
-        neonode = ProcessNode('global', 'foofred', 'fred', '/usr/bin/java', neoprocargs
-                              , 'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
+        neonode = ProcessNode(
+            "global",
+            "foofred",
+            "fred",
+            "/usr/bin/java",
+            neoprocargs,
+            "root",
+            "root",
+            "/",
+            roles=(CMAconsts.ROLE_server,),
+        )
 
-        for tup in (sshrule.specmatch(ExpressionContext((udevnode, drone)))
-                    , sshrule.specmatch(ExpressionContext((neonode, drone)))
-                    , neorule.specmatch(ExpressionContext((sshnode, drone)))):
+        for tup in (
+            sshrule.specmatch(ExpressionContext((udevnode, drone))),
+            sshrule.specmatch(ExpressionContext((neonode, drone))),
+            neorule.specmatch(ExpressionContext((sshnode, drone))),
+        ):
             (prio, table) = tup
             self.assertEqual(prio, MonitoringRule.NOMATCH)
             self.assertTrue(table is None)
 
         (prio, table) = sshrule.specmatch(ExpressionContext((sshnode, drone)))
         self.assertEqual(prio, MonitoringRule.LOWPRIOMATCH)
-        self.assertEqual(table['monitorclass'], 'lsb')
-        self.assertEqual(table['monitortype'], 'ssh')
+        self.assertEqual(table["monitorclass"], "lsb")
+        self.assertEqual(table["monitortype"], "ssh")
 
         (prio, table) = neorule.specmatch(ExpressionContext((neonode, drone)))
         self.assertEqual(prio, MonitoringRule.LOWPRIOMATCH)
-        self.assertEqual(table['monitorclass'], 'lsb')
-        self.assertEqual(table['monitortype'], 'neo4j-service')
+        self.assertEqual(table["monitorclass"], "lsb")
+        self.assertEqual(table["monitortype"], "neo4j-service")
 
     def test_automonitor_LSB_failures(self):
         AssimEvent.disable_all_observers()
-        self.assertRaises(ValueError, LSBMonitoringRule, 'neo4j-service', [])
-        self.assertRaises(ValueError, LSBMonitoringRule, 'neo4j-service',
-                          (('a.b.c', ')'),))
-        self.assertRaises(ValueError, LSBMonitoringRule, 'neo4j-service',
-                          ((1, 2, 3, 4, 5),))
-        self.assertRaises(ValueError, LSBMonitoringRule, 'neo4j-service',
-                          ((1,),))
-        self.assertRaises(ValueError, LSBMonitoringRule, 'neo4j-service',
-                          ((),))
+        self.assertRaises(ValueError, LSBMonitoringRule, "neo4j-service", [])
+        self.assertRaises(ValueError, LSBMonitoringRule, "neo4j-service", (("a.b.c", ")"),))
+        self.assertRaises(ValueError, LSBMonitoringRule, "neo4j-service", ((1, 2, 3, 4, 5),))
+        self.assertRaises(ValueError, LSBMonitoringRule, "neo4j-service", ((1,),))
+        self.assertRaises(ValueError, LSBMonitoringRule, "neo4j-service", ((),))
         # assert_no_dangling_Cclasses()
 
     def test_automonitor_LSB_complete(self):
@@ -1118,37 +1173,39 @@ class TestMonitorBasic(TestCase):
 
     def test_automonitor_OCF_failures(self):
         AssimEvent.disable_all_observers()
-        self.assertRaises(ValueError, OCFMonitoringRule, 'assimilation', 'neo4j',
-                          ((1, 2, 3, 4, 5),))
-        self.assertRaises(ValueError, OCFMonitoringRule, 'assimilation', 'neo4j',
-                          ((),))
+        self.assertRaises(
+            ValueError, OCFMonitoringRule, "assimilation", "neo4j", ((1, 2, 3, 4, 5),)
+        )
+        self.assertRaises(ValueError, OCFMonitoringRule, "assimilation", "neo4j", ((),))
         # assert_no_dangling_Cclasses()
 
     def test_automonitor_OCF_basic(self):
         AssimEvent.disable_all_observers()
-        drone = FakeDrone({
-            'data': {
-                'ocf': {
-                    'assimilation/neo4j',
-                }
-            }
-        })
-        kitchensink = OCFMonitoringRule('assimilation', 'neo4j',
-                                        (('cantguess',)  # length 1 - name
-                                         , ('port', '$port')  # length 2 - name, expression
-                                         , (None, '$port')  # length 2 - name, expression
-                                         , ('-', '$pathname')  # length 2 - name, expression
-                                         , ('port', '$port', '[0-9]+$')
-                                         # length 3 - name, expression, regex
-                                         , (None, '$pathname', '.*/java$')
-                                         # length 3 - name, expression, regex
-                                         , (None, '@basename()', 'java$')
-                                         # length 3 - name, expression, regex
-                                         , ('-', '$argv[-1]', r'org\.neo4j\.server\.Bootstrapper$')
-                                         #   length 3 - name, expression, regex
-                                         , ('port', '@serviceport()', '[0-9]+$', re.I)
-                                         # length 4 - name, expression, regex, flags
-                                         ))
+        drone = FakeDrone({"data": {"ocf": {"assimilation/neo4j"}}})
+        kitchensink = OCFMonitoringRule(
+            "assimilation",
+            "neo4j",
+            (
+                ("cantguess",),  # length 1 - name
+                ("port", "$port"),  # length 2 - name, expression
+                (None, "$port"),  # length 2 - name, expression
+                ("-", "$pathname"),  # length 2 - name, expression
+                ("port", "$port", "[0-9]+$")
+                # length 3 - name, expression, regex
+                ,
+                (None, "$pathname", ".*/java$")
+                # length 3 - name, expression, regex
+                ,
+                (None, "@basename()", "java$")
+                # length 3 - name, expression, regex
+                ,
+                ("-", "$argv[-1]", r"org\.neo4j\.server\.Bootstrapper$")
+                #   length 3 - name, expression, regex
+                ,
+                ("port", "@serviceport()", "[0-9]+$", re.I)
+                # length 4 - name, expression, regex, flags
+            ),
+        )
         keys = kitchensink.nvpairs.keys()
         keys.sort()
         self.assertEqual(str(keys), "['cantguess', 'port']")
@@ -1156,75 +1213,92 @@ class TestMonitorBasic(TestCase):
         for key in keys:
             values.append(kitchensink.nvpairs[key])
         self.assertEqual(str(values), "[None, '@serviceport()']")
-        regex = re.compile('xxx')
+        regex = re.compile("xxx")
         regextype = type(regex)
         exprlist = []
         for tup in kitchensink._tuplespec:
             self.assertEqual(type(tup[1]), regextype)
             exprlist.append(tup[0])
-        self.assertEqual(str(exprlist)
-                         , "['$port', '$pathname', '@basename()', '$argv[-1]', '@serviceport()']")
+        self.assertEqual(
+            str(exprlist), "['$port', '$pathname', '@basename()', '$argv[-1]', '@serviceport()']"
+        )
         #
         # That was a pain...
         #
         # Now, let's test the basics in a little more depth by creating what should be a working
         # set of arguments to a (hypothetical) OCF resource agent
         #
-        neo4j = OCFMonitoringRule('assimilation', 'neo4j',
-                                  (('port', '$port')
-                                   , (None, '$pathname', '.*/java$')
-                                   , ('-', '$argv[-1]', r'org\.neo4j\.server\.Bootstrapper$')
-                                   , ('home', '@argequals(-Dneo4j.home)', '/.*')
-                                   , ('neo4j', '@basename(@argequals(-Dneo4j.home))', '.')
-                                   )
-                                  )
-        neoprocargs = ("/usr/bin/java", "-cp"
-                       , "/var/lib/neo4j/lib/concurrentlinkedhashmap-lru-1.3.1.jar:"
-                         "AND SO ON:"
-                         "/var/lib/neo4j/system/lib/slf4j-api-1.6.2.jar:"
-                         "/var/lib/neo4j/conf/", "-server", "-XX:"
-                                                            "+DisableExplicitGC"
-                       , "-Dorg.neo4j.server.properties=conf/neo4j-server.properties"
-                       , "-Djava.util.logging.config.file=conf/logging.properties"
-                       , "-Dlog4j.configuration=file:conf/log4j.properties"
-                       , "-XX:+UseConcMarkSweepGC"
-                       , "-XX:+CMSClassUnloadingEnabled"
-                       , "-Dneo4j.home=/var/lib/neo4j"
-                       , "-Dneo4j.instance=/var/lib/neo4j"
-                       , "-Dfile.encoding=UTF-8"
-                       , "org.neo4j.server.Bootstrapper")
+        neo4j = OCFMonitoringRule(
+            "assimilation",
+            "neo4j",
+            (
+                ("port", "$port"),
+                (None, "$pathname", ".*/java$"),
+                ("-", "$argv[-1]", r"org\.neo4j\.server\.Bootstrapper$"),
+                ("home", "@argequals(-Dneo4j.home)", "/.*"),
+                ("neo4j", "@basename(@argequals(-Dneo4j.home))", "."),
+            ),
+        )
+        neoprocargs = (
+            "/usr/bin/java",
+            "-cp",
+            "/var/lib/neo4j/lib/concurrentlinkedhashmap-lru-1.3.1.jar:"
+            "AND SO ON:"
+            "/var/lib/neo4j/system/lib/slf4j-api-1.6.2.jar:"
+            "/var/lib/neo4j/conf/",
+            "-server",
+            "-XX:" "+DisableExplicitGC",
+            "-Dorg.neo4j.server.properties=conf/neo4j-server.properties",
+            "-Djava.util.logging.config.file=conf/logging.properties",
+            "-Dlog4j.configuration=file:conf/log4j.properties",
+            "-XX:+UseConcMarkSweepGC",
+            "-XX:+CMSClassUnloadingEnabled",
+            "-Dneo4j.home=/var/lib/neo4j",
+            "-Dneo4j.instance=/var/lib/neo4j",
+            "-Dfile.encoding=UTF-8",
+            "org.neo4j.server.Bootstrapper",
+        )
 
-        neonode = ProcessNode('global', 'foofred', 'fred', '/usr/bin/java', neoprocargs
-                              , 'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
+        neonode = ProcessNode(
+            "global",
+            "foofred",
+            "fred",
+            "/usr/bin/java",
+            neoprocargs,
+            "root",
+            "root",
+            "/",
+            roles=(CMAconsts.ROLE_server,),
+        )
         # We'll be missing the value of 'port'
         neocontext = ExpressionContext((neonode, drone))
         match = neo4j.specmatch(neocontext)
         (prio, table, missing) = neo4j.specmatch(neocontext)
         self.assertEqual(prio, MonitoringRule.PARTMATCH)
-        self.assertEqual(missing, ['port'])
+        self.assertEqual(missing, ["port"])
         # Now fill in the port value
         neonode.port = 7474
         (prio, table) = neo4j.specmatch(neocontext)
         self.assertEqual(prio, MonitoringRule.HIGHPRIOMATCH)
-        self.assertEqual(table['monitortype'], 'neo4j')
-        self.assertEqual(table['monitorclass'], 'ocf')
-        self.assertEqual(table['provider'], 'assimilation')
+        self.assertEqual(table["monitortype"], "neo4j")
+        self.assertEqual(table["monitorclass"], "ocf")
+        self.assertEqual(table["provider"], "assimilation")
         keys = table.keys()
         keys.sort()
         self.assertEqual(str(keys), "['arglist', 'monitorclass', 'monitortype', 'provider']")
-        arglist = table['arglist']
+        arglist = table["arglist"]
         keys = arglist.keys()
         keys.sort()
-        self.assertEqual(keys, ['home', 'neo4j', 'port'])
-        self.assertEqual(arglist['port'], '7474')
-        self.assertEqual(arglist['home'], '/var/lib/neo4j')
-        self.assertEqual(arglist['neo4j'], 'neo4j')
+        self.assertEqual(keys, ["home", "neo4j", "port"])
+        self.assertEqual(arglist["port"], "7474")
+        self.assertEqual(arglist["home"], "/var/lib/neo4j")
+        self.assertEqual(arglist["neo4j"], "neo4j")
         # assert_no_dangling_Cclasses()
 
     def test_automonitor_strings_basic(self):
         # Clean things out so we only see what we want to see...
         AssimEvent.disable_all_observers()
-        ocf_string = '''{
+        ocf_string = """{
 #       comment
         "class":        "ocf",
         "type":         "neo4j",
@@ -1235,10 +1309,10 @@ class TestMonitorBasic(TestCase):
             ["PORT",    "serviceport",              "[0-9]+$"],
             ["NEOHOME", "@argequals(-Dneo4j.home)", "/.*"]
         ]
-}'''
+}"""
         ocf = MonitoringRule.construct_from_string(ocf_string)
         self.assertTrue(isinstance(ocf, OCFMonitoringRule))
-        lsb_string = '''{
+        lsb_string = """{
 #       comment
         "class":        "lsb",
         "type":         "neo4j",
@@ -1246,25 +1320,16 @@ class TestMonitorBasic(TestCase):
             ["@basename()",    "java$"],
             ["$argv[-1]",       "org\\.neo4j\\.server\\.Bootstrapper$"],
         ]
-}'''
+}"""
         lsb = MonitoringRule.construct_from_string(lsb_string)
         self.assertTrue(isinstance(lsb, LSBMonitoringRule))
         # assert_no_dangling_Cclasses()
 
     def test_automonitor_search_basic(self):
         AssimEvent.disable_all_observers()
-        drone = FakeDrone({
-            'data': {
-                'ocf': {
-                    'assimilation/neo4j',
-                },
-                'lsb': {
-                    'neo4j-service',
-                }
-            }
-        })
-        MonitoringRule.monitor_objects = {'service': {}, 'host': {}}
-        ocf_string = '''{
+        drone = FakeDrone({"data": {"ocf": {"assimilation/neo4j"}, "lsb": {"neo4j-service"}}})
+        MonitoringRule.monitor_objects = {"service": {}, "host": {}}
+        ocf_string = """{
         "class":        "ocf", "type":         "neo4j", "provider":     "assimilation",
         "classconfig": [
             [null,      "@basename()",          "java$"],
@@ -1272,29 +1337,42 @@ class TestMonitorBasic(TestCase):
             ["PORT",    "$serviceport"],
             ["NEOHOME", "@argequals(-Dneo4j.home)", "/.*"]
         ]
-        }'''
+        }"""
         MonitoringRule.construct_from_string(ocf_string)
-        lsb_string = '''{
+        lsb_string = """{
         "class":        "lsb", "type":         "neo4j-service",
         "classconfig": [
             ["@basename()",    "java$"],
             ["$argv[-1]", "org\\.neo4j\\.server\\.Bootstrapper$"],
         ]
-        }'''
+        }"""
         MonitoringRule.construct_from_string(lsb_string)
-        neoprocargs = ("/usr/bin/java", "-cp"
-                       , "/var/lib/neo4j/lib/concurrentlinkedhashmap-lru-1.3.1.jar:"
-                         "AND SO ON:"
-                         "/var/lib/neo4j/system/lib/slf4j-api-1.6.2.jar:"
-                         "/var/lib/neo4j/conf/", "-server", "-XX:"
-                                                            "+DisableExplicitGC"
-                       , "-Dneo4j.home=/var/lib/neo4j"
-                       , "-Dneo4j.instance=/var/lib/neo4j"
-                       , "-Dfile.encoding=UTF-8"
-                       , "org.neo4j.server.Bootstrapper")
+        neoprocargs = (
+            "/usr/bin/java",
+            "-cp",
+            "/var/lib/neo4j/lib/concurrentlinkedhashmap-lru-1.3.1.jar:"
+            "AND SO ON:"
+            "/var/lib/neo4j/system/lib/slf4j-api-1.6.2.jar:"
+            "/var/lib/neo4j/conf/",
+            "-server",
+            "-XX:" "+DisableExplicitGC",
+            "-Dneo4j.home=/var/lib/neo4j",
+            "-Dneo4j.instance=/var/lib/neo4j",
+            "-Dfile.encoding=UTF-8",
+            "org.neo4j.server.Bootstrapper",
+        )
 
-        neonode = ProcessNode('global', 'foofred', 'fred', '/usr/bin/java', neoprocargs
-                              , 'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
+        neonode = ProcessNode(
+            "global",
+            "foofred",
+            "fred",
+            "/usr/bin/java",
+            neoprocargs,
+            "root",
+            "root",
+            "/",
+            roles=(CMAconsts.ROLE_server,),
+        )
         # neonode.serviceport=7474
         context = ExpressionContext((neonode, drone))
         first = MonitoringRule.findbestmatch(context)
@@ -1305,47 +1383,37 @@ class TestMonitorBasic(TestCase):
         list2 = MonitoringRule.findallmatches(context)
 
         # first should be the LSB instance
-        self.assertEqual(first[1]['monitorclass'], 'lsb')
+        self.assertEqual(first[1]["monitorclass"], "lsb")
         self.assertEqual(first[0], MonitoringRule.LOWPRIOMATCH)
         # second should be the incomplete OCF instance
-        self.assertEqual(second[1]['monitorclass'], 'ocf')
+        self.assertEqual(second[1]["monitorclass"], "ocf")
         self.assertEqual(second[0], MonitoringRule.PARTMATCH)
         # third should be the high priority OCF instance
-        self.assertEqual(third[1]['monitorclass'], 'ocf')
+        self.assertEqual(third[1]["monitorclass"], "ocf")
         self.assertEqual(third[0], MonitoringRule.HIGHPRIOMATCH)
         # list1 should be the incomplete OCF and the complete LSB - in that order
         self.assertEqual(len(list1), 2)
         # They should come out sorted by monitorclass
         self.assertEqual(list1[0][0], MonitoringRule.LOWPRIOMATCH)
-        self.assertEqual(list1[0][1]['monitorclass'], 'lsb')
+        self.assertEqual(list1[0][1]["monitorclass"], "lsb")
         self.assertEqual(list1[1][0], MonitoringRule.PARTMATCH)
-        self.assertEqual(list1[1][1]['monitorclass'], 'ocf')
+        self.assertEqual(list1[1][1]["monitorclass"], "ocf")
         # third should be a complete OCF match
         # list2 should be the complete OCF and the complete OCF - in that order
         self.assertEqual(len(list2), 2)
         self.assertEqual(list2[0][0], MonitoringRule.LOWPRIOMATCH)
-        self.assertEqual(list2[0][1]['monitorclass'], 'lsb')
+        self.assertEqual(list2[0][1]["monitorclass"], "lsb")
         self.assertEqual(list2[1][0], MonitoringRule.HIGHPRIOMATCH)
-        self.assertEqual(list2[1][1]['monitorclass'], 'ocf')
+        self.assertEqual(list2[1][1]["monitorclass"], "ocf")
         # assert_no_dangling_Cclasses()
 
     def test_automonitor_functions(self):
         AssimEvent.disable_all_observers()
-        MonitoringRule.monitor_objects = {'service': {}, 'host': {}}
-        drone = FakeDrone({
-            'data': {
-                'ocf': {
-                    'assimilation/neo4j',
-                },
-                'lsb': {
-                    'bacula',
-                },
-                'nagios': {
-                    'check_ssh',
-                },
-            }
-        })
-        ocf_string = '''{
+        MonitoringRule.monitor_objects = {"service": {}, "host": {}}
+        drone = FakeDrone(
+            {"data": {"ocf": {"assimilation/neo4j"}, "lsb": {"bacula"}, "nagios": {"check_ssh"}}}
+        )
+        ocf_string = """{
         "class":        "ocf", "type":         "neo4j", "provider":     "assimilation",
         "classconfig": [
             [null,          "@basename()", "java"],
@@ -1353,8 +1421,8 @@ class TestMonitorBasic(TestCase):
             ["ipaddr",      "@serviceip($procinfo.listenaddrs)", "..."],
             ["port",        "@serviceport()",   "[0-9]+$"]
         ]
-        }'''
-        nagios_string = '''{
+        }"""
+        nagios_string = """{
     "class":    "nagios",
     "type":     "check_ssh",
     "prio":     "med",
@@ -1365,8 +1433,8 @@ class TestMonitorBasic(TestCase):
         ["-p",          "@serviceport()",       "[0-9]+"],
         ["__ARGV__",    "@serviceip()",         "..."]
 	]
-}'''
-        ssh_json = '''{
+}"""
+        ssh_json = """{
           "exe": "/usr/sbin/sshd",
           "argv": [ "/usr/sbin/sshd", "-D" ],
           "uid": "root",
@@ -1384,8 +1452,8 @@ class TestMonitorBasic(TestCase):
               "port": 22
             }
           }
-        }'''
-        neo4j_json = '''{
+        }"""
+        neo4j_json = """{
           "exe": "/usr/lib/jvm/java-7-openjdk-amd64/jre/bin/java",
           "argv": [ "/usr/bin/java", "-cp", 
           "/var/lib/neo4j/lib/concurrentlinkedhashmap-lru-1.3.1.jar: ...", "-server", 
@@ -1410,8 +1478,8 @@ class TestMonitorBasic(TestCase):
               "port": 39185
             }
           }
-        }'''
-        bacula_json = '''{
+        }"""
+        bacula_json = """{
       "exe": "/usr/sbin/bacula-dir",
       "argv": [ "/usr/sbin/bacula-dir", "-c", "/etc/bacula/bacula-dir.conf", "-u", "bacula", 
       "-g", "bacula" ],
@@ -1425,29 +1493,47 @@ class TestMonitorBasic(TestCase):
           "port": 9101
         }
       }
-    }'''
+    }"""
         MonitoringRule.construct_from_string(ocf_string)
         MonitoringRule.construct_from_string(nagios_string)
-        neoargs = pyConfigContext(neo4j_json)['argv']
-        testnode = ProcessNode('global', 'foofred', 'fred', '/usr/bin/java', neoargs
-                               , 'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
+        neoargs = pyConfigContext(neo4j_json)["argv"]
+        testnode = ProcessNode(
+            "global",
+            "foofred",
+            "fred",
+            "/usr/bin/java",
+            neoargs,
+            "root",
+            "root",
+            "/",
+            roles=(CMAconsts.ROLE_server,),
+        )
 
         testnode.procinfo = neo4j_json
         context = ExpressionContext((testnode, drone))
         (prio, match) = MonitoringRule.findbestmatch(context)
         self.assertEqual(prio, MonitoringRule.HIGHPRIOMATCH)
-        self.assertEqual(match['arglist']['ipaddr'], '::1')
-        self.assertEqual(match['arglist']['port'], '1337')
+        self.assertEqual(match["arglist"]["ipaddr"], "::1")
+        self.assertEqual(match["arglist"]["port"], "1337")
 
-        sshargs = pyConfigContext(ssh_json)['argv']
-        testnode = ProcessNode('global', 'foofred', 'fred', '/usr/bin/sshd', sshargs
-                               , 'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
+        sshargs = pyConfigContext(ssh_json)["argv"]
+        testnode = ProcessNode(
+            "global",
+            "foofred",
+            "fred",
+            "/usr/bin/sshd",
+            sshargs,
+            "root",
+            "root",
+            "/",
+            roles=(CMAconsts.ROLE_server,),
+        )
         testnode.procinfo = ssh_json
         context = ExpressionContext((testnode, drone))
         (prio, match) = MonitoringRule.findbestmatch(context)
         # print(match, file=stderr)
         self.assertEqual(prio, MonitoringRule.MEDPRIOMATCH)
-        self.assertEqual(match['argv'], ['-t', '3600', '-p', '22', '127.0.0.1'])
+        self.assertEqual(match["argv"], ["-t", "3600", "-p", "22", "127.0.0.1"])
         # assert_no_dangling_Cclasses()
 
     def test_automonitor_OCF_complete(self):
@@ -1467,27 +1553,27 @@ class TestNetDevices(TestCase):
         initializing subnets in a variety of ways...
         return: None
         """
-        net1 = Subnet('global', '10.10.10.20', 24)
+        net1 = Subnet("global", "10.10.10.20", 24)
         assert net1.cidrmask == 120
-        net2 = Subnet('global', '10.10.10.20/24')
+        net2 = Subnet("global", "10.10.10.20/24")
         assert net2.cidrmask == 120
-        net3 = Subnet('global', '10.10.10.20/255.255.255.0')
+        net3 = Subnet("global", "10.10.10.20/255.255.255.0")
         assert net3.cidrmask == 120
-        net4 = Subnet('global', '10.10.10.20', '255.255.255.0')
+        net4 = Subnet("global", "10.10.10.20", "255.255.255.0")
         assert net4.cidrmask == 120
-        net5 = Subnet('global', pyNetAddr('10.10.10.32:80'), 24)
+        net5 = Subnet("global", pyNetAddr("10.10.10.32:80"), 24)
         assert net5.cidrmask == 120
         assert net5.ipaddr == net1.ipaddr
-        assert net5.ipaddr == str(pyNetAddr('10.10.10.0').toIPv6())
-        net6 = Subnet('global', '10.10.10.10/32')
+        assert net5.ipaddr == str(pyNetAddr("10.10.10.0").toIPv6())
+        net6 = Subnet("global", "10.10.10.10/32")
         assert len(net6.subnet_label) >= len(str(net6))
         assert net6.cidrmask == 128
-        self.assertRaises(ValueError, Subnet, 'global', '10.10.10.10/33')
-        self.assertRaises(ValueError, Subnet, 'global', '10.10.10.10/')
-        self.assertRaises(ValueError, Subnet, 'global', '10.10.10.10/255.255.255')
-        self.assertRaises(ValueError, Subnet, 'global', '10.10.10.10/255.255.255.256')
-        self.assertRaises(ValueError, Subnet, 'global', '10.10.10.10/255.255.255.255.0')
-        self.assertRaises(ValueError, Subnet, 'global', '10.10.10.10/255.255.0xff.255')
+        self.assertRaises(ValueError, Subnet, "global", "10.10.10.10/33")
+        self.assertRaises(ValueError, Subnet, "global", "10.10.10.10/")
+        self.assertRaises(ValueError, Subnet, "global", "10.10.10.10/255.255.255")
+        self.assertRaises(ValueError, Subnet, "global", "10.10.10.10/255.255.255.256")
+        self.assertRaises(ValueError, Subnet, "global", "10.10.10.10/255.255.255.255.0")
+        self.assertRaises(ValueError, Subnet, "global", "10.10.10.10/255.255.0xff.255")
 
     def test_subnet_and_ipaddr(self):
         """
@@ -1498,9 +1584,10 @@ class TestNetDevices(TestCase):
         store = TestFoo.store
         CMAinit(None, cleanoutdb=True, debug=DEBUG)
         TestFoo.new_transaction()
-        subnet = store.load_or_create(Subnet, domain='global', ipaddr='10.10.10.20/255.255.255.0')
-        ipaddr1 = store.load_or_create(IPaddrNode, ipaddr='10.10.10.20', domain='global',
-                                       subnet=subnet)
+        subnet = store.load_or_create(Subnet, domain="global", ipaddr="10.10.10.20/255.255.255.0")
+        ipaddr1 = store.load_or_create(
+            IPaddrNode, ipaddr="10.10.10.20", domain="global", subnet=subnet
+        )
         assert ipaddr1.subnet == subnet.name
         ipaddr1.association.store.commit()
         TestFoo.new_transaction()
@@ -1516,11 +1603,14 @@ class TestNetDevices(TestCase):
         store = TestFoo.store
         CMAinit(None, cleanoutdb=True, debug=DEBUG)
         TestFoo.new_transaction()
-        macaddr1 = store.load_or_create(NICNode, domain='global',
-                                        macaddr='aa-bb-cc-dd-ee-ff',
-                                        ifname='eth0',
-                                        scope='global:servidor')
-        assert macaddr1.scope == 'global:servidor'
+        macaddr1 = store.load_or_create(
+            NICNode,
+            domain="global",
+            macaddr="aa-bb-cc-dd-ee-ff",
+            ifname="eth0",
+            scope="global:servidor",
+        )
+        assert macaddr1.scope == "global:servidor"
         macaddr1.association.store.commit()
         TestFoo.new_transaction()
 
@@ -1533,23 +1623,23 @@ if __name__ == "__main__":
     test_count = 0
     test_classes = []
     for name, obj in dict(globals()).viewitems():
-        if inspect.isclass(obj) and name.startswith('Test'):
+        if inspect.isclass(obj) and name.startswith("Test"):
             test_classes.append((name, obj))
     test_classes.sort()
     for name, cls in test_classes:
         obj = cls()
-        if hasattr(cls, 'setup_method'):
+        if hasattr(cls, "setup_method"):
             obj.setup_method()
         for item, fun in dict(cls.__dict__).viewitems():
             sys.stdout.flush()
-            if item.lower().startswith('test_') and callable(fun):
+            if item.lower().startswith("test_") and callable(fun):
                 TestFoo.new_transaction()
                 sys.stdout.flush()
-                print('===================RUNNING TEST %s.%s' % (name, item), file=stderr)
+                print("===================RUNNING TEST %s.%s" % (name, item), file=stderr)
                 fun(obj)
                 sys.stdout.flush()
-                print('====================       TEST %s.%s completed' % (name, item), file=stderr)
+                print("====================       TEST %s.%s completed" % (name, item), file=stderr)
                 test_count += 1
-                if hasattr(cls, 'teardown_method'):
-                    obj.teardown_method(name + '.' + item)
-    print('Completed %d tests.' % test_count)
+                if hasattr(cls, "teardown_method"):
+                    obj.teardown_method(name + "." + item)
+    print("Completed %d tests." % test_count)

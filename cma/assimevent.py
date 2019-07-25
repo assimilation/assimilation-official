@@ -35,23 +35,24 @@ class AssimEvent(object):
     All of this happens without any concern by the event objects themselves.
     It is handled by static methods and a tiny bit of code in our constructor.
     """
+
     # Legal event types
-    CREATEOBJ = 0   # Object was newly created
-    OBJUP = 1       # Object status is now up
-    OBJDOWN = 2     # Object status is now down
-    OBJWARN = 3     # Object status is now in a warning state
-    OBJUNWARN = 4   # Object status has exited a warning state
-    OBJUPDATE = 5   # Object was updated
-    OBJDELETE = 6   # Object is about to be deleted
+    CREATEOBJ = 0  # Object was newly created
+    OBJUP = 1  # Object status is now up
+    OBJDOWN = 2  # Object status is now down
+    OBJWARN = 3  # Object status is now in a warning state
+    OBJUNWARN = 4  # Object status has exited a warning state
+    OBJUPDATE = 5  # Object was updated
+    OBJDELETE = 6  # Object is about to be deleted
 
     eventtypenames = {
-        CREATEOBJ:  'create',
-        OBJUP:      'up',
-        OBJDOWN:    'down',
-        OBJWARN:    'warn',
-        OBJUNWARN:  'unwarn',
-        OBJUPDATE:  'update',
-        OBJDELETE:  'delete'
+        CREATEOBJ: "create",
+        OBJUP: "up",
+        OBJDOWN: "down",
+        OBJWARN: "warn",
+        OBJUNWARN: "unwarn",
+        OBJUPDATE: "update",
+        OBJDELETE: "delete",
     }
 
     event_observation_enabled = True
@@ -71,7 +72,7 @@ class AssimEvent(object):
             AssimEvent.OBJWARN, AssimEvent.OBJUPDATE or AssimEvent.OBJDELETE
         """
         if eventtype not in AssimEvent.eventtypenames:
-            raise ValueError('Event type [%s] is not a legal event type' % eventtype)
+            raise ValueError("Event type [%s] is not a legal event type" % eventtype)
 
         self.associatedobject = associatedobject
         self.eventtype = eventtype
@@ -101,8 +102,8 @@ class AssimEvent(object):
         The given observer object must implement a 'notifynewevent' method
         -- because we will surely call it :-D.
         """
-        if not hasattr(observer, 'notifynewevent'):
-            raise AttributeError('observer must have a notifynewevent method')
+        if not hasattr(observer, "notifynewevent"):
+            raise AttributeError("observer must have a notifynewevent method")
         if observer not in AssimEvent.observers:
             AssimEvent.observers.append(observer)
 

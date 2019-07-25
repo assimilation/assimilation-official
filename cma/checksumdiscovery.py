@@ -54,70 +54,74 @@ from discoverylistener import DiscoveryListener
 @SystemNode.add_json_processor
 class TCPDiscoveryChecksumGenerator(DiscoveryListener):
     """Class for generating checksums based on our tcpdiscovery packets"""
+
     prio = DiscoveryListener.PRI_OPTION
-    wanted_packets = ('tcpdiscovery', 'checksum')
+    wanted_packets = ("tcpdiscovery", "checksum")
 
     def processpkt(self, drone, srcaddr, jsonobj, discoverychanged):
         """Inform interested rule objects about this change"""
         if not discoverychanged:
             return
-        if jsonobj['discovertype'] == 'tcpdiscovery':
+        if jsonobj["discovertype"] == "tcpdiscovery":
             self.processtcpdiscoverypkt(drone, srcaddr, jsonobj)
-        elif jsonobj['discovertype'] == 'checksum':
+        elif jsonobj["discovertype"] == "checksum":
             self.processchecksumpkt(drone, srcaddr, jsonobj)
         else:
-            print(('OOPS! bad packet type [%s]' %
-                                  jsonobj['discovertype']), file=sys.stderr)
+            print(("OOPS! bad packet type [%s]" % jsonobj["discovertype"]), file=sys.stderr)
 
     def processtcpdiscoverypkt(self, drone, _unused_srcaddr, jsonobj):
         """Send commands generating checksums for the Systems's net-facing things"""
-        params = ConfigFile.agent_params(self.config, 'discovery', 'checksums',
-                                         drone.designation)
-        sumcmds = self.config['checksum_cmds']
-        filelist = self.config['checksum_files']
+        params = ConfigFile.agent_params(self.config, "discovery", "checksums", drone.designation)
+        sumcmds = self.config["checksum_cmds"]
+        filelist = self.config["checksum_files"]
         filelist.extend(sumcmds)
-        params['parameters'] = pyConfigContext()
-        params[CONFIGNAME_TYPE] = 'checksums'
-        params[CONFIGNAME_INSTANCE] = '_auto_checksumdiscovery'
-        data = jsonobj['data']  # The data portion of the JSON message
+        params["parameters"] = pyConfigContext()
+        params[CONFIGNAME_TYPE] = "checksums"
+        params[CONFIGNAME_INSTANCE] = "_auto_checksumdiscovery"
+        data = jsonobj["data"]  # The data portion of the JSON message
         for procname in data.keys():  # List of of process names...
             procinfo = data[procname]  # (names assigned by the nanoprobe)
-            if 'exe' not in procinfo:
+            if "exe" not in procinfo:
                 continue
-            exename = procinfo.get('exe')
+            exename = procinfo.get("exe")
             # dups (if any) are removed by the agent
             filelist.append(exename)
-            if exename.endswith('/java'):
+            if exename.endswith("/java"):
                 # Special case for some/many JAVA programs - find the jars...
-                if 'cmdline' not in procinfo:
+                if "cmdline" not in procinfo:
                     continue
-                cmdline = procinfo.get('cmdline')
+                cmdline = procinfo.get("cmdline")
                 for j in range(0, len(cmdline)):
                     # The argument following -cp is the ':'-separated CLASSPATH
-                    if cmdline[j] == '-cp' and j < len(cmdline) - 1:
-                        jars = cmdline[j + 1].split(':')
+                    if cmdline[j] == "-cp" and j < len(cmdline) - 1:
+                        jars = cmdline[j + 1].split(":")
                         for jar in jars:
                             filelist.append(jar)
                         break
 
-        params['parameters']['ASSIM_sumcmds'] = sumcmds
-        params['parameters']['ASSIM_filelist'] = filelist
+        params["parameters"]["ASSIM_sumcmds"] = sumcmds
+        params["parameters"]["ASSIM_filelist"] = filelist
         # Request checksums of all the binaries talking (tcp) over the network
-        print(('REQUESTING CHECKSUM MONITORING OF %d files'
-                              % (len(params['parameters']['ASSIM_filelist']))), file=sys.stderr)
+        print(
+            (
+                "REQUESTING CHECKSUM MONITORING OF %d files"
+                % (len(params["parameters"]["ASSIM_filelist"]))
+            ),
+            file=sys.stderr,
+        )
         drone.request_discovery((params,))
 
     def processchecksumpkt(self, drone, _unused_srcaddr, jsonobj):
         """Process updated checksums. The value of drone['checksums'] (if any)
         is the _previous_ value of the checksums attribute.
         """
-        data = jsonobj['data']  # The data portion of the JSON message
-        print('PROCESSING CHECKSUM DATA', file=sys.stderr)
-        if 'checksums' in drone:
-            print('COMPARING CHECKSUM DATA', file=sys.stderr)
-            olddata = pyConfigContext(drone['checksums'])['data']
+        data = jsonobj["data"]  # The data portion of the JSON message
+        print("PROCESSING CHECKSUM DATA", file=sys.stderr)
+        if "checksums" in drone:
+            print("COMPARING CHECKSUM DATA", file=sys.stderr)
+            olddata = pyConfigContext(drone["checksums"])["data"]
             self.compare_checksums(drone, olddata, data)
-        print('UPDATING CHECKSUM DATA for %d files' % len(data), file=sys.stderr)
+        print("UPDATING CHECKSUM DATA for %d files" % len(data), file=sys.stderr)
 
     def compare_checksums(self, drone, oldobj, newobj):
         """Compare checksums and complain about those that change"""
@@ -130,8 +134,10 @@ class TCPDiscoveryChecksumGenerator(DiscoveryListener):
             newchecksum = newobj[oldfile]
             if oldchecksum == newchecksum:
                 continue
-            self.log.warning('On system %s: %s had checksum %s which is now %s'
-                             % (designation, oldfile, oldchecksum, newchecksum))
+            self.log.warning(
+                "On system %s: %s had checksum %s which is now %s"
+                % (designation, oldfile, oldchecksum, newchecksum)
+            )
             changes[oldfile] = (oldchecksum, newchecksum)
-        extrainfo = {'CHANGETYPE': 'checksums', 'changes': changes}
+        extrainfo = {"CHANGETYPE": "checksums", "changes": changes}
         AssimEvent(drone, AssimEvent.OBJUPDATE, extrainfo=extrainfo)

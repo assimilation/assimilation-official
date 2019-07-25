@@ -153,9 +153,7 @@ class NeoDockerServer(NeoServer):
         self.root_directory = root_directory
         self.port_map = {}
         for port_name, external_port in exposed_ports.items():
-            external_port = (
-                external_port if external_port else self.neo_ports[port_name]
-            )
+            external_port = external_port if external_port else self.neo_ports[port_name]
             self.port_map[self.neo_ports[port_name]] = int(external_port)
         self.volume_map = {}
         writable_owners = set()
@@ -171,13 +169,10 @@ class NeoDockerServer(NeoServer):
                 writable_owners.add(writable_stat.st_uid)
                 writable_groups.add(writable_stat.st_gid)
         if len(writable_owners) > 1:
-            raise TypeError(
-                "Neo4j writable volumes owned by multiple owners: %s" % writable_owners
-            )
+            raise TypeError("Neo4j writable volumes owned by multiple owners: %s" % writable_owners)
         if len(writable_groups) > 1:
             print(
-                "Neo4j writable volumes grouped to multiple groups: %s"
-                % writable_groups,
+                "Neo4j writable volumes grouped to multiple groups: %s" % writable_groups,
                 file=stderr,
             )
 
@@ -281,7 +276,7 @@ class NeoDockerServer(NeoServer):
         )
         time.sleep(5)
         # @FIXME: This should be a loop waiting for services to become available...
-        print('Neo4j container %s started.' % self.container.short_id, file=stderr)
+        print("Neo4j container %s started." % self.container.short_id, file=stderr)
         return self.container
 
     def is_running(self):
@@ -310,7 +305,7 @@ class NeoDockerServer(NeoServer):
                 if "404" not in str(oops) and "409" not in str(oops):
                     raise
             time.sleep(0.25)
-        print('Neo4j container %s now stopped.' % container_s, file=stderr)
+        print("Neo4j container %s now stopped." % container_s, file=stderr)
 
     def _getpass(self, name="neo4j"):
         """
@@ -359,7 +354,7 @@ class NeoDockerServer(NeoServer):
                 # Do we need to stop Neo4j before doing this?
                 os.unlink(self.auth_file_name)
                 os.unlink(self.roles_file_name)
-                print('Previous neo4j authorization information deleted.', file=stderr)
+                print("Previous neo4j authorization information deleted.", file=stderr)
             except OSError:
                 pass
 
@@ -371,11 +366,11 @@ class NeoDockerServer(NeoServer):
         output = output.strip()
         print(output)
         if rc != 0:
-            raise RuntimeError('Could not set initial password: %s' % output)
+            raise RuntimeError("Could not set initial password: %s" % output)
         if force:
             self.start(restart_if_running=True)
         result = rc == 0
-        print('Initial Neo4j password %sset.' % '' if result else 'NOT ', file=stderr)
+        print("Initial Neo4j password %sset." % "" if result else "NOT ", file=stderr)
         return result
 
     def clean_db(self):
@@ -384,7 +379,7 @@ class NeoDockerServer(NeoServer):
         This is nice because it cleans out _everything_ - not just nodes and relationships...
         It leaves authentication and other things untouched...
         """
-        print('Emptying out Neo4j database @%s.' % self.container.short_id, file=stderr)
+        print("Emptying out Neo4j database @%s." % self.container.short_id, file=stderr)
         self.stop()
         shutil.rmtree(self.databases_directory)
         self.start()
@@ -397,13 +392,11 @@ if __name__ == "__main__":
         sys.stdout = sys.stderr  # Good for testing...
         print(NeoDockerServer())
         print(NeoDockerServer(edition="enterprise", accept_license=True))
-        print(
-            NeoDockerServer(edition="enterprise", version="3.5.0", accept_license=True)
-        )
-        neo4j = NeoDockerServer(edition="enterprise", version='3.5.6', accept_license=True)
+        print(NeoDockerServer(edition="enterprise", version="3.5.0", accept_license=True))
+        neo4j = NeoDockerServer(edition="enterprise", version="3.5.6", accept_license=True)
         print("Now RUNNING:", neo4j)
         neo4j.start(restart_if_running=False)
-        print('Is Neo4j running?', neo4j.is_running())
+        print("Is Neo4j running?", neo4j.is_running())
         neo4j.set_initial_password("passw0rd", force=True)
         neo4j.clean_db()
 

@@ -24,14 +24,14 @@
 #
 #
 
-'''
+"""
 Discovery Listener infrastructure
 This is the base class for code that wants to hear about various
 discovery packets as they arrive.
 
 More details are documented in the DiscoveryListener class
-'''
-#import sys
+"""
+# import sys
 from systemnode import SystemNode
 from AssimCclasses import pyConfigContext
 from AssimCtypes import CONFIGNAME_TYPE, CONFIGNAME_INSTANCE
@@ -39,32 +39,33 @@ from cmaconfig import ConfigFile
 
 from discoverylistener import DiscoveryListener
 
+
 @SystemNode.add_json_processor
 class ProcSysDiscovery(DiscoveryListener):
-    'Class for discovering the contents of /proc/sys'
+    "Class for discovering the contents of /proc/sys"
     prio = DiscoveryListener.PRI_OPTION
-    wanted_packets = ('OS', 'os')
+    wanted_packets = ("OS", "os")
 
     def processpkt(self, drone, _unused_srcaddr, jsonobj, discoverychanged):
         "Send commands to gather discovery data from /proc/sys"
         if not discoverychanged:
             return
-        data = jsonobj['data'] # The data portion of the JSON message
-        osfield='operating-system'
+        data = jsonobj["data"]  # The data portion of the JSON message
+        osfield = "operating-system"
         if osfield not in data:
-            self.log.warning('OS name not found in %s' % str(data))
+            self.log.warning("OS name not found in %s" % str(data))
             return
         osname = data[osfield]
-        if osname.find('Linux') == -1 and osname.find('linux') == -1:
-            self.log.info('ProcSysDiscovery: OS name is not Linux: %s' % str(osname))
+        if osname.find("Linux") == -1 and osname.find("linux") == -1:
+            self.log.info("ProcSysDiscovery: OS name is not Linux: %s" % str(osname))
             return
 
-        params = ConfigFile.agent_params(self.config, 'discovery', 'proc_sys', drone.designation)
-        params['parameters'] = pyConfigContext({'ASSIM_discoverdir': '/proc/sys' })
-        params[CONFIGNAME_TYPE] = 'proc_sys'
-        params[CONFIGNAME_INSTANCE] = '_auto_proc_sys'
+        params = ConfigFile.agent_params(self.config, "discovery", "proc_sys", drone.designation)
+        params["parameters"] = pyConfigContext({"ASSIM_discoverdir": "/proc/sys"})
+        params[CONFIGNAME_TYPE] = "proc_sys"
+        params[CONFIGNAME_INSTANCE] = "_auto_proc_sys"
 
         # Request discovery of checksums of all the binaries talking (tcp) over the network
         if self.debug:
-            self.log.debug('REQUESTING /proc/sys DISCOVERY')
+            self.log.debug("REQUESTING /proc/sys DISCOVERY")
         drone.request_discovery((params,))

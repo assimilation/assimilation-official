@@ -41,14 +41,7 @@ from AssimCtypes import CONFIGNAME_TYPE, CONFIGNAME_INSTANCE, ADDR_FAMILY_IPV4
 from AssimCclasses import pyNetAddr, pyConfigContext
 from systemnode import ChildSystem
 
-from graphnodes import (
-    NICNode,
-    IPaddrNode,
-    ProcessNode,
-    IPtcpportNode,
-    NetworkSegment,
-    Subnet,
-)
+from graphnodes import NICNode, IPaddrNode, ProcessNode, IPtcpportNode, NetworkSegment, Subnet
 
 
 class DiscoveryListener(object):
@@ -183,9 +176,7 @@ class NetconfigDiscoveryListener(DiscoveryListener):
             return
         data = jsonobj["data"]  # The data portion of the JSON message
 
-        currmacs = (
-            {}
-        )  # Currmacs is a list of current NICNode objects belonging to this host
+        currmacs = {}  # Currmacs is a list of current NICNode objects belonging to this host
         #                 indexed by MAC address
         # Get our current list of NICs
         iflist = self.store.load_related(drone, CMAconsts.REL_nicowner)
@@ -194,9 +185,7 @@ class NetconfigDiscoveryListener(DiscoveryListener):
 
         primaryifname = None
         net_segments = {}
-        newmacs = (
-            {}
-        )  # Newmacs is a list of NICNode objects found/created by this discovery
+        newmacs = {}  # Newmacs is a list of NICNode objects found/created by this discovery
         #                 indexed by MAC address
         for ifname in data.keys():  # List of interfaces just below the data section
             ifinfo = data[ifname]
@@ -315,12 +304,8 @@ class NetconfigDiscoveryListener(DiscoveryListener):
                 else:
                     # print ('Deleting address %s from MAC %s' %  (currip, macaddr), file=stderr)
                     # print ('currip:%s, currips:%s' %  (str(currip), str(currips)), file=stderr)
-                    self.log.debug(
-                        "Deleting address %s from MAC %s" % (currip, macaddr)
-                    )
-                    self.log.debug(
-                        "currip:%s, currips:%s" % (str(currip), str(currips))
-                    )
+                    self.log.debug("Deleting address %s from MAC %s" % (currip, macaddr))
+                    self.log.debug("currip:%s, currips:%s" % (str(currip), str(currips)))
                     self.store.separate(mac, rel_type=CMAconsts.REL_ipowner, obj=currip)
                     # @TODO Needs to be a 'careful, complete' reference count deletion...
                     # @TODO May also need to delete a subnet if no other references...
@@ -387,9 +372,7 @@ class TCPDiscoveryListener(DiscoveryListener):
             newprocmap[procname] = processproc
             self.store.relate_new(drone, CMAconsts.REL_hosting, processproc)
             if self.debug:
-                self.log.debug(
-                    "procinfo(%s) - processproc created=> %s" % (procinfo, processproc)
-                )
+                self.log.debug("procinfo(%s) - processproc created=> %s" % (procinfo, processproc))
 
         oldprocs = {}
         # Several kinds of nodes have the same relationship to the host...
@@ -405,13 +388,9 @@ class TCPDiscoveryListener(DiscoveryListener):
                     # On the other hand, garbage collection is a good thought...
                     print("TRYING TO DELETE node %s" % procname, file=stderr)
                     for newprocname in newprocs:
-                        print(
-                            "*** new procs: proc.procname %s" % str(newprocname),
-                            file=stderr,
-                        )
+                        print("*** new procs: proc.procname %s" % str(newprocname), file=stderr)
                     print(
-                        "*** DELETING proc: proc.procname %s: proc=%s"
-                        % (str(procname), str(proc)),
+                        "*** DELETING proc: proc.procname %s: proc=%s" % (str(procname), str(proc)),
                         file=stderr,
                     )
                     self.store.delete(proc)
@@ -427,9 +406,7 @@ class TCPDiscoveryListener(DiscoveryListener):
                 for srvkey in srvportinfo.keys():
                     match = TCPDiscoveryListener.netstatipportpat.match(srvkey)
                     (ip, port) = match.groups()
-                    self._add_serveripportnodes(
-                        drone, ip, int(port), processnode, allourips
-                    )
+                    self._add_serveripportnodes(drone, ip, int(port), processnode, allourips)
             if "clientaddrs" in procinfo:
                 clientinfo = procinfo["clientaddrs"]
                 processnode.addrole(CMAconsts.ROLE_client)
@@ -474,12 +451,7 @@ class TCPDiscoveryListener(DiscoveryListener):
         if not anyaddr:
             print(
                 "LOOKING FOR %s (%s, %s) in: %s"
-                % (
-                    netaddr,
-                    type(ip),
-                    type(netaddr),
-                    [str(ip.ipaddr) for ip in allourips],
-                ),
+                % (netaddr, type(ip), type(netaddr), [str(ip.ipaddr) for ip in allourips]),
                 file=stderr,
             )
             # raise ValueError('IP Address mismatch for Drone %s - could not find address %s'
@@ -520,9 +492,7 @@ class SystemSubclassDiscoveryListener(DiscoveryListener):
             self.store.relate_new(system, CMAconsts.REL_parentsys, drone)
 
             runspec = (
-                ' "runas_user": "%s",' % system.runas_user
-                if system.runas_user is not None
-                else ""
+                ' "runas_user": "%s",' % system.runas_user if system.runas_user is not None else ""
             )
             if system.runas_group is not None:
                 runspec += ' "runas_group": "%s",' % system.runas_group

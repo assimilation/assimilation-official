@@ -77,7 +77,7 @@ class AssimEventObserver(object):
         """We get called when a new AssimEvent has occured that we might want to observe.
         But we are an abstract base class so we error out with NotImplementedError every time!
         """
-        raise NotImplementedError('AssimEventObserver is an abstract base class')
+        raise NotImplementedError("AssimEventObserver is an abstract base class")
 
     # [R0912:AssimEventObserver.is_interesting] Too many branches (13/12)
     # This is triggered largely by the if DEBUG statements...
@@ -92,7 +92,7 @@ class AssimEventObserver(object):
             The event we're evaluating to see if our listeners want to hear about it.
         """
         if DEBUG:
-            print('is_interesting(%s, %s)?' % (self.constraints, event.eventtype), file=sys.stderr)
+            print("is_interesting(%s, %s)?" % (self.constraints, event.eventtype), file=sys.stderr)
         if self.constraints is None:
             return True
         if callable(self.constraints):
@@ -100,29 +100,29 @@ class AssimEventObserver(object):
         for attr in self.constraints:
             value = AssimEventObserver.getvalue(event, attr)
             if DEBUG:
-                print('VALUE of attr %s is %s' % (attr, value), file=sys.stderr)
+                print("VALUE of attr %s is %s" % (attr, value), file=sys.stderr)
             if value is None:
                 # @FIXME: Is this the right treatment of no-such-value (None)?
                 continue
             constraint = self.constraints[attr]
             if DEBUG:
-                print('CONSTRAINT is %s' % constraint, file=sys.stderr)
-            if hasattr(constraint, '__contains__'):
+                print("CONSTRAINT is %s" % constraint, file=sys.stderr)
+            if hasattr(constraint, "__contains__"):
                 if value not in constraint:
                     if DEBUG:
-                        print('Event is not interesting(1)', value, constraint, file=sys.stderr)
+                        print("Event is not interesting(1)", value, constraint, file=sys.stderr)
                     return False
             elif value != constraint:
                 if DEBUG:
-                    print('Event is not interesting(2)', value, constraint, file=sys.stderr)
+                    print("Event is not interesting(2)", value, constraint, file=sys.stderr)
                 return False
         if DEBUG:
-            print('Event %s IS interesting' % event.eventtype, file=sys.stderr)
+            print("Event %s IS interesting" % event.eventtype, file=sys.stderr)
         return True
 
     @staticmethod
     def getvalue(event, attr):
-        'Helper function to return a the value of a constraint expression'
+        "Helper function to return a the value of a constraint expression"
         value = None
         if hasattr(event, attr):
             value = getattr(event, attr)
@@ -165,14 +165,14 @@ class FIFOEventObserver(AssimEventObserver):
             pipebufsize = setpipebuf(FIFOwritefd, 1024 * 1024)
             # Complain if we don't have at least 1 MB
             if pipebufsize < 1024 * 1024:
-                print(('WARNING: pipe buffer size is only %s bytes' % pipebufsize))
+                print(("WARNING: pipe buffer size is only %s bytes" % pipebufsize))
         self.pipebufsize = pipebufsize
         # We don't want to hang around if we can't send out an event
-        if hasattr(os, 'O_NDELAY'):
+        if hasattr(os, "O_NDELAY"):
             fcntl.fcntl(FIFOwritefd, fcntl.F_SETFL, os.O_NDELAY)
-        elif hasattr(os, 'FNDELAY'):
+        elif hasattr(os, "FNDELAY"):
             # Using getattr avoids a pylint complaint...
-            fcntl.fcntl(FIFOwritefd, fcntl.F_SETFL, getattr(os, 'FNDELAY'))
+            fcntl.fcntl(FIFOwritefd, fcntl.F_SETFL, getattr(os, "FNDELAY"))
         AssimEventObserver.__init__(self, constraints)
 
     def notifynewevent(self, event):
@@ -189,14 +189,14 @@ class FIFOEventObserver(AssimEventObserver):
         json += FIFOEventObserver.NULstr
         try:
             if DEBUG:
-                print('*************SENDING EVENT (%d bytes)' % (jsonlen + 1), file=sys.stderr)
+                print("*************SENDING EVENT (%d bytes)" % (jsonlen + 1), file=sys.stderr)
             os.write(self.FIFOwritefd, json)
             self.errcount = 0
             if DEBUG:
-                print('*************EVENT SENT (%d bytes)' % (jsonlen + 1), file=sys.stderr)
+                print("*************EVENT SENT (%d bytes)" % (jsonlen + 1), file=sys.stderr)
         except OSError as e:
             if DEBUG:
-                print('+++++++++++++++++EVENT FIFO write error: %s' % str(e), file=sys.stderr)
+                print("+++++++++++++++++EVENT FIFO write error: %s" % str(e), file=sys.stderr)
             self.errcount += 1
             self.ioerror(event)
 
@@ -228,7 +228,7 @@ class ForkExecObserver(FIFOEventObserver):
         if scriptdir is None:
             scriptdir = NOTIFICATION_SCRIPT_DIR
         if not os.path.isdir(scriptdir):
-            raise ValueError('Script directory [%s] is not a directory' % scriptdir)
+            raise ValueError("Script directory [%s] is not a directory" % scriptdir)
         self.scriptdir = scriptdir
         pipefds = os.pipe()
         self.FIFOreadfd = pipefds[0]
@@ -246,7 +246,7 @@ class ForkExecObserver(FIFOEventObserver):
         """Re-initialize (respawn) our child in response to an I/O error"""
 
         if DEBUG:
-            print('**********Reinitializing child EVENT process', file=sys.stderr)
+            print("**********Reinitializing child EVENT process", file=sys.stderr)
         if self.childpid > 0:
             os.kill(self.childpid, signal.SIGKILL)
             self.childpid = 0
@@ -259,7 +259,7 @@ class ForkExecObserver(FIFOEventObserver):
             # Try to keep from losing this event
             self.notifynewevent(event)
         else:
-            print('Reinitialization of ForkExecObserver may have failed.', file=sys.stderr)
+            print("Reinitialization of ForkExecObserver may have failed.", file=sys.stderr)
 
     def __del__(self):
         if self.childpid > 0:
@@ -268,7 +268,7 @@ class ForkExecObserver(FIFOEventObserver):
             self.childpid = 0
 
     def listenforevents(self):
-        'Listen for JSON events terminated by a FIFOEventObserver.NULstr'
+        "Listen for JSON events terminated by a FIFOEventObserver.NULstr"
         os.close(self.FIFOwritefd)
         fcntl.fcntl(self.FIFOreadfd, fcntl.F_SETFD, fcntl.FD_CLOEXEC)
         for fd in range(3, 1024):
@@ -276,14 +276,14 @@ class ForkExecObserver(FIFOEventObserver):
                 fcntl.fcntl(fd, fcntl.F_SETFD, fcntl.FD_CLOEXEC)
             except IOError:
                 pass
-        currentbuf = ''
+        currentbuf = ""
         while True:
             try:
                 if DEBUG:
-                    print('ISSUING EVENT READ...', file=sys.stderr)
+                    print("ISSUING EVENT READ...", file=sys.stderr)
                 currentbuf += os.read(self.FIFOreadfd, 4096)
                 if DEBUG:
-                    print('EVENT READ returned %d bytes' % (len(currentbuf)), file=sys.stderr)
+                    print("EVENT READ returned %d bytes" % (len(currentbuf)), file=sys.stderr)
                 if len(currentbuf) == 0:
                     # We don't want any kind of python cleanup going on here...
                     # so we access the 'protected' member _exit of os, and irritate pylint
@@ -299,47 +299,49 @@ class ForkExecObserver(FIFOEventObserver):
             # W0703: catching too general exception Exception
             # pylint: disable=W0703
             except Exception as e:
-                print(('ForkExecObserver Got exception in child process: %s'
-                                      % str(e)), file=sys.stderr)
-                currentbuf = ''
+                print(
+                    ("ForkExecObserver Got exception in child process: %s" % str(e)),
+                    file=sys.stderr,
+                )
+                currentbuf = ""
             except KeyboardInterrupt as e:
                 sys.exit(0)
 
     @staticmethod
     def _JSONevent_env(eventobj):
-        'Create the environment for our child processes'
+        "Create the environment for our child processes"
         scalars = (six.string_types, int, float, bool, pyNetAddr)
         # print('SCALARS == %s' % str(scalars), file=sys.stderr)
-        aobj = eventobj['associatedobject']
+        aobj = eventobj["associatedobject"]
         env = {}
         # Initialize the child environment with our current environment
         for item in os.environ:
             env[item] = os.environ[item]
         # Add in things in 'extrainfo' (if any)
-        if 'extrainfo' in eventobj and eventobj['extrainfo'] is not None:
-            extrastuff = eventobj['extrainfo']
+        if "extrainfo" in eventobj and eventobj["extrainfo"] is not None:
+            extrastuff = eventobj["extrainfo"]
             for extra in extrastuff.keys():
                 evextra = extrastuff[extra]
                 if isinstance(evextra, scalars):
-                    env['ASSIM_%s' % extra] = str(evextra)
+                    env["ASSIM_%s" % extra] = str(evextra)
         # Add all the scalars in the associated object
         for attr in aobj.keys():
             avalue = aobj[attr]
             if isinstance(avalue, scalars):
-                env['ASSIM_%s' % attr] = str(avalue)
+                env["ASSIM_%s" % attr] = str(avalue)
         return env
 
     def processJSONevent(self, jsonstr):
-        'Process a single JSON event from our input stream'
+        "Process a single JSON event from our input stream"
         eventobj = pyConfigContext(jsonstr)
-        aobjclass = eventobj['associatedobject']['nodetype']
-        eventtype = AssimEvent.eventtypenames[eventobj['eventtype']]
+        aobjclass = eventobj["associatedobject"]["nodetype"]
+        eventtype = AssimEvent.eventtypenames[eventobj["eventtype"]]
         childenv = self._JSONevent_env(eventobj)
 
         # It's an event we want our scripts to know about...
         # So, let them know!
         if DEBUG:
-            print('TO RUN: %s' % (str(self.listscripts())), file=sys.stderr)
+            print("TO RUN: %s" % (str(self.listscripts())), file=sys.stderr)
         # Put the full JSON in a temporary file, so our scripts can read it from stdin
         jsontmpfile = tempfile.TemporaryFile()
         jsontmpfile.write(str(eventobj))
@@ -347,13 +349,13 @@ class ForkExecObserver(FIFOEventObserver):
         for script in self.listscripts():
             args = [script, eventtype, aobjclass]
             if DEBUG:
-                print('STARTING EVENT SCRIPT: %s' % (str(args)), file=sys.stderr)
+                print("STARTING EVENT SCRIPT: %s" % (str(args)), file=sys.stderr)
             subprocess.call(args, env=childenv, stdin=jsontmpfile)
             if DEBUG:
-                print('EVENT SCRIPT %s IS NOW DONE' % (str(args)), file=sys.stderr)
+                print("EVENT SCRIPT %s IS NOW DONE" % (str(args)), file=sys.stderr)
 
     def listscripts(self):
-        'Return the list of pathnames to execute when we get notified of an event'
+        "Return the list of pathnames to execute when we get notified of an event"
         retval = []
         for script in os.listdir(self.scriptdir):
             path = os.path.join(self.scriptdir, script)

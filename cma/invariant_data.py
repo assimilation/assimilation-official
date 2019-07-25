@@ -47,10 +47,11 @@ import sqlite3
 import string
 import dpath
 
-if hasattr(os, 'syncfs'):
-    syncfs = getattr(os, 'syncfs')
+if hasattr(os, "syncfs"):
+    syncfs = getattr(os, "syncfs")
 else:
     import ctypes
+
     libc = ctypes.CDLL("libc.so.6")
 
     def syncfs(fd):
@@ -70,9 +71,11 @@ def dict_merge(original_dict, merge_dict):
     :return: None
     """
     for key, value in merge_dict.items():
-        if (key in original_dict
+        if (
+            key in original_dict
             and isinstance(original_dict[key], dict)
-                and isinstance(value, collections.Mapping)):
+            and isinstance(value, collections.Mapping)
+        ):
             dict_merge(original_dict[key], value)
         else:
             original_dict[key] = merge_dict[key]
@@ -83,6 +86,7 @@ class PersistentInvariantJSON(object):
     An abstract base class which implements several methods of providing persistent invariant
     data.
     """
+
     def __init__(self, data_type, **initial_args):
         """
         Abstract class constructor
@@ -90,14 +94,14 @@ class PersistentInvariantJSON(object):
         :param initial_args: a collection of initial arguments for this class or any subclasses
         """
         self._constructor_args = initial_args
-        self.debug = initial_args.get('debug', False)
-        self.audit = initial_args.get('audit', False)
-        self.query_root = initial_args.get('query_root', 'data')
-        self.json_load = initial_args.get('json_load', json.loads)
+        self.debug = initial_args.get("debug", False)
+        self.audit = initial_args.get("audit", False)
+        self.query_root = initial_args.get("query_root", "data")
+        self.json_load = initial_args.get("json_load", json.loads)
         self.data_type = data_type
-        self.sync_all = bool(initial_args.get('sync_all', True))
+        self.sync_all = bool(initial_args.get("sync_all", True))
 
-        if initial_args.get('autosync_on_delete', False):
+        if initial_args.get("autosync_on_delete", False):
             self.__del__ = self.sync
 
     def get(self, key, default=None):
@@ -108,8 +112,9 @@ class PersistentInvariantJSON(object):
         :param default: value to return if key not found
         :return: str: previously-stored value
         """
-        raise NotImplementedError("Abstract class PersistentInvariantData.get() [%s, %s]"
-                                  % (key, default))
+        raise NotImplementedError(
+            "Abstract class PersistentInvariantData.get() [%s, %s]" % (key, default)
+        )
 
     def __getitem__(self, key):
         """
@@ -130,8 +135,9 @@ class PersistentInvariantJSON(object):
         :param key: Key of value to put - will be computed from the value if not specified
         :return: str: key of item we stashed away
         """
-        raise NotImplementedError("Abstract class PersistentInvariantData.put() [%s, %s]"
-                                  % (key, value))
+        raise NotImplementedError(
+            "Abstract class PersistentInvariantData.put() [%s, %s]" % (key, value)
+        )
 
     def __setitem__(self, key, value):
         """
@@ -150,8 +156,9 @@ class PersistentInvariantJSON(object):
         :param key: Key to retrieve
         :return: bool: True if this key exists in our collection
         """
-        raise NotImplementedError("Abstract class PersistentInvariantData.__contains__() [%s]"
-                                  % key)
+        raise NotImplementedError(
+            "Abstract class PersistentInvariantData.__contains__() [%s]" % key
+        )
 
     def delete(self, key):
         """
@@ -259,14 +266,14 @@ class PersistentInvariantJSON(object):
                 result.append(comparison)
         return result
 
-    def equality_query(self, equal_sets, ctype='and'):
+    def equality_query(self, equal_sets, ctype="and"):
         """
 
         :param equal_sets: sets to perform equality operation on...
         :param ctype: str: 'and' for and comparision, 'or' otherwise
         :return:
         """
-        comparator = self._equal_set_compare_and if ctype == 'and' else self._equal_set_compare_or
+        comparator = self._equal_set_compare_and if ctype == "and" else self._equal_set_compare_or
         for key, item in self.viewitems():
             item = item.get(self.query_root)
             result = comparator(equal_sets, item)
@@ -294,6 +301,7 @@ class FilesystemJSON(PersistentInvariantJSON):
     """
     A class which implements storing each object in its own file
     """
+
     def __init__(self, data_type, **initial_args):
 
         """
@@ -303,17 +311,17 @@ class FilesystemJSON(PersistentInvariantJSON):
         """
 
         PersistentInvariantJSON.__init__(self, data_type, **initial_args)
-        root_directory = initial_args['root_directory']
+        root_directory = initial_args["root_directory"]
         self.root_directory = os.path.join(root_directory, data_type)
-        self.data_hash = initial_args.get('data_hash', 'sha224')
+        self.data_hash = initial_args.get("data_hash", "sha224")
         self.hash = getattr(hashlib, self.data_hash)
         self.levels = 1
-        self.filename_length = self.hash().digest_size * 2   # hex => 2 chars per hash byte
-        self.hash_chars = int(initial_args.get('hash_chars', 3))
-        self.dirmode = int(initial_args.get('dirmode', 0o755))
-        self.filemode = int(initial_args.get('filemode', 0o644))
-        self.delayed_sync = bool(initial_args.get('delayed_sync', True))
-        self.sync_all = bool(initial_args.get('sync_all', False))
+        self.filename_length = self.hash().digest_size * 2  # hex => 2 chars per hash byte
+        self.hash_chars = int(initial_args.get("hash_chars", 3))
+        self.dirmode = int(initial_args.get("dirmode", 0o755))
+        self.filemode = int(initial_args.get("filemode", 0o644))
+        self.delayed_sync = bool(initial_args.get("delayed_sync", True))
+        self.sync_all = bool(initial_args.get("sync_all", False))
         if not os.access(self.root_directory, os.W_OK):
             os.mkdir(self.root_directory, self.dirmode)
 
@@ -323,7 +331,7 @@ class FilesystemJSON(PersistentInvariantJSON):
         :return: None
         """
         try:
-            subprocess.check_call(['rm', '-fr', self.root_directory])
+            subprocess.check_call(["rm", "-fr", self.root_directory])
         except OSError:
             pass
 
@@ -333,7 +341,7 @@ class FilesystemJSON(PersistentInvariantJSON):
         :param key:
         :return:
         """
-        return os.path.join(self.root_directory, key[:self.hash_chars], key).lower()
+        return os.path.join(self.root_directory, key[: self.hash_chars], key).lower()
 
     def is_valid_key(self, key):
         """
@@ -341,8 +349,7 @@ class FilesystemJSON(PersistentInvariantJSON):
         :param key: str: Key to validate
         :return: bool: True if the filename is a valid key
         """
-        return (len(key) == self.filename_length
-                and len(key.lower().strip("0123456789abcdef")) == 0)
+        return len(key) == self.filename_length and len(key.lower().strip("0123456789abcdef")) == 0
 
     def __contains__(self, key):
         """
@@ -386,11 +393,11 @@ class FilesystemJSON(PersistentInvariantJSON):
             self._doaudit(key, value)
         pathname = self._pathname(key)
         if not self.is_valid_key(key):
-            raise ValueError('key is not valid: %s' % key)
+            raise ValueError("key is not valid: %s" % key)
 
         try:
-            os_openmode = os.O_EXCL+os.O_CREAT+os.O_WRONLY
-            with os.fdopen(os.open(pathname, os_openmode, self.filemode), 'w') as file_obj:
+            os_openmode = os.O_EXCL + os.O_CREAT + os.O_WRONLY
+            with os.fdopen(os.open(pathname, os_openmode, self.filemode), "w") as file_obj:
                 file_obj.write(value)
                 file_obj.flush()
                 if not self.delayed_sync:
@@ -399,8 +406,9 @@ class FilesystemJSON(PersistentInvariantJSON):
             if oopsie.errno == errno.EEXIST:  # Already exists
                 pass
             elif oopsie.errno == errno.ENOENT:  # Directory is missing...
-                self._create_missing_directories(os.path.join(self.root_directory,
-                                                              key[:self.hash_chars]))
+                self._create_missing_directories(
+                    os.path.join(self.root_directory, key[: self.hash_chars])
+                )
                 # Try again (recursively)...
                 self.put(value, key)
             else:
@@ -415,7 +423,7 @@ class FilesystemJSON(PersistentInvariantJSON):
         :return:
         """
         try:
-            os.unlink(os.path.join(self.root_directory, key[:self.hash_chars], key))
+            os.unlink(os.path.join(self.root_directory, key[: self.hash_chars], key))
         except OSError as oopsie:
             if oopsie.errno == errno.ENOENT:
                 return
@@ -438,8 +446,10 @@ class FilesystemJSON(PersistentInvariantJSON):
                             self._doaudit(filename, contents)
                         yield filename, self.json_load(contents)
                 except OSError as oops:
-                    print("ERROR: cannot open file %s: %s."
-                          % (os.path.join(root, filename), oops), file=stderr)
+                    print(
+                        "ERROR: cannot open file %s: %s." % (os.path.join(root, filename), oops),
+                        file=stderr,
+                    )
 
     def viewkeys(self):
         """
@@ -484,41 +494,45 @@ class FilesystemJSON(PersistentInvariantJSON):
                 try:
                     syncfs(fd)
                 except OSError as oopsie:
-                    print('ERROR: Cannot sync data in %s: %s'
-                          % (self._pathname(key), oopsie), file=stderr)
+                    print(
+                        "ERROR: Cannot sync data in %s: %s" % (self._pathname(key), oopsie),
+                        file=stderr,
+                    )
                 os.close(fd)
                 return
             except OSError as oopsie:
                 # This shouldn't happen unless permissions are screwed up...
-                print('ERROR: Cannot open data in %s: %s'
-                      % (self._pathname(key), oopsie), file=stderr)
+                print(
+                    "ERROR: Cannot open data in %s: %s" % (self._pathname(key), oopsie), file=stderr
+                )
 
 
 class SQLiteInstance(object):
     """
     An Instance of a connection to an SQLite database. Needed by SQLiteJSON
     """
+
     instances = {}  # Key is pathname
-    BEGIN_TRANS = 'BEGIN DEFERRED TRANSACTION;'
-    TABLE_PREFIX = 'HASH_'
+    BEGIN_TRANS = "BEGIN DEFERRED TRANSACTION;"
+    TABLE_PREFIX = "HASH_"
     regexes = {}
 
     def __init__(self, **initial_args):
-        dbpath = initial_args['pathname']
+        dbpath = initial_args["pathname"]
         assert dbpath not in SQLiteInstance.instances
         self.in_transaction = False
         self.cursor = None
-        args_to_del = {'delayed_sync', 'pathname', 'audit', 'root_directory'}
+        args_to_del = {"delayed_sync", "pathname", "audit", "root_directory"}
         filtered_args = {key: initial_args[key] for key in initial_args if key not in args_to_del}
         self.connection = sqlite3.connect(dbpath, **filtered_args)
-        self.json_load = initial_args.get('json_load', json.loads)
+        self.json_load = initial_args.get("json_load", json.loads)
         SQLiteInstance.instances[dbpath] = self
         self.hash_tables = set(self.all_hash_tables())
         self.dbpath = dbpath
-        self.journal_name = dbpath + '-journal'
+        self.journal_name = dbpath + "-journal"
         self.filtered_args = filtered_args
         # Provide implementation of function for REGEXP operator
-        self.connection.create_function('regexp', 2, SQLiteInstance.regexp)
+        self.connection.create_function("regexp", 2, SQLiteInstance.regexp)
 
     @staticmethod
     def regexp(expr, item):
@@ -555,7 +569,7 @@ class SQLiteInstance(object):
         :param initial_args:
         :return:
         """
-        dbpath = initial_args['pathname']
+        dbpath = initial_args["pathname"]
         if dbpath in SQLiteInstance.instances:
             return SQLiteInstance.instances[dbpath]
         return SQLiteInstance(**initial_args)
@@ -568,8 +582,8 @@ class SQLiteInstance(object):
         :param inchars: str: input characters
         :return: sanitized string
         """
-        sanitize_charset = string.letters + string.digits + '_'
-        return ''.join(char for char in inchars if char in sanitize_charset)
+        sanitize_charset = string.letters + string.digits + "_"
+        return "".join(char for char in inchars if char in sanitize_charset)
 
     @staticmethod
     def table_name(name):
@@ -617,9 +631,12 @@ class SQLiteInstance(object):
         :return: [str]: Names of all our hash tables...
         """
         self.ensure_transaction()
-        sql = ("""SELECT name FROM sqlite_master
+        sql = (
+            """SELECT name FROM sqlite_master
                  WHERE type='table' AND name LIKE '%s%%'
-                 ORDER BY name;""" % self.TABLE_PREFIX)
+                 ORDER BY name;"""
+            % self.TABLE_PREFIX
+        )
         self.execute(sql)
         chopindex = len(self.TABLE_PREFIX)
         return [row[0][chopindex:] for row in self.cursor.fetchall()]
@@ -632,8 +649,10 @@ class SQLiteInstance(object):
         :return:
         """
         self.ensure_transaction()
-        sql = ('CREATE TABLE %s(hash varchar unique, integer current default 1, data varchar);'
-               % self.table_name(table))
+        sql = (
+            "CREATE TABLE %s(hash varchar unique, integer current default 1, data varchar);"
+            % self.table_name(table)
+        )
         self.execute(sql)
         self.hash_tables.add(table)
 
@@ -648,7 +667,7 @@ class SQLiteInstance(object):
         self.ensure_table(table)
         if self.table_contains(table, datahash):
             return True
-        insert_command = ('INSERT INTO %s (hash, data) VALUES (?, ?);' % self.table_name(table))
+        insert_command = "INSERT INTO %s (hash, data) VALUES (?, ?);" % self.table_name(table)
         return self.execute(insert_command, (datahash, data))
 
     def get(self, table, datahash, default=None):
@@ -660,7 +679,7 @@ class SQLiteInstance(object):
         :return:
         """
         self.ensure_table(table)
-        command = ('SELECT data FROM %s WHERE hash = ?;' % self.table_name(table))
+        command = "SELECT data FROM %s WHERE hash = ?;" % self.table_name(table)
         self.execute(command, (datahash,))
         result = self.cursor.fetchone()
         return self.json_load(result[0]) if result else default
@@ -673,7 +692,7 @@ class SQLiteInstance(object):
         :return: Whatever sqlite3.cursor.execute returns...
         """
         self.ensure_table(table)
-        command = ('DELETE FROM %s WHERE hash = ?;' % self.table_name(table))
+        command = "DELETE FROM %s WHERE hash = ?;" % self.table_name(table)
         return self.execute(command, (datahash,))
 
     def table_contains(self, table, datahash):
@@ -684,7 +703,7 @@ class SQLiteInstance(object):
         :return: bool: True if present, False otherwise
         """
         self.ensure_table(table)
-        command = ('SELECT hash FROM %s WHERE hash = ?;' % self.table_name(table))
+        command = "SELECT hash FROM %s WHERE hash = ?;" % self.table_name(table)
         self.execute(command, (datahash,))
         result = self.cursor.fetchone()
         return True if result else False
@@ -706,7 +725,7 @@ class SQLiteInstance(object):
         :return: generator(str, dict)
         """
         self.ensure_table(table)
-        command = ('SELECT hash, data FROM %s;' % self.table_name(table))
+        command = "SELECT hash, data FROM %s;" % self.table_name(table)
         self.execute(command)
         result = self.cursor.fetchone()
         while result:
@@ -719,7 +738,7 @@ class SQLiteInstance(object):
         :return: generator(dict)
         """
         self.ensure_table(table)
-        command = ('SELECT data FROM %s;' % self.table_name(table))
+        command = "SELECT data FROM %s;" % self.table_name(table)
         self.execute(command)
         result = self.cursor.fetchone()
         while result:
@@ -733,7 +752,7 @@ class SQLiteInstance(object):
         :return: generator(str)
         """
         self.ensure_table(table)
-        command = ('SELECT hash FROM %s;' % self.table_name(table))
+        command = "SELECT hash FROM %s;" % self.table_name(table)
         self.execute(command)
         result = self.cursor.fetchone()
         while result:
@@ -754,10 +773,10 @@ class SQLiteJSON(PersistentInvariantJSON):
         """
 
         PersistentInvariantJSON.__init__(self, data_type, **initial_args)
-        self.delayed_sync = bool(initial_args.get('delayed_sync', True))
-        self.sync_all = bool(initial_args.get('sync_all', True))
+        self.delayed_sync = bool(initial_args.get("delayed_sync", True))
+        self.sync_all = bool(initial_args.get("sync_all", True))
         self.instance = SQLiteInstance.instance(**initial_args)
-        self.data_hash = initial_args.get('data_hash', 'sha224')
+        self.data_hash = initial_args.get("data_hash", "sha224")
         self.hash = getattr(hashlib, self.data_hash)
 
     def delete_everything(self):
@@ -800,7 +819,7 @@ class SQLiteJSON(PersistentInvariantJSON):
         Commit the transaction -- sync to disk...
         :return: None
         """
-        print('COMMIT.', file=stderr)
+        print("COMMIT.", file=stderr)
         self.instance.commit()
 
     def viewitems(self):
@@ -833,26 +852,26 @@ class SQLiteJSON(PersistentInvariantJSON):
         return self.instance.all_hash_tables()
 
     @staticmethod
-    def _transform_query_to_sql(query, top_level='data'):
+    def _transform_query_to_sql(query, top_level="data"):
         """
         Transforms a query from dpath notation to SQLite JSON query notation
         :param query: str: query in dpath notation
         :return: str: query in SQLite JSON notation
         """
-        xformed = '$' + (query[1:] if query.startswith('*') else query)
-        return "json_extract(result.value, '%s')" % xformed.replace('/', '.')
+        xformed = "$" + (query[1:] if query.startswith("*") else query)
+        return "json_extract(result.value, '%s')" % xformed.replace("/", ".")
 
     @staticmethod
     def sql_value(value):
         if isinstance(value, str):
             return '"%s"' % value
         elif isinstance(value, (list, tuple)):
-            delim = ''
-            result = '('
+            delim = ""
+            result = "("
             for item in value:
                 result += "%s%s" % (delim, SQLiteJSON.sql_value(item))
-                delim = ','
-            return result + ')'
+                delim = ","
+            return result + ")"
         return str(value)
 
     @staticmethod
@@ -860,27 +879,27 @@ class SQLiteJSON(PersistentInvariantJSON):
         if isinstance(parameter, bool):
             return str(int(parameter))
         elif isinstance(parameter, (list, tuple)):
-            result = '('
-            delim = ''
+            result = "("
+            delim = ""
             for item in parameter:
-                result += '%s%s' % (delim, SQLiteJSON.sqlite_parameter(item))
-                delim = ', '
-            return result + ')'
+                result += "%s%s" % (delim, SQLiteJSON.sqlite_parameter(item))
+                delim = ", "
+            return result + ")"
         elif isinstance(parameter, (str, unicode)):
             return "'%s'" % parameter
         return str(parameter)
 
-    def equality_query(self, equal_sets, ctype='and'):
+    def equality_query(self, equal_sets, ctype="and"):
         """
         Perform an equality query using SQLite JSON...
         :param equal_sets:
         :param ctype:
         :return:
         """
-        conjunction_word = ' AND ' if ctype.lower() == 'and' else ' OR '
+        conjunction_word = " AND " if ctype.lower() == "and" else " OR "
         # for item in obj.equality_query('fileattrs', (('*/perms/group/write', True),
         #                                              ('*/type', ('d', '-', 'b', 'c')))):
-        print('EQUAL SETS: %s // %s' % (type(equal_sets), equal_sets))
+        print("EQUAL SETS: %s // %s" % (type(equal_sets), equal_sets))
         query_string = """
         SELECT hash, key, value
         FROM ({TABLE:s}
@@ -888,22 +907,22 @@ class SQLiteJSON(PersistentInvariantJSON):
         AS result) WHERE """
         if isinstance(equal_sets[0], str):
             equal_sets = (equal_sets,)
-        delimiter = ''
+        delimiter = ""
         operands = []
         for dpath_expr, compare in equal_sets:
             expr = self._transform_query_to_sql(dpath_expr)
             operands.append(self.sqlite_parameter(compare))
-            query_string += ('%s%s %s %s'
-                             % (delimiter, expr,
-                                ('IN' if isinstance(compare, (list, tuple)) else '=='),
-                                self.sqlite_parameter(compare)
-                                )
-                             )
+            query_string += "%s%s %s %s" % (
+                delimiter,
+                expr,
+                ("IN" if isinstance(compare, (list, tuple)) else "=="),
+                self.sqlite_parameter(compare),
+            )
             delimiter = conjunction_word
         # query_string += ';'
-        print('QUERYSTR : %s' % query_string)
-        print('query_string: %s::%s' % (type(query_string), query_string))
-        print('operands: %s' % operands)
+        print("QUERYSTR : %s" % query_string)
+        print("query_string: %s::%s" % (type(query_string), query_string))
+        print("operands: %s" % operands)
         return self.sql_query(query_string, operands)
 
     def sql_query(self, query_string, *parameters):
@@ -916,7 +935,7 @@ class SQLiteJSON(PersistentInvariantJSON):
         :return:generator
         """
         query = query_string.format(TABLE=self.instance.table_name(self.data_type))
-        print('SQLQUERY:', query)
+        print("SQLQUERY:", query)
         return self.instance.execute(query, *parameters)
 
 
@@ -947,7 +966,7 @@ class PersistentJSON(object):
             thing = self.cls(jsontype, **self._initial_args)
             self.buckets[jsontype] = thing
             if not self.queried_all:
-                if hasattr(thing, 'all_hash_types'):
+                if hasattr(thing, "all_hash_types"):
                     for bucket in thing.all_hash_types():
                         self._make_bucket(bucket)
             self.queried_all = True
@@ -1062,7 +1081,7 @@ class PersistentJSON(object):
             for key, json_blob in bucket.viewitems():
                 yield (bucket_name, key), json_blob
 
-    def equality_query(self, bucket_name, query, ctype='and'):
+    def equality_query(self, bucket_name, query, ctype="and"):
         """
 
         :param bucket_name: Which bucket to search in
@@ -1089,7 +1108,7 @@ class PersistentJSON(object):
         self.buckets = {}
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # This is a pretty crappy test - but it works when you invoke it with the right data ;-)
 
     def test_main():
@@ -1098,20 +1117,24 @@ if __name__ == '__main__':
         :return: None
         """
         try:
-            os.unlink('/tmp/sqlite')
+            os.unlink("/tmp/sqlite")
         except OSError:
             pass
-        obj = PersistentJSON(cls=SQLiteJSON, root_directory='/tmp/alanr', audit=False,
-                             pathname='/tmp/sqlite',
-                             delayed_sync=True)
-        directory = 'pgtests/json_data'
+        obj = PersistentJSON(
+            cls=SQLiteJSON,
+            root_directory="/tmp/alanr",
+            audit=False,
+            pathname="/tmp/sqlite",
+            delayed_sync=True,
+        )
+        directory = "pgtests/json_data"
         for name in os.listdir(directory):
             with open(os.path.join(directory, name)) as json_fd:
-                print('putting %s' % name, file=stderr)
-                obj.put('fileattrs', json_fd.read())
-        print('Performing sync.', file=stderr)
+                print("putting %s" % name, file=stderr)
+                obj.put("fileattrs", json_fd.read())
+        print("Performing sync.", file=stderr)
         obj.sync()  # Make sure all our bits get written to disk...
-        print('Sync done.', file=stderr)
+        print("Sync done.", file=stderr)
         sql_query1 = """
         SELECT hash, key, value
         FROM ({TABLE:s}
@@ -1125,18 +1148,19 @@ if __name__ == '__main__':
         AS result) WHERE json_extract(result.value, '$.perms.group.write') == 1
                    AND json_extract(result.value, '$.type') IN ("d", "-", "b", "c")
         """
-        for row in obj.sql_query('fileattrs', sql_query1):
+        for row in obj.sql_query("fileattrs", sql_query1):
             print(type(row))
-            print('SQL ROW', row)
-        for row in obj.sql_query('fileattrs', sql_query2):
+            print("SQL ROW", row)
+        for row in obj.sql_query("fileattrs", sql_query2):
             print(type(row))
-            print('SQL ROW', row)
+            print("SQL ROW", row)
 
-        for item in obj.equality_query('fileattrs', (('*/perms/sticky', True),)):
+        for item in obj.equality_query("fileattrs", (("*/perms/sticky", True),)):
             print("Found sticky bit:", item, file=stderr)
-        print('Performing second query.', file=stderr)
-        for item in obj.equality_query('fileattrs', (('*/perms/group/write', True),
-                                                     ('*/type', ('d', '-', 'b', 'c')))):
+        print("Performing second query.", file=stderr)
+        for item in obj.equality_query(
+            "fileattrs", (("*/perms/group/write", True), ("*/type", ("d", "-", "b", "c")))
+        ):
             print("Group-Writable non-links:", item, file=stderr)
 
     test_main()
