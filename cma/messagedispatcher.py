@@ -23,6 +23,7 @@ This is the overall message dispatcher - it receives incoming messages as they a
 then call dispatch it so it will get handled.
 """
 
+from __future__ import print_function
 import os
 import sys
 import traceback
@@ -88,7 +89,7 @@ class MessageDispatcher(object):
             # pylint: disable=W0703
             except Exception as e2:
                 CMAdb.log.critical("Database transaction retry failed: %s" % str(e2))
-        # print >> sys.stderr, ('TRANSACTIONs COMMITTED!')
+        # print('TRANSACTIONs COMMITTED!', file=sys.stderr)
         if CMAdb.debug:
             fstypename = FrameSetTypes.get(frameset.get_framesettype())[0]
             CMAdb.log.debug(
@@ -108,9 +109,9 @@ class MessageDispatcher(object):
         It should be run inside a try/except construct so that anything
         we barf up won't cause the CMA to die.
         """
-        # print >>sys.stderr, 'Got Frameset:', frameset
+        # print('Got Frameset:', frameset, file=stderr)
         fstype = frameset.get_framesettype()
-        # print >>sys.stderr, 'Got frameset of type %s [%s]' % (fstype, frameset)
+        # print('Got frameset of type %s [%s]' % (fstype, frameset), file=sys.stderr)
         dispatchstart = datetime.now()
         if fstype in self.dispatchtable:
             self.dispatchtable[fstype].dispatch(origaddr, frameset)
@@ -148,7 +149,7 @@ class MessageDispatcher(object):
         fstypename = FrameSetTypes.get(fstype)[0]
 
         sys.stdout.flush()
-        print >>sys.stderr, ("MessageDispatcher exception [%s] occurred" % (e))
+        print("MessageDispatcher exception [%s] occurred" % e, file=sys.stderr)
         CMAdb.log.critical(
             "MessageDispatcher exception [%s] occurred while"
             " handling [%s] FrameSet from %s" % (e, fstypename, origaddr)

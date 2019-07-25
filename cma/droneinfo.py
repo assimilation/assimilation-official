@@ -23,6 +23,7 @@
 We implement the Drone class - which implements all the properties of
 drones as a Python class.
 """
+from __future__ import print_function
 import time, sys
 
 # import os, traceback
@@ -128,8 +129,8 @@ class Drone(SystemNode):
             bprules = CMAdb.config["bprulesbydomain"]
             rulesetname = bprules[domain] if domain in bprules else bprules[CMAconsts.globaldomain]
             for rule in BestPractices.gen_bp_rules_by_ruleset(CMAdb.store, rulesetname):
-                # print >> sys.stderr, ('ADDING RELATED RULE SET for',
-                #                       self.designation, rule.bp_class, rule)
+                # print ('ADDING RELATED RULE SET for',
+                #       self.designation, rule.bp_class, rule, file=sys.stderr)
                 CMAdb.store.relate(
                     self, CMAconsts.REL_bprulefor, rule, properties={"bp_class": rule.bp_class}
                 )
@@ -214,15 +215,16 @@ class Drone(SystemNode):
         """Return a list of all the IP addresses that this Drone owns"""
         params = {"droneid": self.association.node_id}
         if CMAdb.debug:
-            print >>sys.stderr, (
-                "IP owner query:\n%s\nparams %s" % (Drone.OwnedIPsQuery_subtxt, str(params))
+            print(
+                "IP owner query:\n%s\nparams %s" % (Drone.OwnedIPsQuery_subtxt, str(params)),
+                file=sys.stderr,
             )
 
         ip_list = [
             node for node in CMAdb.store.load_cypher_nodes(Drone.OwnedIPsQuery, params=params)
         ]
-        # print >> sys.stderr, ("Query returned: %s"
-        #                       % str([str(ip) for ip in ip_list]))
+        # print ("Query returned: %s"
+        #                       % str([str(ip) for ip in ip_list]), file=sys.stderr)
         return ip_list
 
     def get_owned_nics(self):
@@ -268,12 +270,12 @@ class Drone(SystemNode):
         ourip = pyNetAddr(self.select_ip())  # meaning select our primary IP
         if ourip.port() == 0:
             ourip.setport(self.port)
-        # print >> sys.stderr, ('ADDING PACKET TO TRANSACTION: %s', str(frames))
+        # print('ADDING PACKET TO TRANSACTION: %s', str(frames), file=sys.stderr)
         if CMAdb.debug:
             CMAdb.log.debug("Sending request to %s Frames: %s" % (str(ourip), str(frames)))
         CMAdb.net_transaction.add_packet(ourip, framesettype, frames)
-        # print >> sys.stderr, ('Sent Discovery request to %s Frames: %s'
-        #%	(str(ourip), str(frames)))
+        # print('Sent Discovery request to %s Frames: %s'
+        #       %	(str(ourip), str(frames)), file=sys.stderr)
 
     # Current implementation does not use 'self'
     # pylint: disable=R0201
@@ -299,7 +301,7 @@ class Drone(SystemNode):
         "Process a death/shutdown report for us.  RIP us."
         from hbring import HbRing
 
-        # print >> sys.stderr, ('DEAD REPORT: %s' % self)
+        # print ('DEAD REPORT: %s' % self, file=sys.stderr)
         frameset = frameset  # We don't use the frameset at this point in time
         if reason != "HBSHUTDOWN":
             if self.status != status or self.reason != reason:
@@ -321,7 +323,7 @@ class Drone(SystemNode):
         # It's here in this place that we will eventually add the ability
         # to distinguish death of a switch or subnet or site from death of a single drone
         for ring in self.find_associated_rings():
-            # print >> sys.stderr, ('Calling Ring(%s).leave(%s).' % (ring_name, self))
+            # print ('Calling Ring(%s).leave(%s).' % (ring_name, self), file=sys.stderr)
             ring.leave(self)
         deadip = pyNetAddr(self.select_ip(), port=self.port)
         if CMAdb.debug:
@@ -472,8 +474,8 @@ class Drone(SystemNode):
         if CMAdb.debug:
             CMAdb.log.debug("DESIGNATION2 (%s) = %s" % (designation, desigstr))
             CMAdb.log.debug("QUERY (%s) = %s" % (designation, Drone.IPownerquery_1))
-            print >>sys.stderr, ("DESIGNATION2 (%s) = %s" % (designation, desigstr))
-            print >>sys.stderr, ("QUERY (%s) = %s" % (designation, Drone.IPownerquery_1))
+            print("DESIGNATION2 (%s) = %s" % (designation, desigstr), file=sys.stderr)
+            print("QUERY (%s) = %s" % (designation, Drone.IPownerquery_1), file=sys.stderr)
         if CMAdb.debug:
             raise RuntimeError(
                 "drone.find(%s) (%s) (%s) => returning None"

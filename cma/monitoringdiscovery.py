@@ -73,15 +73,16 @@ class TCPDiscoveryGenerateMonitoring(DiscoveryListener):
             montuple = MonitoringRule.findbestmatch((processproc, drone))
             if montuple[0] == MonitoringRule.NOMATCH:
                 processproc.is_monitored = False
-                print >>sys.stderr, "**don't know how to monitor %s" % str(processproc.argv)
+                print("**don't know how to monitor %s" % str(processproc.argv), file=stderr)
                 self.log.warning(
                     "No rules to monitor %s service %s" % (drone.designation, str(processproc.argv))
                 )
             elif montuple[0] == MonitoringRule.PARTMATCH:
                 processproc.is_monitored = False
-                print >>sys.stderr, (
+                print(
                     "Automatic monitoring not possible for %s -- %s is missing %s"
-                    % (str(processproc.argv), str(montuple[1]), str(montuple[2]))
+                    % (str(processproc.argv), str(montuple[1]), str(montuple[2])),
+                    file=sys.stderr,
                 )
                 self.log.warning(
                     "Insufficient information to monitor %s service %s"
@@ -93,11 +94,12 @@ class TCPDiscoveryGenerateMonitoring(DiscoveryListener):
                 agent = montuple[1]
                 self._add_service_monitoring(drone, processproc, agent)
                 if agent["monitorclass"] == "NEVERMON":
-                    print >>sys.stderr, ("NEVER monitor %s" % (str(agent["monitortype"])))
+                    print("NEVER monitor %s" % (str(agent["monitortype"])), file=sys.stderr)
                 else:
-                    print >>sys.stderr, (
+                    print(
                         "START monitoring %s using %s agent"
-                        % (agent["monitortype"], agent["monitorclass"])
+                        % (agent["monitortype"], agent["monitorclass"]),
+                        file=sys.stderr,
                     )
 
     # pylint - too many local variables
@@ -187,7 +189,9 @@ class TCPDiscoveryGenerateMonitoring(DiscoveryListener):
         if monitorclass == "nagios":
             monnode.nagiospath = self.config["monitoring"]["nagiospath"]
         if not monnode.association.is_abstract:
-            print >>sys.stderr, ("Previously monitored %s on %s" % (monitortype, drone.designation))
+            print(
+                "Previously monitored %s on %s" % (monitortype, drone.designation), file=sys.stderr
+            )
         monnode.activate(monitoredservice, drone)
 
 
@@ -211,9 +215,10 @@ class DiscoveryGenerateHostMonitoring(TCPDiscoveryGenerateMonitoring):
             if montuple[0] == MonitoringRule.NOMATCH:
                 continue
             elif montuple[0] == MonitoringRule.PARTMATCH:
-                print >>sys.stderr, (
+                print(
                     "Automatic host monitoring of %s not possible with %s: missing %s"
-                    % (drone.designation, str(montuple[1]), str(montuple[2]))
+                    % (drone.designation, str(montuple[1]), str(montuple[2])),
+                    file=sys.stderr,
                 )
                 self.log.warning(
                     "Insufficient information to monitor host %s"
@@ -223,7 +228,8 @@ class DiscoveryGenerateHostMonitoring(TCPDiscoveryGenerateMonitoring):
             else:
                 agent = montuple[1]
                 self._add_service_monitoring(drone, drone, agent)
-                print >>sys.stderr, (
+                print(
                     "START monitoring host %s using %s:%s agent"
-                    % (drone.designation, agent["monitorclass"], agent["monitortype"])
+                    % (drone.designation, agent["monitorclass"], agent["monitortype"]),
+                    file=sys.stderr,
                 )

@@ -439,12 +439,12 @@ def main():
         print(
             "Starting CMA version %s - licensed under %s"
             % (AssimCtypes.VERSION_STRING, LONG_LICENSE_STRING),
-            file=sys.stderr
+            file=sys.stderr,
         )
         print(
             "Neo4j version %s // py2neo version %s // Python version %s // %s"
             % (neoversstring, PY2NEO_VERSION, ("%s.%s.%s" % sys.version_info[0:3]), jvers),
-            file=sys.stderr
+            file=sys.stderr,
         )
     if len(neovers) > 3:
         CMAdb.log.warning("Neo4j version %s is beta code - results not guaranteed." % str(neovers))
@@ -468,7 +468,7 @@ def main():
         if opt.foreground:
             print(
                 "cma: Starting up traced listener.listen() in foreground; debug=%d" % opt.debug,
-                file=sys.stderr
+                file=sys.stderr,
             )
         tracer.runfunc(listener.listen)
     else:
@@ -477,7 +477,7 @@ def main():
         if opt.foreground:
             print(
                 "cma: Starting up untraced listener.listen() in foreground; debug=%d" % opt.debug,
-                file=sys.stderr
+                file=sys.stderr,
             )
 
         # This is kind of a kludge, we should really look again at

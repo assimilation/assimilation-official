@@ -45,6 +45,7 @@ system.
 In either case, this class won't be directly affected - since it only stores and executes
 transactions - it does not worry about how they ought to be persisted.
 """
+from __future__ import print_function
 import sys
 from datetime import datetime, timedelta
 from AssimCclasses import (
@@ -118,11 +119,11 @@ class NetTransaction(object):
         """
         return str(JSONtree(self.tree))
 
-    ###################################################################################################
+    ################################################################################################
     #
     #   This collection of member functions accumulate work to be done for our NetTransaction
     #
-    ###################################################################################################
+    ################################################################################################
 
     def add_packet(self, destaddr, action, frames, frametype=None):
         """Append a packet to the ConfigContext object for this transaction.
@@ -143,7 +144,7 @@ class NetTransaction(object):
         # Note that we don't do this as a ConfigContext - it doesn't support modifying arrays.
         # On the other hand, our JSON converts nicely into a ConfigContext - because it converts
         # arrays correctly from JSON
-        # print >> sys.stderr, 'ADDING THESE FRAMES: %s' % str(frames)
+        # print('ADDING THESE FRAMES: %s' % str(frames), file=sys.stderr)
 
         if self.encryption_required and pyCryptFrame.get_dest_identity(destaddr) is None:
             raise ValueError(
@@ -163,11 +164,11 @@ class NetTransaction(object):
             frames = newframes
         self.tree["packets"].append({"action": int(action), "destaddr": destaddr, "frames": frames})
 
-    ###################################################################################################
+    ################################################################################################
     #
     #   Code from here to the end has to do with committing our transactions...
     #
-    ###################################################################################################
+    ################################################################################################
 
     def _commit_network_trans(self, io):
         """
@@ -181,8 +182,8 @@ class NetTransaction(object):
         db and network portions sequentially --  Of course, no transaction can start until
         the previous one is finished.
         """
-        # print >> sys.stderr, "PACKET JSON IS >>>%s<<<" % self.tree['packets']
-        # print >> sys.stderr, 'COMMITTING THESE FRAMES: %s' % str(self.tree['packets'])
+        # print("PACKET JSON IS >>>%s<<<" % self.tree['packets'], file=sys.stderr)
+        # print('COMMITTING THESE FRAMES: %s' % str(self.tree['packets']), file=sys.stderr)
         # pylint is confused here - self.tree['packets'] _is_ very much iterable...
         # pylint: disable=E1133
         for packet in self.tree["packets"]:
@@ -228,9 +229,9 @@ class NetTransaction(object):
         # This is just to test that our tree serializes successfully - before we
         # persist it on disk later.  Once we're doing that, this will be
         # unnecessary...
-        # print >> sys.stderr, "HERE IS OUR TREE:"
-        # print >> sys.stderr, str(self)
-        # print >> sys.stderr, "CONVERTING BACK TO TREE"
+        # print("HERE IS OUR TREE:", file=sys.stderr)
+        # print(str(self), file=sys.stderr)
+        # print("CONVERTING BACK TO TREE", file=sys.stderr)
         self.tree = pyConfigContext(str(self))
         if len(self.tree["packets"]) > 0:
             start = datetime.now()
@@ -278,8 +279,8 @@ if __name__ == "__main__":
         )
         assert len(trans.tree["packets"]) == 2
 
-        print >>sys.stderr, "JSON: %s\n" % str(trans)
-        print >>sys.stderr, "JSON: %s\n" % str(pyConfigContext(str(trans)))
+        print("JSON: %s\n" % str(trans), file=sys.stderr)
+        print("JSON: %s\n" % str(pyConfigContext(str(trans))), file=sys.stderr)
         trans.commit_trans()
         assert len(trans.tree["packets"]) == 0
 

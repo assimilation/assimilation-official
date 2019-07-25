@@ -31,6 +31,7 @@ from __future__ import print_function
 import sys
 from flask import Flask, request, Response
 from py2neo import neo4j
+
 sys.path.append("..")
 from store import Store
 from graphnodes import GraphNode

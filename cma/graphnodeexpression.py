@@ -20,8 +20,12 @@
 #
 #
 """ This module defines Functions to evaluate GraphNode expressions...  """
-
-import re, os, inspect, sys
+from __future__ import print_function
+import sys
+import os
+import re
+import inspect
+import six
 from AssimCtypes import ADDR_FAMILY_IPV4, ADDR_FAMILY_IPV6
 from AssimCclasses import pyNetAddr, pyConfigContext
 
@@ -47,18 +51,18 @@ class GraphNodeExpression(object):
 
             We may add other kinds of expressions in the future...
         """
-        if not isinstance(expression, (str, unicode)):
-            # print >> sys.stderr, 'RETURNING NONSTRING:', expression
+        if not isinstance(expression, six.string_types):
+            # print('RETURNING NONSTRING:', expression, file=sys.stderr)
             return expression
         expression = str(expression.strip())
         if not hasattr(context, "get") or not hasattr(context, "__setitem__"):
             context = ExpressionContext(context)
-        # print >> sys.stderr, '''EVALUATE('%s') (%s):''' % (expression, type(expression))
+        # print('''EVALUATE('%s') (%s):''' % (expression, type(expression))
         # The value of this parameter is a constant...
         if expression.startswith('"'):
             if expression[-1] != '"':
-                print >>sys.stderr, "Unterminated string '%s'" % expression
-            # print >> sys.stderr, '''Constant string: "%s"''' % (expression[1:-1])
+                print("unquoted constant string '%s'" % expression, file=sys.stderr)
+            # print('''Constant string: "%s"''' % (expression[1:-1]), file=sys.stderr)
             return expression[1:-1] if expression[-1] == '"' else None
         if (expression.startswith("0x") or expression.startswith("0X")) and len(expression) > 3:
             return int(expression[2:], 16)
@@ -71,9 +75,9 @@ class GraphNodeExpression(object):
             context[expression] = value
             return value
         # if expression.startswith('$'):
-        # print >> sys.stderr, 'RETURNING VALUE OF %s' % expression[1:]
-        # print >> sys.stderr, 'Context is %s' % str(context)
-        # print >> sys.stderr, 'RETURNING VALUE OF %s = %s'\
+        # print('RETURNING VALUE OF %s' % expression[1:], file=sys.stderr)
+        # print('Context is %s' % str(context), file=sys.stderr)
+        # print('RETURNING VALUE OF %s = %s'\, file=sys.stderr)
         #   % (expression, context.get(expression[1:], None))
         value = context.get(expression[1:], None) if expression.startswith("$") else expression
         if isinstance(value, unicode):
@@ -90,7 +94,7 @@ class GraphNodeExpression(object):
         Ugly lexical analysis.
         Really ought to write a real recursive descent parser...
         """
-        # print >> sys.stderr, '_compute_function_args(%s)' % str(arglist)
+        # print('_compute_function_args(%s)' % str(arglist), file=sys.stderr)
         args = []
         argstrings = []
         nestcount = 0
@@ -115,44 +119,44 @@ class GraphNodeExpression(object):
                     arg = arg.strip()
                     if arg == "":
                         continue
-                    # print >> sys.stderr, "EVALUATING [%s]" % arg
+                    # print("EVALUATING [%s]" % arg, file=sys.stderr)
                     args.append(GraphNodeExpression.evaluate(arg, context))
                     argstrings.append(arg)
                     arg = ""
             elif char == "(":
                 nestcount += 1
-                # print >> sys.stderr, "++nesting: %d" % (nestcount)
+                # print("++nesting: %d" % (nestcount), file=sys.stderr)
                 arg += char
             elif char == ")":
                 arg += char
                 nestcount -= 1
-                # print >> sys.stderr, "--nesting: %d" % (nestcount)
+                # print("--nesting: %d" % (nestcount), file=sys.stderr)
                 if nestcount < 0:
                     return (None, None)
                 if nestcount == 0:
                     if prevwasquoted:
-                        # print >> sys.stderr, '_compute_function_args: QUOTED argument: "%s"' % arg
+                        # print('_compute_function_args: QUOTED argument: "%s"' % arg, file=sys.stderr)
                         args.append(arg)
                     else:
                         arg = arg.strip()
-                        # print >> sys.stderr, "GnE.functioncall [%s]" % arg
+                        # print("GnE.functioncall [%s]" % arg, file=sys.stderr)
                         args.append(GraphNodeExpression.functioncall(arg, context))
                     argstrings.append(arg)
                     arg = ""
             else:
                 arg += char
         if nestcount > 0 or instring:
-            # print "Nestcount: %d, instring: %s" % (nestcount, instring)
+            # print("Nestcount: %d, instring: %s" % (nestcount, instring), file=sys.stderr)
             return (None, None)
         if arg != "":
             if prevwasquoted:
-                # print >> sys.stderr, '_compute_function_args: quoted argument: "%s"' % arg
+                # print('_compute_function_args: quoted argument: "%s"' % arg, file=sys.stderr)
                 args.append(arg)
             else:
-                # print >> sys.stderr, "GnE.evaluate [%s]" % arg
+                # print("GnE.evaluate [%s]" % arg, file=sys.stderr)
                 args.append(GraphNodeExpression.evaluate(arg, context))
             argstrings.append(arg)
-        # print >> sys.stderr, 'RETURNING [%s] [%s]' % (args, argstrings)
+        # print('RETURNING [%s] [%s]' % (args, argstrings), file=sys.stderr)
         return (args, argstrings)
 
     @staticmethod
@@ -170,33 +174,33 @@ class GraphNodeExpression(object):
         """
         expression = expression.strip()
         if expression[-1] != ")":
-            print >>sys.stderr, "%s does not end in )" % expression
+            print("%s does not end in )" % expression, file=sys.stderr)
             return None
         expression = expression[: len(expression) - 1]
         (funname, arglist) = expression.split("(", 1)
-        # print >> sys.stderr, 'FUNCTIONCALL: %s(%s)' % (funname, arglist)
+        # print('FUNCTIONCALL: %s(%s)' % (funname, arglist), file=sys.stderr)
         funname = funname.strip()
         arglist = arglist.strip()
         #
         # At this point we have all our arguments as a string , but it might contain
         # other (nested) calls for us to evaluate
         #
-        # print >> sys.stderr, 'FunctionCall: arglist: [%s]' % (arglist)
+        # print('FunctionCall: arglist: [%s]' % (arglist), file=sys.stderr)
         args, _argstrings = GraphNodeExpression._compute_function_args(arglist, context)
-        # print >> sys.stderr, 'args: %s' % (args)
-        # print >> sys.stderr, '_argstrings: %s' % (_argstrings)
+        # print('args: %s' % (args), file=sys.stderr)
+        # print('_argstrings: %s' % (_argstrings), file=sys.stderr)
         if args is None:
             return None
 
         if funname.startswith("@"):
             funname = funname[1:]
         if funname not in GraphNodeExpression.functions:
-            print >>sys.stderr, "BAD FUNCTION NAME: %s" % funname
+            print("BAD FUNCTION NAME: %s" % funname, file=sys.stderr)
             return None
-        # print >> sys.stderr, 'ARGSTRINGS %s(%s)' % (funname, str(_argstrings))
-        # print >> sys.stderr, 'ARGS: %s' % (str(args))
+        # print('ARGSTRINGS %s(%s)' % (funname, str(_argstrings)), file=sys.stderr)
+        # print('ARGS: %s' % (str(args)), file=sys.stderr)
         ret = GraphNodeExpression.functions[funname](args, context)
-        # print >> sys.stderr, '%s(%s) => %s' % (funname, args, ret)
+        # print('%s(%s) => %s' % (funname, args, ret), file=sys.stderr)
         return ret
 
     @staticmethod
@@ -274,22 +278,19 @@ class ExpressionContext(object):
         for obj in self.objects:
             ret = None
             try:
-                # print >> sys.stderr, 'GETTING %s in %s: %s' % (key, type(obj), obj)
+                # print('GETTING %s in %s: %s' % (key, type(obj), obj), file=sys.stderr)
                 ret = obj.get(key, None)
                 if ret is None and hasattr(obj, "deepget"):
                     ret = obj.deepget(key, None)
                     if isinstance(ret, unicode):
                         ret = str(ret)
-                # print >> sys.stderr, 'RETURNED %s' % ret
+                # print('RETURNED %s' % ret, file=sys.stderr)
             # Too general exception catching...
             # pylint: disable=W0703
             except Exception as e:
                 ret = None
-                print >>sys.stderr, "OOPS: self.objects = %s / exception %s" % (
-                    str(self.objects),
-                    e,
-                )
-                print >>sys.stderr, "OOPS: OUR object = %s (%s)" % (str(obj), type(obj))
+                print("OOPS: self.objects = %s / exception %s" % (str(self.objects), e), sys.stderr)
+                print("OOPS: OUR object = %s (%s)" % (str(obj), type(obj)), file=sys.stderr)
             ret = ExpressionContext._fixvalue(ret)
             if ret is not None:
                 self.values[key] = ret
@@ -357,7 +358,7 @@ def EQ(args, _context):
     """Function to return True if each non-None argument in the list matches
     every non-None argument and at least one of its subsequent arguments are not None.
     """
-    # print >> sys.stderr, 'EQ(%s) =>?' % str(args)
+    # print('EQ(%s) =>?' % str(args), file=sys.stderr)
     val0 = args[0]
     if val0 is None:
         return None
@@ -371,7 +372,7 @@ def EQ(args, _context):
         elif val0 != val:
             return False
         anymatch = True
-    # print >> sys.stderr, 'EQ(%s) => %s' % (str(args), str(anymatch))
+    # print('EQ(%s) => %s' % (str(args), str(anymatch)), file=sys.stderr)
     return anymatch
 
 
@@ -379,13 +380,13 @@ def EQ(args, _context):
 def NE(args, _context):
     """Function to return True if no non-None argument in the list matches
     the first one or None if all subsequent arguments are None"""
-    # print >> sys.stderr, 'NE(%s, %s)' % (args[0], str(args[1:]))
+    # print('NE(%s, %s)' % (args[0], str(args[1:])), file=sys.stderr)
     val0 = args[0]
     if val0 is None:
         return None
     anymatch = None
     for val in args[1:]:
-        # print >> sys.stderr, '+NE(%s, %s) (%s, %s)' % (val0, val, type(val0), type(val))
+        # print('+NE(%s, %s) (%s, %s)' % (val0, val, type(val0), type(val)), file=sys.stderr)
         if val is None:
             return None
         if val0 == val or str(val0) == str(val):
@@ -472,7 +473,7 @@ def IN(args, _context):
     val0 = args[0]
     if val0 is None:
         return None
-    if hasattr(val0, "__iter__") and not isinstance(val0, (str, unicode)):
+    if hasattr(val0, "__iter__") and not isinstance(val0, six.string_types):
         # Iterable
         anyTrue = False
         for elem in val0:
@@ -485,7 +486,7 @@ def IN(args, _context):
     # Not an iterable: string, int, NoneType, etc.
     if val0 is None:
         return None
-    # print >> sys.stderr, type(val0), val0, type(args[1]), args[1]
+    # print(type(val0), val0, type(args[1]), args[1], file=sys.stderr)
     return val0 in args[1:] or str(val0) in args[1:]
 
 
@@ -495,7 +496,7 @@ def NOTIN(args, _context):
     val0 = args[0]
     if val0 is None:
         return None
-    if hasattr(val0, "__iter__") and not isinstance(val0, (str, unicode)):
+    if hasattr(val0, "__iter__") and not isinstance(val0, six.string_types):
         # Iterable
         for elem in val0:
             if elem in args[1:] or str(elem) in args[1:]:
@@ -586,13 +587,13 @@ def argequals(args, context):
     If there is a second argument, then that second argument is an expression
     expected to yield an iterable to search in for the name=value string instead of '$argv'
     """
-    # print >> sys.stderr, 'ARGEQUALS(%s)' % (str(args))
+    # print('ARGEQUALS(%s)' % (str(args)), file=sys.stderr)
     if len(args) > 2 or len(args) < 1:
         return None
     definename = args[0]
     argname = args[1] if len(args) >= 2 else "$argv"
     listtosearch = GraphNodeExpression.evaluate(argname, context)
-    # print >> sys.stderr, 'SEARCHING in %s FOR %s in %s' % (argname, definename, listtosearch)
+    # print('SEARCHING in %s FOR %s in %s' % (argname, definename, listtosearch), file=sys.stderr)
     if listtosearch is None:
         return None
     prefix = "%s=" % definename
@@ -626,8 +627,8 @@ def argmatch(args, context):
     in the argument. If you want it to be floating, then you may want to start your regex
     with '.*' and possibly parenthesize the part you want to return.
     """
-    # print >> sys.stderr, 'ARGMATCH(%s)' % (str(args))
-    # print >> sys.stderr, 'ARGMATCHCONTEXT(%s)' % (str(context))
+    # print('ARGMATCH(%s)' % (str(args)), file=sys.stderr)
+    # print('ARGMATCHCONTEXT(%s)' % (str(context)), file=sys.stderr)
     if len(args) > 3 or len(args) < 1:
         return None
     regexstr = args[0]
@@ -640,11 +641,11 @@ def argmatch(args, context):
     # W0702: No exception type specified for except statement
     # pylint: disable=W0702
     try:
-        # print >>sys.stderr,  'Compiling regex: /%s/' % regexstr
+        # print(regex: /%s/' % regexstr, file=sys.stderr)
         regex = _compile_and_cache_regex(regexstr, flags)
-        # print >>sys.stderr, 'Matching against list %s' % (str(listtosearch))
+        # print('Matching against list %s' % (str(listtosearch)), file=sys.stderr)
         for elem in listtosearch:
-            # print >>sys.stderr, 'Matching %s against %s' % (regexstr, elem)
+            # print('Matching %s against %s' % (regexstr, elem), file=sys.stderr)
             matchobj = regex.match(elem)
             if matchobj:
                 # Did they specify any parenthesized groups?
@@ -701,7 +702,7 @@ def OR(args, context):
     A function which evaluates  each expression in turn, and returns the value
     of the first expression which is not None - or None
     """
-    # print >> sys.stderr, 'OR(%s)' % (str(args))
+    # print('OR(%s)' % (str(args)), file=sys.stderr)
     if len(args) < 1:
         return None
     anyfalse = False
@@ -721,7 +722,7 @@ def AND(args, context):
     A function which evaluates  each expression in turn, and returns the value
     of the first expression which is not None - or None
     """
-    # print >> sys.stderr, 'AND(%s)' % (str(args))
+    # print('AND(%s)' % (str(args)), file=sys.stderr)
     argisnone = True
     if len(args) < 1:
         return None
@@ -730,9 +731,9 @@ def AND(args, context):
         if value is None:
             argisnone = None
         elif not value:
-            # print >> sys.stderr, 'AND(%s) => False' % (str(args))
+            # print('AND(%s) => False' % (str(args)), file=sys.stderr)
             return False
-    # print >> sys.stderr, 'AND(%s) => %s' % (str(args), argisnone)
+    # print('AND(%s) => %s' % (str(args), argisnone), file=sys.stderr)
     return argisnone
 
 
@@ -765,7 +766,7 @@ def FINDATTRVALUE(args, _context):
     and the optional desired value is args[2].
     """
     if len(args) not in (2, 3):
-        print >>sys.stderr, "WRONG NUMBER OF ARGUMENTS (%d) TO FINDATTRVALUE" % (len(args))
+        print("WRONG NUMBER OF ARGUMENTS (%d) TO FINDATTRVALUE" % (len(args)), file=sys.stderr)
         return None
     desiredvalue = args[2] if len(args) > 2 else None
     return _attrfind(args[0], args[1], desiredvalue)
@@ -773,7 +774,7 @@ def FINDATTRVALUE(args, _context):
 
 def _is_scalar(obj):
     'Return True if this object is a pyConfigContext/JSON "scalar"'
-    return isinstance(obj, (str, unicode, int, long, float, bool, pyNetAddr))
+    return isinstance(obj, (six.string_types, int, float, bool, pyNetAddr))
 
 
 def _attrfind(obj, name, desiredvalue):
@@ -817,9 +818,9 @@ def PAMMODARGS(args, _context):
 
     We return the arguments from the first occurence of the module that we find.
     """
-    # print >> sys.stderr, 'PAMMODARGS(%s)' % (str(args))
+    # print('PAMMODARGS(%s)' % (str(args)), file=sys.stderr)
     if len(args) != 4:
-        print >>sys.stderr, "WRONG NUMBER OF ARGUMENTS (%d) TO PAMMODARGS" % (len(args))
+        print("WRONG NUMBER OF ARGUMENTS (%d) TO PAMMODARGS" % (len(args)), file=sys.stderr)
         return False
     section = args[0]
     reqservice = args[1]
@@ -827,7 +828,7 @@ def PAMMODARGS(args, _context):
     reqarg = args[3]
 
     if section is None:
-        # print >> sys.stderr, 'Section is None in PAM object'
+        # print('Section is None in PAM object', file=sys.stderr)
         return None
     # Each section is a list of lines
     for line in section:
@@ -841,25 +842,25 @@ def PAMMODARGS(args, _context):
         #         simple flags without '=' values show up with True as value
         #
         if "service" not in line or line["service"] != reqservice:
-            # print >> sys.stderr, 'Service %s not in PAM line %s' % (reqservice, str(line))
+            # print('Service %s not in PAM line %s' % (reqservice, str(line)), file=sys.stderr)
             continue
         if "module" not in line:
-            # print >> sys.stderr, '"module" not in PAM line %s' % str(line)
+            # print('"module" not in PAM line %s' % str(line), file=sys.stderr)
             continue
         if "path" not in line["module"]:
-            # print >> sys.stderr, '"path" not in PAM module %s' % str(line['module'])
-            # print >> sys.stderr, '"path" not in PAM line %s' % str(line)
+            # print('"path" not in PAM module %s' % str(line['module']), file=sys.stderr)
+            # print('"path" not in PAM line %s' % str(line), file=sys.stderr)
             continue
         modargs = line["module"]
         if reqmodule != "ANY" and (
             modargs["path"] != reqmodule and modargs["path"] != (reqmodule + ".so")
         ):
-            # print >> sys.stderr, 'Module %s not in PAM line %s' % (reqmodule, str(line))
+            # print('Module %s not in PAM line %s' % (reqmodule, str(line)), file=sys.stderr)
             continue
         ret = modargs[reqarg] if reqarg in modargs else None
         if ret is None and reqmodule == "ANY":
             continue
-        # print >> sys.stderr, 'RETURNING %s from %s' % (ret, str(line))
+        # print('RETURNING %s from %s' % (ret, str(line)), file=sys.stderr)
         return ret
     return None
 
@@ -867,28 +868,28 @@ def PAMMODARGS(args, _context):
 @GraphNodeExpression.RegisterFun
 def MUST(args, _unused_context):
     "Return True if all args are True. A None arg is the same as False to us"
-    # print >> sys.stderr, 'CALLING MUST%s' % str(tuple(args))
-    if not hasattr(args, "__iter__") or isinstance(args, (str, unicode)):
+    # print('CALLING MUST%s' % str(tuple(args)), file=sys.stderr)
+    if not hasattr(args, "__iter__") or isinstance(args, six.string_types):
         args = (args,)
     for arg in args:
         if arg is None or not arg:
-            # print >> sys.stderr, '+++MUST returns FALSE'
+            # print('+++MUST returns FALSE', file=sys.stderr)
             return False
-    # print >> sys.stderr, '+++MUST returns TRUE'
+    # print('+++MUST returns TRUE', file=sys.stderr)
     return True
 
 
 @GraphNodeExpression.RegisterFun
 def NONEOK(args, _unused_context):
     "Return True if all args are True or None - that is, if no args are False"
-    # print >> sys.stderr, 'CALLING MUST%s' % str(tuple(args))
-    if not hasattr(args, "__iter__") or isinstance(args, (str, unicode)):
+    # print('CALLING MUST%s' % str(tuple(args)), file=sys.stderr)
+    if not hasattr(args, "__iter__") or isinstance(args, six.string_types):
         args = (args,)
     for arg in args:
         if arg is not None and not arg:
-            # print >> sys.stderr, '+++NONEOK returns FALSE'
+            # print('+++NONEOK returns FALSE', file=sys.stderr)
             return False
-    # print >> sys.stderr, '+++NONEOK returns TRUE'
+    # print('+++NONEOK returns TRUE', file=sys.stderr)
     return True
 
 
@@ -926,22 +927,24 @@ def FOREACH(args, context):
         objectlist = [GraphNodeExpression.evaluate(obj, context) for obj in args[:-1]]
 
     expressionstring = args[-1]
-    if not isinstance(expressionstring, (str, unicode)):
-        print >>sys.stderr, "FOREACH expression must be a string, not %s" % type(expressionstring)
+    if not isinstance(expressionstring, six.string_types):
+        print(
+            "FOREACH expression must be a string, not %s" % type(expressionstring), file=sys.stderr
+        )
         return False
-    # print >>sys.stderr, 'OBJECTLIST is:', objectlist
+    # print('OBJECTLIST is:', objectlist, file=sys.stderr)
     for obj in objectlist:
-        # print >>sys.stderr, 'OBJ is:', obj
+        # print('OBJ is:', obj, file=sys.stderr)
         for key in obj:
             item = obj[key]
             if not hasattr(item, "__contains__") or not hasattr(item, "__iter__"):
-                print >>sys.stderr, "UNSUITABLE FOREACH CONTEXT[%s]: %s" % (key, item)
+                print("UNSUITABLE FOREACH CONTEXT[%s]: %s" % (key, item), file=sys.stderr)
                 continue
-            # print >> sys.stderr, 'CREATING CONTEXT[%s]: %s' % (key, item)
+            # print(sys.stderr, 'CREATING CONTEXT[%s]: %s' % (key, item), file=sys.stderr)
             itemcontext = ExpressionContext(item)
-            # print >> sys.stderr, 'CONTEXT IS:', itemcontext
+            # print('CONTEXT IS:', itemcontext, file=sys.stderr)
             value = GraphNodeExpression.evaluate(expressionstring, itemcontext)
-            # print >> sys.stderr, 'VALUE of %s IS [%s] in context: %s' % (str(args), value, item)
+            # print('VALUE of %s IS [%s] in context: %s' % (str(args), value, item), file=sys.stderr)
             if value is None:
                 anynone = True
             elif not value:
@@ -1048,7 +1051,7 @@ def selectanipport(arg, _context, preferlowestport=True, preferv4=True):
     address/port combination to go with the service.
     """
 
-    # print >> sys.stderr, 'SELECTANIPPORT(%s)' % arg
+    # print('SELECTANIPPORT(%s)' % arg, file=sys.stderr)
     try:
 
         portlist = _collect_ip_ports(arg)
@@ -1078,17 +1081,17 @@ def serviceip(args, context):
     """
     if len(args) == 0:
         args = ("$procinfo.listenaddrs",)
-    # print >> sys.stderr, 'SERVICEIP(%s)' % str(args)
+    # print('SERVICEIP(%s)' % str(args), file=sys.stderr)
     for arg in args:
         nmap = GraphNodeExpression.evaluate(arg, context)
         if nmap is None:
             continue
-        # print >> sys.stderr, 'serviceip.SELECTANIPPORT(%s)' % (nmap)
+        # print('serviceip.SELECTANIPPORT(%s)' % (nmap), file=sys.stderr)
         ipport = selectanipport(nmap, context)
         if ipport is None:
             continue
         ipport.setport(0)  # Make sure return value doesn't include the port
-        # print >> sys.stderr, 'IPPORT(%s)' % str(ipport)
+        # print('IPPORT(%s)' % str(ipport), file=sys.stderr)
         return str(ipport)
     return None
 
@@ -1102,7 +1105,7 @@ def serviceport(args, context):
     """
     if len(args) == 0:
         args = ("$procinfo.listenaddrs",)
-    # print >> sys.stderr, 'SERVICEPORT ARGS are %s' % (str(args))
+    # print('SERVICEPORT ARGS are %s' % (str(args)), file=sys.stderr)
     for arg in args:
         nmap = GraphNodeExpression.evaluate(arg, context)
         if nmap is None:
@@ -1142,7 +1145,7 @@ def basename(args, context):
     This function returns the basename from a pathname.
     If no pathname is supplied, then the executable name is assumed.
     """
-    if isinstance(args, (str, unicode)):
+    if isinstance(args, six.string_types):
         args = (args,)
     if len(args) == 0:
         args = ("$pathname",)  # Default to the name of the executable
@@ -1150,7 +1153,7 @@ def basename(args, context):
         pathname = GraphNodeExpression.evaluate(arg, context)
         if pathname is None:
             continue
-        # print >> sys.stderr, 'BASENAME(%s) => %s' % ( pathname
+        # print('BASENAME(%s) => %s' % ( pathname, file=sys.stderr)
         # ,   os.path.basename(pathname))
         return os.path.basename(pathname)
     return None
@@ -1162,7 +1165,7 @@ def dirname(args, context):
     This function returns the directory name from a pathname.
     If no pathname is supplied, then the discovered service executable name is assumed.
     """
-    if isinstance(args, (str, unicode)):
+    if isinstance(args, six.string_types):
         args = (args,)
     if len(args) == 0:
         args = ("$pathname",)  # Default to the name of the executable
@@ -1238,7 +1241,7 @@ if __name__ == "__main__":
         assert match(("fred", "FRE", "I"), None) is True
         assert basename(("/dev/null"), None) == "null"
         assert dirname(("/dev/null"), None) == "/dev"
-        print >>sys.stderr, "Simple tests passed."
+        print("Simple tests passed.", file=sys.stderr)
 
     def contexttests():
         "GraphNodeExpression tests that need a context"
@@ -1284,8 +1287,8 @@ if __name__ == "__main__":
         assert argmatch(("THANG-(.*)", "$argv", "I"), argcontext) == "two"
         assert argmatch(("thang-.*",), argcontext) == "thang-two"
         assert argmatch(("THANG-.*", "$argv", "I"), argcontext) == "thang-two"
-        print >>sys.stderr, "Context tests passed."
+        print("Context tests passed.", file=sys.stderr)
 
     simpletests()
     contexttests()
-    print >>sys.stderr, "All tests passed."
+    print("All tests passed.", file=sys.stderr)

@@ -23,6 +23,7 @@ This file is responsible for a variety of dispatch classes - for handling all ou
 various types of incoming packets.
 """
 
+from __future__ import print_function
 import sys
 
 sys.path.append("cma")
@@ -128,8 +129,9 @@ class DispatchHBSHUTDOWN(DispatchTarget):
                     CMAdb.log.info(
                         "System %s at %s reports graceful shutdown." % (hostname, str(origaddr))
                     )
-                    print >>sys.stderr, (
-                        "System %s at %s reports graceful shutdown." % (hostname, str(origaddr))
+                    print(
+                        "System %s at %s reports graceful shutdown." % (hostname, str(origaddr)),
+                        file=sys.stderr,
                     )
                     fromdrone.death_report("dead", fsname, origaddr, frameset)
                 else:
@@ -160,8 +162,8 @@ class DispatchSTARTUP(DispatchTarget):
         pubkey = None
         keysize = None
 
-        # print >> sys.stderr, ("DispatchSTARTUP: received [%s] FrameSet from [%s]"
-        #%       (FrameSetTypes.get(fstype)[0], addrstr))
+        # print ("DispatchSTARTUP: received [%s] FrameSet from [%s]"
+        #%       (FrameSetTypes.get(fstype)[0], addrstr), file=sys.stderr)
         if CMAdb.debug:
             CMAdb.log.debug(
                 "DispatchSTARTUP: received [%s] FrameSet from [%s]"
@@ -189,8 +191,8 @@ class DispatchSTARTUP(DispatchTarget):
                             CMAdb.log.info("Aliasing %s to %s" % (localhost, origaddr))
             elif frametype == FrameTypes.JSDISCOVER:
                 json = frame.getstr()
-                # print >> sys.stderr,  'GOT JSDISCOVER JSON: [%s] (strlen:%s,framelen:%s)' \
-                #% (json, len(json), frame.framelen())
+                # print('GOT JSDISCOVER JSON: [%s] (strlen:%s,framelen:%s)' \
+                #% (json, len(json), frame.framelen(), file=sys.stderr)
             elif frametype == FrameTypes.KEYID:
                 keyid = frame.getstr()
             elif frametype == FrameTypes.PUBKEYCURVE25519:
@@ -260,7 +262,7 @@ class DispatchSTARTUP(DispatchTarget):
                     self.io.log_conn(origaddr)
                 return
             drone.lastjoin = localtime
-        # print >> sys.stderr, 'DRONE from find: ', drone, type(drone), drone.port
+        # print('DRONE from find: ', drone, type(drone), drone.port, file=sys.stderr)
 
         drone.startaddr = str(origaddr)
         if json is not None:
@@ -476,12 +478,12 @@ class DispatchJSDISCOVERY(DispatchTarget):
                 if sysname is None:
                     sysname = jsonconfig.getstring("host")
                 drone = self.droneinfo.find(sysname)
-                # print >> sys.stderr, 'FOUND DRONE for %s IS: %s' % (sysname, drone)
-                # print >> sys.stderr, 'LOGGING JSON FOR DRONE for %s IS: %s' % (drone, json)
+                # print('FOUND DRONE for %s IS: %s' % (sysname, drone), file=sys.stderr)
+                # print('LOGGING JSON FOR DRONE for %s IS: %s' % (drone, json), file=sys.stderr)
                 child = drone.find_child_system_from_json(jsonconfig)
                 # if child is not drone:
-                #    print >> sys.stderr, ('>>>>>>>>>>>>>>>>>>>LOGGED child system Discovery %s: %s'
-                #            %   (str(child), json))
+                #    print ('>>>>>>>>>>>>>>>>>>>LOGGED child system Discovery %s: %s'
+                #            %   (str(child), json), file=sys.stderr)
                 child.logjson(origaddr, json)
                 sysname = None
 
