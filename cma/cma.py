@@ -94,6 +94,7 @@
 #
 ################################################################################
 """
+from __future__ import print_function
 import os
 
 # This works around a bug in the glib library...
@@ -105,11 +106,13 @@ os.environ["G_MESSAGES_DEBUG"] = "all"
 # pylint: disable=C0413
 import sys
 import signal
-import optparse, traceback
+import optparse
+import traceback
 import importlib
 
 # import atexit
-import getent
+import grp
+import pwd
 import py2neo
 import cmainit
 from assimeventobserver import ForkExecObserver
@@ -263,7 +266,7 @@ def main():
 
     if opt.kill:
         if kill_pid_service(opt.pidfile, 15) < 0:
-            print >>sys.stderr, "Unable to stop CMA."
+            print("Unable to stop CMA.", file=sys.stderr)
             return 1
         return 0
 
@@ -284,8 +287,8 @@ def main():
     make_key_dir(CRYPTKEYDIR, opt.userid)
     cryptwarnings = pyCryptCurve25519.initkeys()
     for warn in cryptwarnings:
-        print >>sys.stderr, ("WARNING: %s" % warn)
-    # print >> sys.stderr, 'All known key ids:'
+        print("WARNING: %s" % warn, file=sys.stderr)
+    # print('All known key ids:', file=sys.stderr)
     keyids = pyCryptFrame.get_key_ids()
     keyids.sort()
     for keyid in keyids:
@@ -299,7 +302,7 @@ def main():
                 pyCryptFrame.associate_identity(hostname, keyid)
             except ValueError:
                 pass
-        # print >> sys.stderr, '>    %s/%s' % (keyid, pyCryptFrame.get_identity(keyid))
+        # print('>    %s/%s' % (keyid, pyCryptFrame.get_identity(keyid)), file=sys.stderr)
 
     daemonize_me(opt.foreground, "/", opt.pidfile, 20)
 
@@ -327,23 +330,23 @@ def main():
     )
 
     if opt.debug:
-        print >>sys.stderr, ("Setting debug to %s" % opt.debug)
+        print("Setting debug to %s" % opt.debug, file=sys.stderr)
 
     for debug in range(opt.debug):
         debug = debug
-        print >>sys.stderr, ("Incrementing C-level debug by one.")
+        print("Incrementing C-level debug by one.", file=sys.stderr)
         proj_class_incr_debug(None)
 
     #   Input our monitoring rule templates
     #   They only exist in flat files and in memory - they aren't in the database
     MonitoringRule.load_tree(MONRULEINSTALL_DIR)
-    print >>sys.stderr, ("Monitoring rules loaded from %s" % MONRULEINSTALL_DIR)
+    print("Monitoring rules loaded from %s" % MONRULEINSTALL_DIR, file=sys.stderr)
 
     execobserver_constraints = {
         "nodetype": ["Drone", "IPaddrNode", "MonitorAction", "NICNode", "ProcessNode", "SystemNode"]
     }
     ForkExecObserver(constraints=execobserver_constraints, scriptdir=NOTIFICATION_SCRIPT_DIR)
-    print >>sys.stderr, ("Fork/Event observer dispatching from %s" % NOTIFICATION_SCRIPT_DIR)
+    print("Fork/Event observer dispatching from %s" % NOTIFICATION_SCRIPT_DIR, file=sys.stderr)
 
     if opt.bind is not None:
         OurAddrStr = opt.bind
@@ -433,13 +436,15 @@ def main():
         )
     )
     if opt.foreground:
-        print >>sys.stderr, (
+        print(
             "Starting CMA version %s - licensed under %s"
-            % (AssimCtypes.VERSION_STRING, LONG_LICENSE_STRING)
+            % (AssimCtypes.VERSION_STRING, LONG_LICENSE_STRING),
+            file=sys.stderr
         )
-        print >>sys.stderr, (
+        print(
             "Neo4j version %s // py2neo version %s // Python version %s // %s"
-            % (neoversstring, PY2NEO_VERSION, ("%s.%s.%s" % sys.version_info[0:3]), jvers)
+            % (neoversstring, PY2NEO_VERSION, ("%s.%s.%s" % sys.version_info[0:3]), jvers),
+            file=sys.stderr
         )
     if len(neovers) > 3:
         CMAdb.log.warning("Neo4j version %s is beta code - results not guaranteed." % str(neovers))
@@ -461,16 +466,18 @@ def main():
         if CMAdb.debug:
             CMAdb.log.debug("Starting up traced listener.listen(); debug=%d" % opt.debug)
         if opt.foreground:
-            print >>sys.stderr, (
-                "cma: Starting up traced listener.listen() in foreground; debug=%d" % opt.debug
+            print(
+                "cma: Starting up traced listener.listen() in foreground; debug=%d" % opt.debug,
+                file=sys.stderr
             )
         tracer.runfunc(listener.listen)
     else:
         if CMAdb.debug:
             CMAdb.log.debug("Starting up untraced listener.listen(); debug=%d" % opt.debug)
         if opt.foreground:
-            print >>sys.stderr, (
-                "cma: Starting up untraced listener.listen() in foreground; debug=%d" % opt.debug
+            print(
+                "cma: Starting up untraced listener.listen() in foreground; debug=%d" % opt.debug,
+                file=sys.stderr
             )
 
         # This is kind of a kludge, we should really look again at
@@ -488,11 +495,11 @@ def supplementary_groups_for_user(userid):
     """
     namelist = []
     gidlist = []
-    for entry in getent.group():
-        if userid in entry.members:
-            namelist.append(entry.name)
-            gidlist.append(entry.gid)
-    return (namelist, gidlist)
+    for entry in grp.getgrall():
+        if userid in entry.gr_mem:
+            namelist.append(entry.gr_name)
+            gidlist.append(entry.gr_gid)
+    return namelist, gidlist
 
 
 def drop_privileges_permanently(userid):
@@ -505,14 +512,11 @@ def drop_privileges_permanently(userid):
     Either we need to be started as root or as 'userid' or this function
     will fail and exit the program.
     """
-    userinfo = getent.passwd(userid)
+    userinfo = pwd.getpwnam(userid)
     if userinfo is None:
         raise (OSError('Userid "%s" is unknown.' % userid))
-    # pylint is confused about the getent.passwd object
-    # pylint: disable=E1101
-    newuid = userinfo.uid
-    # pylint: disable=E1101
-    newgid = userinfo.gid
+    newuid = userinfo.pw_uid
+    newgid = userinfo.pw_gid
     auxgroups = supplementary_groups_for_user(userid)[1]
     # Need to set supplementary groups, then group id then user id in that order.
     try:
@@ -555,12 +559,10 @@ def make_pid_dir(pidfile, userid):
         # Assume it's been set up suitably
         return
     os.mkdir(piddir, 0o755)
-    userinfo = getent.passwd(userid)
+    userinfo = pwd.getpwnam(userid)
     if userinfo is None:
         raise (OSError('Userid "%s" is unknown.' % userid))
-    # pylint doesn't understand about getent...
-    # pylint: disable=E1101
-    os.chown(piddir, userinfo.uid, userinfo.gid)
+    os.chown(piddir, userinfo.pw_uid, userinfo.pw_gid)
 
 
 def make_key_dir(keydir, userid):
@@ -569,12 +571,10 @@ def make_key_dir(keydir, userid):
         # Assume it's been set up suitably
         return
     os.mkdir(keydir, 0o700)
-    userinfo = getent.passwd(userid)
+    userinfo = pwd.getpwnam(userid)
     if userinfo is None:
         raise (OSError('Userid "%s" is unknown.' % userid))
-    # pylint doesn't understand about getent...
-    # pylint: disable=E1101
-    os.chown(keydir, userinfo.uid, userinfo.gid)
+    os.chown(keydir, userinfo.pw_uid, userinfo.pw_gid)
 
 
 def logger(msg):

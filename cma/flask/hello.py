@@ -25,12 +25,13 @@
 #
 """
 Prototype code for providing a REST interface for the Assimilation project.
+Please note that there is no authentication at all, which is why they aren't activated...
 """
+from __future__ import print_function
 import sys
-
-sys.path.append("..")
 from flask import Flask, request, Response
 from py2neo import neo4j
+sys.path.append("..")
 from store import Store
 from graphnodes import GraphNode
 from query import ClientQuery
@@ -65,7 +66,6 @@ def query_meta(queryname):
 def doquery(queryname):
     """Prototype code for executing a particular query.
     The error cases are detected, but not handled correctly yet.
-    They all return apparent success, just no JSON.
     """
     if queryname not in allqueries:
         return "No such query: %s" % queryname
