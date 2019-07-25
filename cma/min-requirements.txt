@@ -1,0 +1,11 @@
+https://test-files.pythonhosted.org/packages/a8/d2/41b546e34b3befc800c32031284053aa899b4a251df42e8bbfd2095f0177/ctypesgen-1.0.1.dev6-py3-none-any.whl
+datetime
+docker
+dpath
+flask
+inject
+netaddr
+py2neo>=4.0.0
+requests
+uuid
+version_utils
