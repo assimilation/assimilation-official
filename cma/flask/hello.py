@@ -30,7 +30,7 @@ Please note that there is no authentication at all, which is why they aren't act
 from __future__ import print_function
 import sys
 from flask import Flask, request, Response
-from py2neo import neo4j
+from py2neo import Graph
 
 sys.path.append("..")
 from store import Store
@@ -52,7 +52,7 @@ app = Flask(__name__)
 
 @app.route("/")
 def hello_world():
-    "Dummy code for printing hello world on the root (/) page"
+    """"Dummy code for printing hello world on the root (/) page"""
     return "Hello World! %s" % str(request.args)
 
 
@@ -105,7 +105,7 @@ if __name__ == "__main__":
         if dburl is None:
             dburl = "http://%s:%d/db/data/" % (dbhost, dbport)
         print('CREATING Graph("%s")' % dburl, file=sys.stderr)
-        neodb = neo4j.Graph(dburl)
+        neodb = Graph(dburl)
         qstore = Store(neodb, None, None)
         print(GraphNode.classmap)
         print("LOADING TREE!")

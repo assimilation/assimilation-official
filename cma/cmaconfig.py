@@ -29,7 +29,6 @@ Not quite sure what all it will do, but hey, this comment is slightly better tha
 from __future__ import print_function
 
 # from sys import stderr
-from types import ClassType
 from AssimCclasses import pyConfigContext, pyNetAddr, pySignFrame, pyCompressFrame
 from consts import CMAconsts
 
@@ -471,7 +470,7 @@ class ConfigFile(object):
         Return value is a Tuple (True/False, 'explanation of errors')
         """
 
-        if isinstance(template, (type, ClassType)):
+        if isinstance(template, (type, type)):
             return ConfigFile._check_validity_type(template, configobj)
         if isinstance(template, dict):
             return ConfigFile._check_validity_dict(template, configobj)

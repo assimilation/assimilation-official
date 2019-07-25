@@ -19,28 +19,22 @@
 #  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
 #
 #
+"""
+Test code for PCAP parsing...
+"""
 from __future__ import print_function
+import sys
+import os
+import subprocess
+import gc
 
-_suites = ["all"]
-import sys, os, subprocess
-import traceback
-
-# traceback.print_exc()
 sys.path.append("../cma")
 sys.path.append("..")
+from AssimCclasses import *
+
 os.environ["G_MESSAGES_DEBUG"] = "all"
 stderr = sys.stderr
-
-from frameinfo import *
-from AssimCclasses import *
-import gc
-import re
-from AssimCtypes import proj_class_incr_debug, proj_class_decr_debug
-
-
-CheckForDanglingClasses = True
 WorstDanglingCount = 0
-DEBUG = True
 DEBUG = False
 BROKENDNS = False
 if "BROKENDNS" in os.environ:
@@ -55,10 +49,11 @@ elif not AssertOnDanglingClasses:
     print("WARNING: Memory Leak assertions disabled (detection still enabled).", file=stderr)
 
 
-def assert_no_dangling_Cclasses():
+def assert_no_dangling_cclasses():
+    """Make sure we don't have any dangling C class objects laying around..."""
     global CheckForDanglingClasses
     global WorstDanglingCount
-    sys._clear_type_cache()
+    # sys._clear_type_cache()
     gc.collect()
     count = proj_class_live_object_count()
     # Avoid cluttering the output up with redundant messages...
@@ -72,31 +67,17 @@ def assert_no_dangling_Cclasses():
 
 
 class TestCase(object):
-    def assertEqual(self, a, b):
-        assert a == b
+    """"Base class for tests not that useful..."""
 
-    def assertNotEqual(self, a, b):
-        assert a != b
-
-    def assertTrue(self, a):
-        assert a is True
-
-    def assertFalse(self, a):
-        assert a is False
-
-    def assertRaises(self, exception, function, *args):
-        try:
-            function(*args)
-            raise Exception("Did not raise exception %s: %s(%s)", exception, function, str(args))
-        except exception as e:
-            return True
-
-    def teardown_method(self, method):
+    @staticmethod
+    def teardown_method(method):
+        """Check for dangling C classes!"""
         print("__del__ CALL for %s" % str(method), file=stderr)
-        assert_no_dangling_Cclasses()
+        assert_no_dangling_cclasses()
 
 
 def findfile(f):
+    """Find a file somewhere"""
     for first in (".", "..", "../..", "../../.."):
         for second in (
             ".",
@@ -111,12 +92,14 @@ def findfile(f):
 
 
 def output_json(json):
+    """run jsonlint on our JSON"""
     process = subprocess.Popen(("jsonlint", "-f"), stdin=subprocess.PIPE)
     process.communicate(str(json))
     process.wait()
 
 
 def compare_json(lhs, rhs):
+    """Compare two JSON strings"""
     # print('----> LHS', lhs, file=stderr)
     # print('----> RHS', rhs, file=stderr)
     lhs = str(pyConfigContext(lhs))
@@ -131,9 +114,11 @@ def compare_json(lhs, rhs):
 
 
 class TestpySwitchDiscovery(TestCase):
-    "A pyNetAddr is a network address of some kind... - let's test it"
+    """A pyNetAddr is a network address of some kind... - let's test it"""
 
-    def validate_switch_discovery(self, filename, pkt, pktend):
+    @staticmethod
+    def validate_switch_discovery(filename, pkt, pktend):
+        """Make sure our switch discovery data looks OK"""
         packet_validation_count = 0
         for method in (is_valid_lldp_packet, is_valid_cdp_packet):
             if method(pkt, pktend):
@@ -144,6 +129,7 @@ class TestpySwitchDiscovery(TestCase):
         ]
 
     def test_switch_discovery(self):
+        """Test swtich discovery parsing..."""
         discovery_files = (
             (
                 "lldp.detailed.pcap",
@@ -328,6 +314,7 @@ class TestpySwitchDiscovery(TestCase):
         print("Passed %d switch discovery tests" % (len(discovery_files)))
 
     def not_a_test_output(self):
+        """Not sure what this is..."""
         files = (
             "lldp.detailed.pcap",
             "lldpmed_civicloc.pcap",
@@ -338,7 +325,7 @@ class TestpySwitchDiscovery(TestCase):
             "n0.eth2.cdp-2.pcap",
             "cdp.pcap",
             "cdp_v2.pcap",
-            #'pcap/cdp_v2_voice_vlan.pcap'
+            # 'pcap/cdp_v2_voice_vlan.pcap'
         )
         for f in files:
             for pcap_entry in pyPcapCapture(findfile(f)):
@@ -348,7 +335,3 @@ class TestpySwitchDiscovery(TestCase):
                 output_json(self.validate_switch_discovery(f, pktstart, pktend))
                 print("'''),")
                 sys.stdout.flush()
-
-
-if __name__ == "__main__":
-    run()
