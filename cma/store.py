@@ -736,7 +736,7 @@ class Store(object):
         :return: object: safe for Neo4j
         :raises ValueError: if the value can't be made acceptable
         """
-        if isinstance(value, (str, unicode, float, int)):
+        if isinstance(value, (six.string_types, float, int)):
             return value
         if isinstance(value, (list, tuple)):
             ret = []

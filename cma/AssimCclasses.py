@@ -27,6 +27,7 @@ A collection of classes which wrap our @ref C-Classes and provide Pythonic inter
 to these C-classes.
 """
 from __future__ import print_function, absolute_import
+from typing import Optional
 import six
 import collections
 import traceback
@@ -201,6 +202,16 @@ from AssimCtypes import (
 )
 from consts import CMAconsts
 from frameinfo import FrameTypes, FrameSetTypes
+
+
+def u_string_at(s: bytes) -> Optional[str]:
+    """
+    Return a UTF-8 encoded version of a C-string
+    :param s: C-style string pointer
+    :return: UTF8-encoded Python string, or None
+    """
+    s_at = string_at(s)
+    return s_at.decode('utf8') if s_at is not None else None
 
 
 # pylint: disable=R0903
@@ -401,7 +412,7 @@ class pySwitchDiscovery(object):
             or chidtype == LLDP_CHIDTYPE_LOCAL
         ):
             sloc = pySwitchDiscovery._byte1addr(tlvptr)
-            return string_at(sloc, tlvlen - 1)
+            return u_string_at(sloc, tlvlen - 1)
         elif chidtype == LLDP_CHIDTYPE_MACADDR:
             byte1addr = pySwitchDiscovery._byte1addr(tlvptr)
             Cmacaddr = None
@@ -471,7 +482,7 @@ class pySwitchDiscovery(object):
                 or tlvtype == LLDP_TLV_SYS_NAME
                 or tlvtype == LLDP_TLV_SYS_DESCR
             ):  #########################################
-                value = string_at(tlvptr, tlvlen)
+                value = u_string_at(tlvptr, tlvlen)
 
             elif tlvtype == LLDP_TLV_PID:  ###############################################
                 pidtype = pySwitchDiscovery._byte0(tlvptr)
@@ -481,7 +492,7 @@ class pySwitchDiscovery(object):
                     or pidtype == LLDP_PIDTYPE_LOCAL
                 ):
                     sloc = pySwitchDiscovery._byte1addr(tlvptr)
-                    value = string_at(sloc, tlvlen - 1)
+                    value = u_string_at(sloc, tlvlen - 1)
 
             elif tlvtype == LLDP_TLV_CHID:  #############################################
                 value = pySwitchDiscovery._decode_lldp_chid(tlvptr, tlvlen)
@@ -594,7 +605,7 @@ class pySwitchDiscovery(object):
                 pySwitchDiscovery._dump_c_bytes("PACKET:", tlvptr, tlvlen)
             else:
                 thisportinfo["vid"] = tlv_get_guint16(tlvstart, pktend)
-                thisportinfo["vlan_name"] = string_at(
+                thisportinfo["vlan_name"] = u_string_at(
                     pySwitchDiscovery._byte1addr(vlannameaddr), namelen
                 ).strip()
         else:
@@ -748,7 +759,7 @@ class pySwitchDiscovery(object):
     def _get_med_string(info, name, tlvptr, tlvlen):
         """Decode LLDP-MED string value - trim off extra white space at end"""
         strptr = cast(pySwitchDiscovery._byte1addr(tlvptr), c_char_p)
-        info[name] = string_at(strptr, tlvlen - 1).strip()
+        info[name] = u_string_at(strptr, tlvlen - 1).strip()
 
     @staticmethod
     def _decode_lldp_profibus(_switchinfo, _thisportinfo, _tlvptr, tlvlen, _pktend):
@@ -798,12 +809,12 @@ class pySwitchDiscovery(object):
             else:
                 (tlvname, isswitchinfo) = pySwitchDiscovery.cdpnames[tlvtype]
             if tlvtype == CDP_TLV_DEVID:
-                value = string_at(tlvptr, tlvlen - 4)
+                value = u_string_at(tlvptr, tlvlen - 4)
             elif tlvtype == CDP_TLV_ADDRESS:
                 # 4 byte count + 'count' addresses
                 value = pySwitchDiscovery.getcdpaddresses(tlvlen, tlvptr, pktend)
             elif tlvtype == CDP_TLV_PORTID:
-                value = string_at(tlvptr, tlvlen - 4)
+                value = u_string_at(tlvptr, tlvlen - 4)
             elif tlvtype == CDP_TLV_CAPS:
                 # bytez = [ '%02x' % pySwitchDiscovery._byteN(tlvptr, j) for j in range(0, tlvlen)]
                 # print('CAPBYTES = ', bytez, file=stderr)
@@ -811,21 +822,21 @@ class pySwitchDiscovery(object):
                 # print('CAPS IS: 0x%08x (%d bytes)' % (caps, tlvlen)), file=stderr)
                 value = pySwitchDiscovery.construct_cdp_caps(caps)
             elif tlvtype == CDP_TLV_VERS:
-                value = string_at(tlvptr, tlvlen - 4)
+                value = u_string_at(tlvptr, tlvlen - 4)
             elif tlvtype == CDP_TLV_PLATFORM:
-                value = string_at(tlvptr, tlvlen - 4)
+                value = u_string_at(tlvptr, tlvlen - 4)
             elif tlvtype == CDP_TLV_POWER:
                 tlen = tlvlen if tlvlen <= 2 else 2
                 value = pySwitchDiscovery.getNint(tlvptr, tlen, pktend)
             elif tlvtype == CDP_TLV_MTU:
                 value = pySwitchDiscovery.getNint(tlvptr, tlvlen, pktend)
             elif tlvtype == CDP_TLV_SYSTEM_NAME:
-                value = string_at(tlvptr, tlvlen - 4)
+                value = u_string_at(tlvptr, tlvlen - 4)
             elif tlvtype == CDP_TLV_MANAGEMENT_ADDR:
                 # 4 byte count + 'count' addresses
                 value = pySwitchDiscovery.getcdpaddresses(tlvlen, tlvptr, pktend)
             elif tlvtype == CDP_TLV_VTPDOMAIN:
-                value = string_at(tlvptr, tlvlen - 4)
+                value = u_string_at(tlvptr, tlvlen - 4)
             elif tlvtype == CDP_TLV_NATIVEVLAN:
                 value = tlv_get_guint16(tlvptr, pktend)
             elif tlvtype == CDP_TLV_UNTRUSTED_COS:
@@ -833,9 +844,9 @@ class pySwitchDiscovery(object):
             elif tlvtype == CDP_TLV_DUPLEX:
                 value = "half" if pySwitchDiscovery._byte0(tlvptr) == 0 else "full"
             elif tlvtype == CDP_TLV_LOCATION:
-                value = string_at(tlvptr, tlvlen - 4)
+                value = u_string_at(tlvptr, tlvlen - 4)
             elif tlvtype == CDP_TLV_EXT_PORTID:
-                value = string_at(tlvptr, tlvlen - 4)
+                value = u_string_at(tlvptr, tlvlen - 4)
             else:
                 value = "0x"
                 for offset in range(0, tlvlen):
@@ -1009,7 +1020,7 @@ class pyAssimObj(object):
         while not_this_exact_type(base, AssimObj):
             base = base.baseclass
         cstringret = cast(base.toString(self._Cstruct), c_char_p)
-        ret = string_at(cstringret)
+        ret = u_string_at(cstringret)
         g_free(cstringret)
         return ret
 
@@ -1086,11 +1097,11 @@ class pyNetAddr(pyAssimObj):
         # print("ADDRSTRINGTYPE:", type(addrstring), file=stderr)
         for i in range(0, alen):
             asi = addrstring[i]
-            # print("ASI_TYPE: (%s,%s)" % (type(asi), asi), file=stderr)
+            print("ASI_TYPE: (%s,%s)" % (type(asi), asi), file=stderr)
             if isinstance(asi, six.string_types):
                 addr[i] = str(asi)
             else:
-                addr[i] = chr(asi)
+                addr[i] = asi
         # print('ADDR = %s'  % addr, file=stderr)
         if alen == 4:  # ipv4
             NA = netaddr_ipv4_new(addr, port)
@@ -1187,7 +1198,7 @@ class pyNetAddr(pyAssimObj):
         while not_this_exact_type(base, NetAddr):
             base = base.baseclass
         cstringret = cast(base.canonStr(self._Cstruct), c_char_p)
-        ret = string_at(cstringret)
+        ret = u_string_at(cstringret)
         g_free(cstringret)
         return ret
 
@@ -1294,8 +1305,8 @@ class pyFrame(pyAssimObj):
             valbuf = create_string_buffer(vlen + 1)
             for i in range(0, vlen):
                 vi = value[i]
-                valbuf[i] = vi
-            valbuf[vlen] = chr(0)
+                valbuf[i] = ord(vi) if isinstance(vi, str) else vi
+            valbuf[vlen] = 0
             vlen += 1
         else:
             valbuf = create_string_buffer(vlen)
@@ -1322,7 +1333,7 @@ class pyFrame(pyAssimObj):
         while not_this_exact_type(base, AssimObj):
             base = base.baseclass
         cstringret = cast(base.toString(self._Cstruct), c_char_p)
-        ret = string_at(cstringret)
+        ret = u_string_at(cstringret)
         g_free(cstringret)
         return "%s: %s" % (FrameTypes.get(self.frametype())[1], ret)
 
@@ -1503,7 +1514,7 @@ class pyCstringFrame(pyFrame):
         base = self._Cstruct[0]
         while not hasattr(base, "value"):
             base = base.baseclass
-        return string_at(base.value)
+        return u_string_at(base.value)
 
 
 class pyIntFrame(pyFrame):
@@ -1635,11 +1646,11 @@ class pyNVpairFrame(pyFrame):
 
     def name(self):
         """Return the name portion of a pyNVpairFrame"""
-        return string_at(self._Cstruct[0].name)
+        return u_string_at(self._Cstruct[0].name)
 
     def value(self):
         """Return the name portion of a pyNVpairFrame"""
-        return string_at(self._Cstruct[0].value)
+        return u_string_at(self._Cstruct[0].value)
 
 
 class pyCryptFrame(pyFrame):
@@ -1664,7 +1675,7 @@ class pyCryptFrame(pyFrame):
 
     def receiver_id(self):
         """Return the key_id of the receiver key"""
-        return string_at(self._Cstruct[0].receiver_key_id)
+        return u_string_at(self._Cstruct[0].receiver_key_id)
 
     @staticmethod
     def get_key_ids():
@@ -1674,7 +1685,7 @@ class pyCryptFrame(pyFrame):
         keyid_list = []
         curkeyid = keyid_gslist
         while curkeyid:
-            keyid_list.append(string_at(curkeyid[0].data))
+            keyid_list.append(u_string_at(curkeyid[0].data))
             curkeyid = g_slist_next(curkeyid)
         g_slist_free(keyid_gslist)
         return keyid_list
@@ -1758,7 +1769,7 @@ class pyCryptCurve25519(pyCryptFrame):
     def key_id_to_filename(key_id, keytype):
         """Translate a key_id to a filename"""
         ret = curve25519_key_id_to_filename(key_id, keytype)
-        pyret = string_at(ret.raw)
+        pyret = u_string_at(ret.raw)
         g_free(ret)
         return pyret
 
@@ -1881,7 +1892,7 @@ class pyFrameSet(pyAssimObj):
         if not ret:
             # print('Returning None(!)', self.get_framesettype(), file=stderr)
             return None
-        pyret = string_at(ret.raw)
+        pyret = u_string_at(ret.raw)
         # print('PYRET:', type(pyret), 'pyret:', pyret, file=stderr)
         return pyret
 
@@ -2093,7 +2104,7 @@ class pyConfigContext(pyAssimObj):
         """Return the string associated with "name\""""
         ret = self._Cstruct[0].getstring(self._Cstruct, name)
         if ret:
-            return string_at(ret)
+            return u_string_at(ret)
         raise IndexError("No such String value [%s]" % name)
 
     def setstring(self, name, value):
@@ -2162,7 +2173,7 @@ class pyConfigContext(pyAssimObj):
         keylist = cast(self._Cstruct[0].keys(self._Cstruct), POINTER(GSList))
         curkey = keylist
         while curkey:
-            l.append(string_at(curkey[0].data))
+            l.append(u_string_at(curkey[0].data))
             curkey = g_slist_next(curkey)
         g_slist_free(keylist)
         return l

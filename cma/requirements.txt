@@ -1,8 +1,8 @@
 certifi==2019.6.16
 chardet==3.0.4
 Click==7.0
-#https://test-files.pythonhosted.org/packages/a8/d2/41b546e34b3befc800c32031284053aa899b4a251df42e8bbfd2095f0177/ctypesgen-1.0.1.dev6-py3-none-any.whl
-https://test-files.pythonhosted.org/packages/9c/be/902b32eef347ae243d1559e2d5fd332e8f08f723b894e2530dc6c0eea8fa/ctypesgen-1.0.1.dev6-py2-none-any.whl
+https://test-files.pythonhosted.org/packages/a8/d2/41b546e34b3befc800c32031284053aa899b4a251df42e8bbfd2095f0177/ctypesgen-1.0.1.dev6-py3-none-any.whl
+#https://test-files.pythonhosted.org/packages/9c/be/902b32eef347ae243d1559e2d5fd332e8f08f723b894e2530dc6c0eea8fa/ctypesgen-1.0.1.dev6-py2-none-any.whl
 DateTime==4.3
 docker==4.0.2
 dpath==1.4.2

@@ -70,8 +70,6 @@ class GraphNodeExpression(object):
             return int(expression, 8) if expression.startswith("0") else int(expression)
         if expression.find("(") >= 0:
             value = GraphNodeExpression.functioncall(expression, context)
-            if isinstance(value, unicode):
-                value = str(value)
             context[expression] = value
             return value
         # if expression.startswith('$'):
@@ -80,8 +78,6 @@ class GraphNodeExpression(object):
         # print('RETURNING VALUE OF %s = %s'\, file=sys.stderr)
         #   % (expression, context.get(expression[1:], None))
         value = context.get(expression[1:], None) if expression.startswith("$") else expression
-        if isinstance(value, unicode):
-            value = str(value)
         return value
 
     # pylint R0912: too many branches - really ought to write a lexical analyzer and parser

@@ -3,6 +3,7 @@
 A collection of classes which provide constants for FrameTypes and FrameSetTypes
 """
 
+import six
 import re
 
 # from AssimCclasses import pyFrame, pyAddrFrame, pySignFrame, pySeqnoFrame, \
@@ -456,10 +457,10 @@ It is always <b>crypto_box_PUBLICKEYBYTES</b> bytes long - no more, no less.
     @staticmethod
     def get(key):
         "Return the tuple that corresponds to this key (integer or string)"
-        if isinstance(key, (str, unicode)):
+        if isinstance(key, six.string_types):
             return FrameTypes.strframetypes[str(key)]
         else:
-            if FrameTypes.intframetypes.has_key(int(key)):
+            if int(key) in FrameTypes.intframetypes:
                 return FrameTypes.intframetypes[int(key)]
             return (None, str(key), str(key), str(key))
 
@@ -591,10 +592,10 @@ class FrameSetTypes(object):
     @staticmethod
     def get(key):
         "Return the tuple that corresponds to this key (integer or string)"
-        if isinstance(key, (str, unicode)):
+        if isinstance(key, six.string_types):
             return FrameSetTypes.strframetypes[str(key)]
         else:
-            if FrameSetTypes.intframetypes.has_key(int(key)):
+            if key in FrameSetTypes.intframetypes:
                 return FrameSetTypes.intframetypes[int(key)]
             return (None, str(int(key)), str(int(key)), str(int(key)))
 

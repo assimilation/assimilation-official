@@ -200,7 +200,7 @@ class NetTransaction(object):
                 # but this code is pretty simple so far...
 
                 if ftype == FrameTypes.IPPORT:
-                    if isinstance(fvalue, str) or isinstance(fvalue, unicode):
+                    if isinstance(fvalue, six.string_types):
                         fvalue = pyNetAddr(fvalue)
                     aframe = pyIpPortFrame(ftype, fvalue)
                     fs.append(aframe)

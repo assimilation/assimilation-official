@@ -32,7 +32,6 @@ from __future__ import print_function
 from AssimCclasses import pyConfigContext, pyNetAddr, pySignFrame, pyCompressFrame
 from consts import CMAconsts
 
-
 class ConfigFile(object):
     """
     This class implements configuration file management, including validation
@@ -75,7 +74,7 @@ class ConfigFile(object):
             "tcpdiscovery",  # Discovers network-facing processes
             "ulimit",  # Discovers ulimit settings
         },
-        "cmaport": {int, long},  # CMA listening port
+        "cmaport": int,        # CMA listening port
         "cmainit": pyNetAddr,  # Initial contact address for the CMA
         "cmaaddr": pyNetAddr,  # CMA's base address...
         "cmadisc": pyNetAddr,  # Address to send discovery information
@@ -83,36 +82,36 @@ class ConfigFile(object):
         "outsig": pySignFrame,  # Packet signature frame
         "compress": pyCompressFrame,  # Packet compression frame
         "compression_method": {"zlib"},  # Packet compression method
-        "compression_threshold": {int, long},  # Threshold for when to start compressing
+        "compression_threshold": int, # Threshold for when to start compressing
         "score_severity_map": {str: {"high": float, "medium": float, "low": float}},
         "SQLiteFile": str,
         "discovery": {
-            "repeat": {int, long},  # how often to repeat a discovery action
-            "warn": {int, long},  # How long to wait when issuing a slow discovery warning
-            "timeout": {int, long},  # how long wait before declaring failure
-            "nice": {int, long},  # Optional UNIX-style 'nice' value
+            "repeat": int,  # how often to repeat a discovery action
+            "warn": int,  # How long to wait when issuing a slow discovery warning
+            "timeout": int,  # how long wait before declaring failure
+            "nice": int,  # Optional UNIX-style 'nice' value
             "agents": {  # Configuration information for individual agent types,
                 # optionally including machine
                 str: {
-                    "repeat": {int, long},  # repeat for this particular agent
-                    "warn": {int, long},  # How long before slow discovery warning
-                    "timeout": {int, long},  # timeout for this particular agent
-                    "nice": {int, long},  # UNIX-style nice value
+                    "repeat": int,  # repeat for this particular agent
+                    "warn": int,  # How long before slow discovery warning
+                    "timeout": int,  # timeout for this particular agent
+                    "nice": int,  # UNIX-style nice value
                 }
             },
         },
         "monitoring": {
-            "repeat": {int, long},  # Default repeat interval in seconds
-            "warn": {int, long},  # How long to wait when issuing a slow monitoring warning
-            "timeout": {int, long},  # How long to wait before declaring failure
-            "nice": {int, long},  # Optional UNIX-style 'nice' value
+            "repeat": int,  # Default repeat interval in seconds
+            "warn": int,  # How long to wait when issuing a slow monitoring warning
+            "timeout": int,  # How long to wait before declaring failure
+            "nice": int,  # Optional UNIX-style 'nice' value
             "agents": {  # Configuration information for individual agent types,
                 # optionally including machine
                 str: {
-                    "repeat": {int, long},  # repeat for this particular agent
-                    "warn": {int, long},  # How long before slow warning
-                    "timeout": {int, long},  # timeout for this particular agent
-                    "nice": {int, long},  # UNIX-style nice value
+                    "repeat": int,  # repeat for this particular agent
+                    "warn": int,  # How long before slow warning
+                    "timeout": int,  # timeout for this particular agent
+                    "nice": int,  # UNIX-style nice value
                     "argv": [str],
                     "env": {str: str},
                 }
@@ -120,9 +119,9 @@ class ConfigFile(object):
             "nagiospath": [str],
         },
         "heartbeats": {
-            "repeat": {int, long},  # how frequently to heartbeat - in seconds
-            "warn": {int, long},  # How long to wait when issuing a late heartbeat warning
-            "timeout": {int, long},  # How long to wait before declaring a system dead
+            "repeat": int,  # how frequently to heartbeat - in seconds
+            "warn": int,  # How long to wait when issuing a late heartbeat warning
+            "timeout": int,  # How long to wait before declaring a system dead
         },
         "bprulesbydomain": {str: str},  # Which best practice rule sets to use by default?
         "allbpdiscoverytypes": [str],  # List of all best practice discovery types

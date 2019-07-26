@@ -136,7 +136,7 @@ class StoreAssociation(object):
         :param scalar: object: scalar object to use as input
         :return: str: representation of this scalar suitable for Cypher
         """
-        if isinstance(scalar, (str, unicode, pyNetAddr)):
+        if isinstance(scalar, (six.string_types, pyNetAddr)):
             if isinstance(scalar, pyNetAddr):
                 scalar = str(scalar)
             scalar_str = self.cypher_str_repr(scalar)

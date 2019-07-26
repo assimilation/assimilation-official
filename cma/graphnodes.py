@@ -347,7 +347,7 @@ class GraphNode(object):
     @staticmethod
     def _json_elem(value):
         """Return the value of an element suitable for JSON output"""
-        if isinstance(value, str) or isinstance(value, unicode):
+        if isinstance(value, six.string_types):
             return '"%s"' % GraphNode._json_escape(value)
         if isinstance(value, bool):
             if value:

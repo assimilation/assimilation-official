@@ -86,7 +86,7 @@ class AssimSecret(object):
     def get(self):
         """
         Retrieve the value of our secret
-        :return: Union(str, unicode, bytes)
+        :return: Union(str, bytes)
         """
         raise NotImplementedError("%s.get() is an abstract method" % self.__class__.__name__)
 

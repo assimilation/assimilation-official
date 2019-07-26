@@ -343,7 +343,7 @@ class ClientQuery(GraphNode):
                 raise ValueError("Enum type [%s] requires enumlist" % param)
             elist = pinfo["enumlist"]
             for enum in elist:
-                if not isinstance(enum, str) and not isinstance(enum, unicode):
+                if not isinstance(enum, six.string_types):
                     raise ValueError(
                         "Enumlist values [%s] must be strings - not %s" % (enum, type(enum))
                     )

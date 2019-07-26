@@ -135,7 +135,7 @@ class SystemNode(GraphNode):
 
     def jsonval(self, jsontype):
         """Construct a python object associated with a particular JSON discovery value."""
-        attrname = unicode(self.HASH_PREFIX + jsontype)
+        attrname = self.HASH_PREFIX + jsontype
         if not hasattr(self, attrname):
             # self._log.debug('DOES NOT HAVE ATTR "%s"' % attrname)
             # self._log.debug( 'ATTRIBUTES ARE: %s' % str(self.keys()))

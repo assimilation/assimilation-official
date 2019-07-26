@@ -217,7 +217,7 @@ class PersistentInvariantJSON(object):
         """
 
         field, value_list = equal_item
-        if isinstance(value_list, (str, unicode, int, float, bool)):
+        if isinstance(value_list, (str, int, float, bool)):
             value_list = (value_list,)
 
         def _filter_match(data):

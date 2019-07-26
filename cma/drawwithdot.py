@@ -105,15 +105,7 @@ class DictObj(object):
     @staticmethod
     def _fixup(value):
         "Fix up our values for printing neatly in minimal space"
-        if isinstance(value, unicode):
-            if value.startswith("::"):
-                try:
-                    ip = pyNetAddr(value)
-                    value = repr(ip)
-                except ValueError:
-                    pass
-            return str(value).strip()
-        elif isinstance(value, str):
+        if isinstance(value, str):
             return value
         elif hasattr(value, "__iter__"):
             ret = "["

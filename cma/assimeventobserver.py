@@ -29,7 +29,12 @@ The base class of these various classes is the abstract class AssimEventObserver
 """
 
 from __future__ import print_function, absolute_import
-import os, signal, subprocess, sys, fcntl, tempfile
+import os
+import signal
+import subprocess
+import sys
+import fcntl
+import tempfile
 import six
 from AssimCtypes import NOTIFICATION_SCRIPT_DIR, setpipebuf
 from AssimCclasses import pyConfigContext, pyNetAddr
@@ -122,7 +127,7 @@ class AssimEventObserver(object):
 
     @staticmethod
     def getvalue(event, attr):
-        "Helper function to return a the value of a constraint expression"
+        """Helper function to return a the value of a constraint expression"""
         value = None
         if hasattr(event, attr):
             value = getattr(event, attr)
@@ -190,7 +195,7 @@ class FIFOEventObserver(AssimEventObserver):
         try:
             if DEBUG:
                 print("*************SENDING EVENT (%d bytes)" % (jsonlen + 1), file=sys.stderr)
-            os.write(self.FIFOwritefd, json)
+            os.write(self.FIFOwritefd, json.encode('utf8'))
             self.errcount = 0
             if DEBUG:
                 print("*************EVENT SENT (%d bytes)" % (jsonlen + 1), file=sys.stderr)
@@ -268,7 +273,8 @@ class ForkExecObserver(FIFOEventObserver):
             self.childpid = 0
 
     def listenforevents(self):
-        "Listen for JSON events terminated by a FIFOEventObserver.NULstr"
+        """Listen for JSON events terminated by a FIFOEventObserver.NULstr"""
+
         os.close(self.FIFOwritefd)
         fcntl.fcntl(self.FIFOreadfd, fcntl.F_SETFD, fcntl.FD_CLOEXEC)
         for fd in range(3, 1024):
@@ -281,7 +287,7 @@ class ForkExecObserver(FIFOEventObserver):
             try:
                 if DEBUG:
                     print("ISSUING EVENT READ...", file=sys.stderr)
-                currentbuf += os.read(self.FIFOreadfd, 4096)
+                currentbuf += os.read(self.FIFOreadfd, 4096).decode('utf8')
                 if DEBUG:
                     print("EVENT READ returned %d bytes" % (len(currentbuf)), file=sys.stderr)
                 if len(currentbuf) == 0:
@@ -296,6 +302,8 @@ class ForkExecObserver(FIFOEventObserver):
                         currentbuf = additional
                     else:
                         break
+            except KeyboardInterrupt:
+                sys.exit(0)
             # W0703: catching too general exception Exception
             # pylint: disable=W0703
             except Exception as e:
@@ -304,13 +312,12 @@ class ForkExecObserver(FIFOEventObserver):
                     file=sys.stderr,
                 )
                 currentbuf = ""
-            except KeyboardInterrupt as e:
-                sys.exit(0)
+                raise
 
     @staticmethod
     def _JSONevent_env(eventobj):
-        "Create the environment for our child processes"
-        scalars = (six.string_types, int, float, bool, pyNetAddr)
+        """Create the environment for our child processes"""
+        scalars = (six.string_types, int, float, bool, pyNetAddr, bytes)
         # print('SCALARS == %s' % str(scalars), file=sys.stderr)
         aobj = eventobj["associatedobject"]
         env = {}
@@ -323,6 +330,8 @@ class ForkExecObserver(FIFOEventObserver):
             for extra in extrastuff.keys():
                 evextra = extrastuff[extra]
                 if isinstance(evextra, scalars):
+                    if isinstance(evextra, bytes):
+                        evextra = evextra.decode('utf8')
                     env["ASSIM_%s" % extra] = str(evextra)
         # Add all the scalars in the associated object
         for attr in aobj.keys():
@@ -332,7 +341,7 @@ class ForkExecObserver(FIFOEventObserver):
         return env
 
     def processJSONevent(self, jsonstr):
-        "Process a single JSON event from our input stream"
+        """Process a single JSON event from our input stream"""
         eventobj = pyConfigContext(jsonstr)
         aobjclass = eventobj["associatedobject"]["nodetype"]
         eventtype = AssimEvent.eventtypenames[eventobj["eventtype"]]
@@ -344,7 +353,7 @@ class ForkExecObserver(FIFOEventObserver):
             print("TO RUN: %s" % (str(self.listscripts())), file=sys.stderr)
         # Put the full JSON in a temporary file, so our scripts can read it from stdin
         jsontmpfile = tempfile.TemporaryFile()
-        jsontmpfile.write(str(eventobj))
+        jsontmpfile.write(str(eventobj).encode('utf8'))
         jsontmpfile.seek(0)
         for script in self.listscripts():
             args = [script, eventtype, aobjclass]
@@ -355,7 +364,7 @@ class ForkExecObserver(FIFOEventObserver):
                 print("EVENT SCRIPT %s IS NOW DONE" % (str(args)), file=sys.stderr)
 
     def listscripts(self):
-        "Return the list of pathnames to execute when we get notified of an event"
+        """Return the list of pathnames to execute when we get notified of an event"""
         retval = []
         for script in os.listdir(self.scriptdir):
             path = os.path.join(self.scriptdir, script)
