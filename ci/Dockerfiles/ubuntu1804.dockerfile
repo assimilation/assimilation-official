@@ -4,7 +4,7 @@ RUN apt-get -y update && apt-get install -y \
   build-essential \
   cmake \
   pkg-config \
-  python-pip \
+  python3-pip \
   libglib2.0-dev \
   libpcap-dev \
   libsodium-dev \
