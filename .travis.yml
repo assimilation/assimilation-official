@@ -32,6 +32,7 @@ script:
   # test the new packages in a stock image (install and run tests)
   - |
     docker run \
+    --env=BUILD_ENV=$BUILD_ENV \
     -v $TRAVIS_BUILD_DIR:/root/assimilation/src \
     -v /tmp/ba:/packages \
     $BUILD_ENV \
