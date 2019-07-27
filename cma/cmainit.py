@@ -65,8 +65,12 @@ class Neo4jCreds(object):
         if filename is None:
             filename = NEO4JCREDFILENAME
         self.neo4j_cred_filename = filename
-        self.neoserver = NeoDockerServer(version="3.5.6", edition="enterprise", accept_license=True)
+        self.neoserver = NeoDockerServer(version="3.5.7", edition="enterprise", accept_license=True)
         self.neoserver.start()
+        for _ in range(50):
+            if self.neoserver.is_running():
+                break
+            time.sleep(.1)
         if not self.neoserver.is_password_set():
             if os.path.exists(self.neo4j_cred_filename):
                 self.name, self.auth = self._read_neo4j_credentials()

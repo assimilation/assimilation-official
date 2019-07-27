@@ -37,6 +37,7 @@ import gc
 import AssimCtypes
 from AssimCtypes import (
     POINTER,
+    String,
     cast,
     addressof,
     pointer,
@@ -204,13 +205,15 @@ from consts import CMAconsts
 from frameinfo import FrameTypes, FrameSetTypes
 
 
-def u_string_at(s: bytes) -> Optional[str]:
+def u_string_at(s: bytes, size: int = -1) -> Optional[str]:
     """
     Return a UTF-8 encoded version of a C-string
     :param s: C-style string pointer
     :return: UTF8-encoded Python string, or None
     """
-    s_at = string_at(s)
+    s_at = string_at(s, size)
+    # print('s_at_type', type(s_at), file=sys.stderr)
+    assert isinstance(s_at, bytes)
     return s_at.decode('utf8') if s_at is not None else None
 
 
@@ -977,7 +980,7 @@ class pySwitchDiscovery(object):
                 addrstr = ""
                 for j in (offset + 2, offset + 3, offset, offset + 1):
                     addrstr += chr(pySwitchDiscovery._byteN(tlvstart, j))
-                addr = netaddr_ipv4_new(c_char_p(addrstr), 0)
+                addr = netaddr_ipv4_new(c_char_p(addrstr.encode('utf8')), 0)
             elif protolen == 8 and addrlen == 16 and prototype == 0x86DD:
                 # protocol type == 0xAAAA0300000086DD
                 addr = netaddr_ipv6_new(
@@ -1097,7 +1100,6 @@ class pyNetAddr(pyAssimObj):
         # print("ADDRSTRINGTYPE:", type(addrstring), file=stderr)
         for i in range(0, alen):
             asi = addrstring[i]
-            print("ASI_TYPE: (%s,%s)" % (type(asi), asi), file=stderr)
             if isinstance(asi, six.string_types):
                 addr[i] = str(asi)
             else:
@@ -1467,7 +1469,7 @@ class pyIpPortFrame(pyFrame):
             raise ValueError("Invalid initializer.")
         addrstr = create_string_buffer(addrlen)
         for j in range(0, addrlen):
-            addrstr[j] = chr(addrstring[j])
+            addrstr[j] = addrstring[j]
         if addrlen == 4:
             Cstruct = ipportframe_ipv4_new(frametype, port, addrstr)
         elif addrlen == 16:
@@ -1813,8 +1815,7 @@ class pyCryptCurve25519(pyCryptFrame):
         # We want to use the lowest-numbered private key we have access to.
         privatecount = 0
         extras = []
-        cma_ids.sort()
-        for keyid in cma_ids:
+        for keyid in sorted(cma_ids):
             pyCryptFrame.associate_identity(CMA_IDENTITY_NAME, keyid)
             if cryptframe_private_key_by_id(keyid):
                 privatecount += 1
@@ -2104,6 +2105,7 @@ class pyConfigContext(pyAssimObj):
         """Return the string associated with "name\""""
         ret = self._Cstruct[0].getstring(self._Cstruct, name)
         if ret:
+            assert not isinstance(u_string_at(ret), bytes)
             return u_string_at(ret)
         raise IndexError("No such String value [%s]" % name)
 
@@ -2123,8 +2125,7 @@ class pyConfigContext(pyAssimObj):
             # print("CURLIST->data = %s" % data, file=stderr)
             CCref(data)
             cfgval = pyConfigValue(data).get()
-            # print("CURLIST->data->get() = %s" % cfgval, file=stderr)
-            ret.append(cfgval)
+            ret.append(cfgval.encode('utf8') if isinstance(cfgval, bytes) else cfgval)
             curlist = g_slist_next(curlist)
         return ret
 
@@ -2183,7 +2184,7 @@ class pyConfigContext(pyAssimObj):
         for key in self.keys():
             yield key
 
-    def viewitems(self):
+    def items(self):
         """
         Iterate over the (key, value) pairs in the top level dict-like structure
         :yield: (str(key), value)
@@ -2228,19 +2229,25 @@ class pyConfigContext(pyAssimObj):
                 try:
                     array = self[preprefix]
                     idx = int(idx)  # Possible ValueError
+                    print(f'ARRAY IS {type(array)}, {array}', file=stderr)
+                    print(f'INDEX IS {idx}', file=stderr)
                     value = array[idx]  # possible IndexError or TypeError
+                    assert not isinstance(value, bytes)
                     if suffix is None:
+                        assert not isinstance(value, bytes)
                         return value
                 except (TypeError, IndexError, ValueError):
                     return alternative
                 return value.deepget(suffix, alternative)
 
         prefixvalue = self[prefix]
+        assert not isinstance(prefixvalue, bytes)
         if suffix is None:
             return prefixvalue
         if not isinstance(prefixvalue, pyConfigContext):
             return alternative
         gotten = prefixvalue.deepget(suffix, alternative)
+        assert not isinstance(gotten, bytes)
         return gotten
 
     def has_key(self, key):
@@ -2336,6 +2343,11 @@ class pyConfigValue(pyAssimObj):
         elif vtype == CFG_INT64:
             return int(self._Cstruct[0].u.intvalue)
         elif vtype == CFG_STRING:
+            strval = self._Cstruct[0].u.strvalue
+            value = strval.data.decode('utf8') if isinstance(strval, String) else strval
+            assert isinstance(value, str)
+            return value
+            # return u_string_at(self._Cstruct[0].u.strvalue)
             return str(self._Cstruct[0].u.strvalue)
         elif vtype == CFG_FLOAT:
             return float(self._Cstruct[0].u.floatvalue)
@@ -2507,7 +2519,7 @@ class pyNetIO(pyAssimObj):
         """Send the (collection of) frameset(s) out on this pyNetIO"""
         if destaddr.port() == 0:
             raise ValueError("Zero Port in sendframesets: destaddr=%s" % str(destaddr))
-        if not isinstance(framesetlist, collections.Sequence):
+        if not isinstance(framesetlist, collections.abc.Sequence):
             framesetlist = (framesetlist,)
         base = self._Cstruct[0]
         while not hasattr(base, "sendaframeset"):
@@ -2521,7 +2533,7 @@ class pyNetIO(pyAssimObj):
         """Reliably send the (collection of) frameset(s) out on this pyNetIO (if possible)"""
         if destaddr.port() == 0:
             raise ValueError("Zero Port in sendreliablefs: destaddr=%s" % str(destaddr))
-        if not isinstance(framesetlist, collections.Sequence):
+        if not isinstance(framesetlist, collections.abc.Sequence):
             framesetlist = (framesetlist,)
         base = self._Cstruct[0]
         while not hasattr(base, "sendaframeset"):
@@ -2647,6 +2659,7 @@ class pyPcapCapture(object):
     """Class to read binary packets from pcap packet  capture files"""
 
     def __init__(self, filename):
+        print('READING PCAP CAPTURE FILE', filename, file=stderr)
         self._Cstruct = pcap_capture_iter_new(filename)
         if not self._Cstruct:
             raise ValueError("Invalid parameters to pyPcapCapture constructor")

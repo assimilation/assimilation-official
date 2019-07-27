@@ -435,7 +435,7 @@ class TestpyFrame(TestCase):
         self.assertTrue(pyf.isvalid())
         self.assertEqual(pyf.framelen(), 5)
         self.assertEqual(pyf.dataspace(), 10)  # Total space for this Frame on the wire
-        self.assertEqual(string_at(pyf.framevalue()), "fred")  # Raw from 'C'
+        self.assertEqual(u_string_at(pyf.framevalue()), "fred")  # Raw from 'C'
 
 
 class TestpyAddrFrame(TestCase):
@@ -928,7 +928,7 @@ class TestpyConfigContext(TestCase):
         self.assertEqual(str(foo), '{"arthur":42,"seven":9}')
         foo["seven"] = 7
         foo["negseven"] = -9
-        self.assertTrue(isinstance(foo["seven"], (int, long)))
+        self.assertTrue(isinstance(foo["seven"], int))
         self.assertEqual(foo["seven"], 7)
         self.assertEqual(foo["negseven"], -9)
         self.assertEqual(str(foo), '{"arthur":42,"negseven":-9,"seven":7}')
@@ -1117,9 +1117,9 @@ class TestpyConfigContext(TestCase):
         cc = pyConfigContext(init=getstr)
         self.assertTrue(cc is not None)
         self.assertEqual(cc.deepget("a[1].c.d"), 0)
-        self.assertTrue(isinstance(cc.deepget("a[1].c.d"), (int, long)))
+        self.assertTrue(isinstance(cc.deepget("a[1].c.d"), int))
         self.assertEqual(cc.deepget("a[1].c.e"), 1)
-        self.assertTrue(isinstance(cc.deepget("a[1].c.e"), (int, long)))
+        self.assertTrue(isinstance(cc.deepget("a[1].c.e"), int))
         self.assertEqual(cc.deepget("a[-1]"), "f")
         self.assertEqual(cc.deepget("a[-3]"), "b")
 

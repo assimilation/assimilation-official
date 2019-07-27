@@ -150,7 +150,7 @@ class SystemNode(GraphNode):
 
     def get(self, key, alternative=None):
         """Return JSON object if the given key exists - 'alternative' if not."""
-        ret = self.deepget(unicode(key))
+        ret = self.deepget(key)
         return ret if ret is not None else alternative
 
     def __getitem__(self, key):
@@ -181,12 +181,12 @@ class SystemNode(GraphNode):
                 del self[name]
         jsonnode = self._store.load_or_create(JSONMapNode, json=value)
         # print('JUST CREATED JSON NODE: %s' % str(jsonnode))
-        setattr(self, unicode(self.HASH_PREFIX + name), jsonnode.jhash)
+        setattr(self, self.HASH_PREFIX + name, jsonnode.jhash)
         self._store.relate(
             self,
             CMAconsts.REL_jsonattr,
             jsonnode,
-            attrs={"jsonname": name, "time": long(round(time.time()))},
+            attrs={"jsonname": name, "time": round(time.time())},
         )
 
     def __delitem__(self, name):

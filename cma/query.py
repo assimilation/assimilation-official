@@ -471,7 +471,7 @@ class ClientQuery(GraphNode):
     @staticmethod
     def _validate_list(name, paraminfo, listvalue):
         """Validate a list value"""
-        if isinstance(listvalue, (str, unicode)):
+        if isinstance(listvalue, str):
             listvalue = listvalue.split(",")
         result = []
         listtype = paraminfo["listtype"]
@@ -484,7 +484,7 @@ class ClientQuery(GraphNode):
         """Return the value of a node type - if valid"""
         nodetypes = set()
         for attr in dir(CMAconsts):
-            if attr.startswith("NODE_") and isinstance(getattr(CMAconsts, attr), (str, unicode)):
+            if attr.startswith("NODE_") and isinstance(getattr(CMAconsts, attr), str):
                 nodetypes.add(attr[5:])
                 nodetypes.add(getattr(CMAconsts, attr))
         if nodetype not in nodetypes:

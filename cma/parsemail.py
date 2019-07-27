@@ -533,7 +533,7 @@ class CentOSAnnouncement(Announcement):
                                 "version": version,
                             }
                 del sections[section_name]
-        for sect_name, sect_info in sections.viewitems():
+        for sect_name, sect_info in sections.items():
             # print ('SECT_INFO:', len(sect_info), type(sect_info), sect_info, file=stderr)
             if isinstance(sect_info, list) and sect_name != "urls":
                 if sect_info[-1] == "":
@@ -673,7 +673,7 @@ class UbuntuAnnouncement(Announcement):
                     version = this_sect[index + 1]
                     sections["patches"][base_package + "::" + osrel] = version
                 del sections[section_name]
-        for sect_name, sect_info in sections.viewitems():
+        for sect_name, sect_info in sections.items():
             # print ('SECT_INFO:', len(sect_info), type(sect_info), sect_info, file=stderr)
             if isinstance(sect_info, list):
                 while len(sect_info) > 1 and sect_info[-1] == "":
@@ -751,7 +751,7 @@ def analyze_all_mbox_vulnerabilities(years, announcement_cls):
     release_patches = {}
     for _, announcement_name in keys:
         announcement = mbox_archive_by_name[announcement_name]
-        for patch_name, patch in announcement.data["patches"].viewitems():
+        for patch_name, patch in announcement.data["patches"].items():
             osrel = patch["osrel"] + "::" + patch["arch"]
             if osrel not in release_patches:
                 release_patches[osrel] = {}
@@ -788,13 +788,13 @@ def analyze_all_mbox_vulnerabilities(years, announcement_cls):
                         file=stderr,
                     )
 
-    for announcement in current_announcements.viewvalues():
-        for patch in announcement.data["patches"].viewvalues():
+    for announcement in current_announcements.values():
+        for patch in announcement.data["patches"].values():
             url = patch["package"]
             if url in better_urls:
                 patch["package"] = better_urls[url]
 
-    return current_announcements.viewitems()
+    return current_announcements.items()
 
 
 analyze_all_mbox_vulnerabilities((2018, 2017, 2016), CentOSAnnouncement)

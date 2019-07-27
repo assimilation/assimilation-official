@@ -45,7 +45,6 @@ system.
 In either case, this class won't be directly affected - since it only stores and executes
 transactions - it does not worry about how they ought to be persisted.
 """
-from __future__ import print_function
 import sys
 from datetime import datetime, timedelta
 from AssimCclasses import (
@@ -200,7 +199,7 @@ class NetTransaction(object):
                 # but this code is pretty simple so far...
 
                 if ftype == FrameTypes.IPPORT:
-                    if isinstance(fvalue, six.string_types):
+                    if isinstance(fvalue, str):
                         fvalue = pyNetAddr(fvalue)
                     aframe = pyIpPortFrame(ftype, fvalue)
                     fs.append(aframe)

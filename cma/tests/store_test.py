@@ -592,7 +592,7 @@ if __name__ == "__main__":
 
     test_count = 0
     test_classes = []
-    for name, obj in dict(globals()).viewitems():
+    for name, obj in dict(globals()).items():
         if inspect.isclass(obj) and name.startswith("Test"):
             test_classes.append((name, obj))
     test_classes.sort()
@@ -600,7 +600,7 @@ if __name__ == "__main__":
         obj = cls()
         if hasattr(cls, "setup_method"):
             obj.setup_method()
-        for item, fun in dict(cls.__dict__).viewitems():
+        for item, fun in dict(cls.__dict__).items():
             if item.lower().startswith("test_") and callable(fun):
                 print("===================RUNNING TEST %s.%s" % (name, item), file=stderr)
                 # print('====================RUNNING TEST %s.%s' % (name, item))

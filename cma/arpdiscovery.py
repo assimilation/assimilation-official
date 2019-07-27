@@ -185,7 +185,7 @@ class ArpDiscoveryListener(DiscoveryListener):
             raise (ValueError("Cannot find NIC %s for drone %s" % (device_name, str(drone))))
         mac_ip_table = {}
         # Group the IP addresses by MAC address - inverting the map
-        for ip, mac in data.viewitems():
+        for ip, mac in data.items():
             macstr = str(mac)
             if macstr not in mac_ip_table:
                 mac_ip_table[macstr] = []
@@ -211,7 +211,7 @@ class ArpDiscoveryListener(DiscoveryListener):
                 NetworkSegment, domain=device.domain, name=str(device.net_segment)
             )
         mac_ip_pairs = []
-        for mac, ip_list in mac_ip_table.viewitems():
+        for mac, ip_list in mac_ip_table.items():
             for ip in ip_list:
                 mac_ip_pairs.append((mac, ip))
         segment = NetworkSegment.guess_net_segment(self.store, device.domain, mac_ip_pairs)

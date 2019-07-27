@@ -621,9 +621,12 @@ class Store(object):
         if Store.debug:
             print("CALLING CONSTRUCTOR: %s(%s)" % (constructor.__name__, str(kwargs)), file=stderr)
         try:
-            args, _, varkw, _unuseddefaults = inspect.getargspec(constructor)
+            argspec_tuple = inspect.getfullargspec(constructor)
         except TypeError:
-            args, _, varkw, _unuseddefaults = inspect.getargspec(constructor.__init__)
+            argspec_tuple = inspect.getfullargspec(constructor.__init__)
+        args = argspec_tuple.args
+        varkw = argspec_tuple.varkw
+
         newkwargs = {}
         extraattrs = {}
         if varkw:  # Allows any keyword arguments

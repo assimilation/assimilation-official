@@ -153,7 +153,7 @@ class MonitorAction(GraphNode):
             self._arglist = arglist
             newargs = []  # Can't do this directly to self.arglist - it's modeled with Neo4j
             #               restrictions disallowing empty arrays
-            for name, value in self._arglist.viewitems():
+            for name, value in self._arglist.items():
                 newargs.append(name)
                 newargs.append(str(value))
             self.arglist = newargs
@@ -708,8 +708,7 @@ class MonitoringRule(object):
         """
         result = []
         mon_objects = MonitoringRule.monobjclass(objclass)
-        keys = mon_objects.keys()
-        keys.sort()
+        keys = sorted(mon_objects.keys())
         for rtype in keys:
             for rule in mon_objects[rtype]:
                 match = rule.specmatch(context)

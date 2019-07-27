@@ -166,7 +166,7 @@ class GraphNode(object):
             if self.association.store.readonly:
                 print("Caught Read-Only %s being set to %s!" % (name, value), file=stderr)
                 raise RuntimeError("Attempt to set attribute %s using a read-only store" % name)
-            if hasattr(value, "__iter__") and len(value) == 0:
+            if not isinstance(value, str) and hasattr(value, "__iter__") and len(value) == 0:
                 raise ValueError(
                     "Attempt to set attribute %s to empty array (Neo4j limitation)" % name
                 )
@@ -204,7 +204,7 @@ class GraphNode(object):
         :return:str: Cypher commands to create indexes
         """
         result = ""
-        for classname, cls in GraphNode.classmap.viewitems():
+        for classname, cls in GraphNode.classmap.items():
             class_label = "Class_" + classname
             key_attrs = cls.meta_key_attributes()
             for attr in key_attrs:
@@ -225,7 +225,7 @@ class GraphNode(object):
         :return: str: Cypher commands to create constraints (or "")
         """
         result = ""
-        for classname, cls in GraphNode.classmap.viewitems():
+        for classname, cls in GraphNode.classmap.items():
             class_label = "Class_" + classname
             key_attrs = cls.meta_key_attributes()
             if use_enterprise_features:
@@ -379,7 +379,7 @@ def add_an_array_item(currarray, itemtoadd):
         for item in itemtoadd:
             currarray = add_an_array_item(currarray, item)
         return currarray
-    assert isinstance(itemtoadd, (str, unicode))
+    assert isinstance(itemtoadd, str)
     if currarray is None:
         currarray = [itemtoadd]
     elif currarray not in currarray:
@@ -393,7 +393,7 @@ def delete_an_array_item(currarray, itemtodel):
         for item in itemtodel:
             currarray = delete_an_array_item(currarray, item)
         return currarray
-    assert isinstance(itemtodel, (str, unicode))
+    assert isinstance(itemtodel, str)
     if itemtodel is not None and itemtodel in currarray:
         currarray = currarray.remove(itemtodel)
     if len(currarray) == 0:
@@ -686,7 +686,7 @@ class IPaddrNode(GraphNode):
         :param subnet: Subnet: The subnet this IP address is on...
         """
         GraphNode.__init__(self, domain=domain)
-        if isinstance(ipaddr, str) or isinstance(ipaddr, unicode):
+        if isinstance(ipaddr, str):
             ipaddrout = pyNetAddr(str(ipaddr))
         else:
             ipaddrout = ipaddr
@@ -704,11 +704,10 @@ class IPaddrNode(GraphNode):
                 "Invalid address type for IPaddrNode constructor: %s type(%s)"
                 % (str(ipaddr), type(ipaddr))
             )
-        # self.ipaddr = unicode(str(ipaddrout))
         self.ipaddr = str(ipaddrout)
         self._ipaddr = ipaddrout
         if subnet is not None:
-            if not isinstance(subnet, (str, unicode)):
+            if not isinstance(subnet, str):
                 if not subnet.belongs_on_this_subnet(ipaddrout):
                     raise ValueError(
                         "IP address %s does not belong on subnet %s" % (ipaddrout, subnet)
@@ -789,7 +788,7 @@ class Subnet(GraphNode):
             raise ValueError("Illigal CIDR mask")
         # print('Subnet(domain=%s, ipaddr=%s, cidrmask=%s, context=%s, net_segment=%s) => %s'
         #       % (domain, ipaddr, cidrmask, context, net_segment, str(self)), file=stderr)
-        assert context is None or isinstance(context, (str, unicode))
+        assert context is None or isinstance(context, str)
         assert not str(self).startswith("::/")
 
     @staticmethod
@@ -1115,7 +1114,7 @@ class NetworkSegment(GraphNode):
         # we had a mismatch on... We'll take the segment with the highest positive count...
         max_count = 0
         best_segment = None
-        for segment, count in possible_segments.viewitems():
+        for segment, count in possible_segments.items():
             if count > max_count:
                 best_segment = segment
                 max_count = count
@@ -1137,7 +1136,7 @@ class IPtcpportNode(GraphNode):
     def __init__(self, domain, ipaddr, port=None, protocol="tcp"):
         """Construct an IPtcpportNode - validating our parameters"""
         GraphNode.__init__(self, domain=domain)
-        if isinstance(ipaddr, (str, unicode)):
+        if isinstance(ipaddr, str):
             ipaddr = pyNetAddr(str(ipaddr))
         if isinstance(ipaddr, pyNetAddr):
             if port is None:
@@ -1161,7 +1160,6 @@ class IPtcpportNode(GraphNode):
                 "Invalid initial value for IPtcpportNode constructor: %s type(%s)"
                 % (str(ipaddr), type(ipaddr))
             )
-        # self.ipaddr = unicode(str(ipaddr))
         self.ipaddr = str(ipaddr)
         self.port = port
         self.protocol = protocol
@@ -1312,7 +1310,7 @@ class JSONMapNode(GraphNode):
     @staticmethod
     def strhash(string):
         """Return our canonical hash value (< 60 chars long)"""
-        return hashlib.sha224(string).hexdigest()
+        return hashlib.sha224(string.encode('utf8')).hexdigest()
 
     def __str__(self):
         """Convert to string - returning the JSON string itself"""

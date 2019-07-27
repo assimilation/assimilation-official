@@ -114,7 +114,7 @@ class TestFoo:
         CMAInjectables.set_config({})
         if TestFoo.store:
             # print('CLEANING OUT STORE AND SO ON...'), file=stderr)
-            for thing in [ref() for ref in TestFoo.store.weaknoderefs.viewvalues()]:
+            for thing in [ref() for ref in TestFoo.store.weaknoderefs.values()]:
                 if thing is None:
                     continue
                 thing.association.obj = None
@@ -471,7 +471,7 @@ class IOTestIO:
         self.timeout = None
         self.config = ConfigFile().complete_config()
         (self.pipe_read, self.pipe_write) = os.pipe()
-        os.write(self.pipe_write, " ")
+        os.write(self.pipe_write, b" ")
         os.close(self.pipe_write)
         self.pipe_write = -1
         self.atend = False
@@ -712,8 +712,7 @@ class TestCMABasic(TestCase):
             disctypes.append(dtype)
 
         disctypes.sort()
-        dronekeys = drone.keys()
-        dronekeys.sort()
+        dronekeys = sorted(drone.keys())
         self.assertEqual(dronekeys, disctypes)
 
     def test_startup(self):
@@ -1050,8 +1049,8 @@ class TestMonitorBasic(TestCase):
                         ("resourcename", str),
                         ("monitorclass", str),
                         ("provider", str),
-                        ("repeat_interval", (int, long)),
-                        ("timeout", (int, long)),
+                        ("repeat_interval", int),
+                        ("timeout", int),
                     ):
                         (n, t) = tup
                         if n in table:
@@ -1206,8 +1205,7 @@ class TestMonitorBasic(TestCase):
                 # length 4 - name, expression, regex, flags
             ),
         )
-        keys = kitchensink.nvpairs.keys()
-        keys.sort()
+        keys = sorted(kitchensink.nvpairs.keys())
         self.assertEqual(str(keys), "['cantguess', 'port']")
         values = []
         for key in keys:
@@ -1283,12 +1281,10 @@ class TestMonitorBasic(TestCase):
         self.assertEqual(table["monitortype"], "neo4j")
         self.assertEqual(table["monitorclass"], "ocf")
         self.assertEqual(table["provider"], "assimilation")
-        keys = table.keys()
-        keys.sort()
+        keys = sorted(table.keys())
         self.assertEqual(str(keys), "['arglist', 'monitorclass', 'monitortype', 'provider']")
         arglist = table["arglist"]
-        keys = arglist.keys()
-        keys.sort()
+        keys = sorted(arglist.keys())
         self.assertEqual(keys, ["home", "neo4j", "port"])
         self.assertEqual(arglist["port"], "7474")
         self.assertEqual(arglist["home"], "/var/lib/neo4j")
@@ -1622,7 +1618,7 @@ if __name__ == "__main__":
 
     test_count = 0
     test_classes = []
-    for name, obj in dict(globals()).viewitems():
+    for name, obj in dict(globals()).items():
         if inspect.isclass(obj) and name.startswith("Test"):
             test_classes.append((name, obj))
     test_classes.sort()
@@ -1630,7 +1626,7 @@ if __name__ == "__main__":
         obj = cls()
         if hasattr(cls, "setup_method"):
             obj.setup_method()
-        for item, fun in dict(cls.__dict__).viewitems():
+        for item, fun in dict(cls.__dict__).items():
             sys.stdout.flush()
             if item.lower().startswith("test_") and callable(fun):
                 TestFoo.new_transaction()

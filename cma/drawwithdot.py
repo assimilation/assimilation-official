@@ -384,7 +384,7 @@ class DotGraph(object):
             return ""
         for option in self.options:
             optvalue = self.options[option]
-            if isinstance(optvalue, (str, unicode, bool, int, float, long)):
+            if isinstance(optvalue, (str, unicode, bool, int, float)):
                 ret += ' %s="%s"' % (str(option), str(optvalue))
                 continue
             if hasattr(optvalue, "__iter__"):

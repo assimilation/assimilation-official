@@ -181,21 +181,21 @@ class PersistentInvariantJSON(object):
         Return iterator which walks through all the data items
         :return:
         """
-        raise NotImplementedError("Abstract class PersistentInvariantData.viewitems()")
+        raise NotImplementedError("Abstract class PersistentInvariantData.items()")
 
-    def viewitems(self):
+    def items(self):
         """
         Should be a generator which yields each dict-from-JSON item in turn...
         :return:
         """
-        raise NotImplementedError("Abstract class PersistentInvariantData.viewitems()")
+        raise NotImplementedError("Abstract class PersistentInvariantData.items()")
 
-    def viewvalues(self):
+    def values(self):
         """
 
         :return:
         """
-        for _, value in self.viewitems():
+        for _, value in self.items():
             yield value
 
     def __iter__(self):
@@ -274,7 +274,7 @@ class PersistentInvariantJSON(object):
         :return:
         """
         comparator = self._equal_set_compare_and if ctype == "and" else self._equal_set_compare_or
-        for key, item in self.viewitems():
+        for key, item in self.items():
             item = item.get(self.query_root)
             result = comparator(equal_sets, item)
             if result:
@@ -429,7 +429,7 @@ class FilesystemJSON(PersistentInvariantJSON):
                 return
             raise oopsie
 
-    def viewitems(self):
+    def items(self):
         """
         A generator which yields each (key, dict-from-JSON) pair in turn...
         :return: generator(str, dict): Generator returning (str, dict) on each next() call...
@@ -582,7 +582,7 @@ class SQLiteInstance(object):
         :param inchars: str: input characters
         :return: sanitized string
         """
-        sanitize_charset = string.letters + string.digits + "_"
+        sanitize_charset = string.ascii_letters + string.digits + "_"
         return "".join(char for char in inchars if char in sanitize_charset)
 
     @staticmethod
@@ -822,7 +822,7 @@ class SQLiteJSON(PersistentInvariantJSON):
         print("COMMIT.", file=stderr)
         self.instance.commit()
 
-    def viewitems(self):
+    def items(self):
         """
 
         :return:
@@ -885,7 +885,7 @@ class SQLiteJSON(PersistentInvariantJSON):
                 result += "%s%s" % (delim, SQLiteJSON.sqlite_parameter(item))
                 delim = ", "
             return result + ")"
-        elif isinstance(parameter, (str, unicode)):
+        elif isinstance(parameter, str):
             return "'%s'" % parameter
         return str(parameter)
 
@@ -1020,7 +1020,7 @@ class PersistentJSON(object):
         The logical equivalent to COMMITting a transaction
         :return: None
         """
-        for bucket in self.buckets.viewvalues():
+        for bucket in self.buckets.values():
             bucket.sync()
             if not bucket.sync_all:
                 # In this case, we assume that all our buckets can be synced at once...
@@ -1058,27 +1058,27 @@ class PersistentJSON(object):
         Standard viewkeys API - keys are tuple(str, str)
         :return: Generator(str, str)
         """
-        for bucket_name, bucket in self.buckets.viewitems():
+        for bucket_name, bucket in self.buckets.items():
             for key in bucket.viewkeys():
                 yield (bucket_name, key)
 
-    def viewvalues(self):
+    def values(self):
         """
-        Standard viewvalues API
+        Standard values API
         :return: Generator(dict)
         """
-        for bucket in self.buckets.viewvalues():
-            for value in bucket.viewvalues():
+        for bucket in self.buckets.values():
+            for value in bucket.values():
                 yield value
 
-    def viewitems(self):
+    def items(self):
         """
-        Standard viewitems API - keys are tuple(str, str)
+        Standard items API - keys are tuple(str, str)
 
         :return: Generator((str, str), dict)
         """
-        for bucket_name, bucket in self.buckets.viewitems():
-            for key, json_blob in bucket.viewitems():
+        for bucket_name, bucket in self.buckets.items():
+            for key, json_blob in bucket.items():
                 yield (bucket_name, key), json_blob
 
     def equality_query(self, bucket_name, query, ctype="and"):
@@ -1103,7 +1103,7 @@ class PersistentJSON(object):
         Delete everything from the underlying database
         :return: None
         """
-        for bucket in self.buckets.viewvalues():
+        for bucket in self.buckets.values():
             bucket.delete_everything()
         self.buckets = {}
 

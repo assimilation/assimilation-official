@@ -287,6 +287,7 @@ class NeoDockerServer(NeoServer):
         """
         try:
             self.container = self.docker_client.containers.get(self.host)
+            print(f'Container {self.container} is running {self.host}')
             return True
         except docker.errors.NotFound:
             self.container = None

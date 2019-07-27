@@ -204,8 +204,7 @@ class GraphNodeExpression(object):
         """Return a list of tuples of (funcname, docstring) for all our GraphNodeExpression
         defined functions.  The list is sorted by function name.
         """
-        names = GraphNodeExpression.functions.keys()
-        names.sort()
+        names = sorted(GraphNodeExpression.functions.keys())
         ret = []
         for name in names:
             ret.append((name, inspect.getdoc(GraphNodeExpression.functions[name])))
@@ -257,8 +256,7 @@ class ExpressionContext(object):
     @staticmethod
     def _fixvalue(v):
         "Fix up a return value to avoid unicode values..."
-        if isinstance(v, unicode):
-            return str(v)
+        return v
         if not isinstance(v, str) and hasattr(v, "__iter__") and not hasattr(v, "__getitem__"):
             ret = []
             for item in v:
@@ -278,8 +276,6 @@ class ExpressionContext(object):
                 ret = obj.get(key, None)
                 if ret is None and hasattr(obj, "deepget"):
                     ret = obj.deepget(key, None)
-                    if isinstance(ret, unicode):
-                        ret = str(ret)
                 # print('RETURNED %s' % ret, file=sys.stderr)
             # Too general exception catching...
             # pylint: disable=W0703
@@ -1051,7 +1047,7 @@ def selectanipport(arg, _context, preferlowestport=True, preferv4=True):
     try:
 
         portlist = _collect_ip_ports(arg)
-        portkeys = portlist.keys()
+        portkeys = list(portlist.keys())
         if preferlowestport:
             portkeys.sort()
         for p in portlist[portkeys[0]]:

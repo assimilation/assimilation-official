@@ -29,6 +29,7 @@ store_association module - associations between objects, py2neo.Nodes and Stores
 """
 from __future__ import print_function
 from sys import stderr
+import six
 import py2neo
 from AssimCclasses import pyNetAddr
 
@@ -140,7 +141,7 @@ class StoreAssociation(object):
             if isinstance(scalar, pyNetAddr):
                 scalar = str(scalar)
             scalar_str = self.cypher_str_repr(scalar)
-        elif isinstance(scalar, (bool, int, float, long)):
+        elif isinstance(scalar, (bool, int, float)):
             scalar_str = str(scalar)
         elif scalar is None:
             scalar_str = "null"
@@ -185,7 +186,7 @@ class StoreAssociation(object):
             return ""
         result = " {"
         delimiter = ""
-        for key, item in attributes.viewitems():
+        for key, item in attributes.items():
             if key.startswith("_") or key == "association":
                 continue
             result += "%s%s: %s" % (delimiter, key, self.cypher_repr(item))
