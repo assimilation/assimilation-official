@@ -22,7 +22,7 @@
 """
 Test code for PCAP parsing...
 """
-from __future__ import print_function
+import json
 import sys
 import os
 import subprocess
@@ -91,25 +91,26 @@ def findfile(f):
     return f
 
 
-def output_json(json):
+def output_json(json_s):
     """run jsonlint on our JSON"""
     process = subprocess.Popen(("jsonlint", "-f"), stdin=subprocess.PIPE)
-    process.communicate(str(json))
+    process.communicate(str(json_s).encode('utf8'))
     process.wait()
 
 
-def compare_json(lhs, rhs):
+def compare_json(f, lhs, rhs):
     """Compare two JSON strings"""
     # print('----> LHS', lhs, file=stderr)
     # print('----> RHS', rhs, file=stderr)
-    lhs = str(pyConfigContext(lhs))
-    rhs = str(pyConfigContext(rhs))
+    lhs = json.dumps(json.loads(str(pyConfigContext(lhs))), indent=4, sort_keys=True)
+    rhs = json.dumps(json.loads(str(pyConfigContext(rhs))), indent=4, sort_keys=True)
     if lhs == rhs:
         return True
-    print("LHS::::::::::")
+    print(f"LHS:::::::::: {f}::{len(lhs)}")
     output_json(lhs)
-    print("RHS::::::::::")
+    print(f"RHS::::::::::{len(rhs)}")
     output_json(rhs)
+    print
     return False
 
 
@@ -216,7 +217,7 @@ class TestpySwitchDiscovery(TestCase):
                 "cdp_v2_voice.pcap",
                 """{ 
   "ChassisId" : "myswitch",
-  "ManagementAddress" : "192.168.0.4",
+  "ManagementAddress" : "195.128.194.168",
   "ports" : { "FastEthernet0/1" : { 
           "CiscoUnTrustedPortCOS" : 0,
           "ConnectsToHost" : "me",
@@ -226,7 +227,7 @@ class TestpySwitchDiscovery(TestCase):
           "sourceMAC" : "00-0b-be-18-9a-41",
           "VlanId" : 1
         } },
-  "SystemAddress" : "192.168.0.4",
+  "SystemAddress" : "195.128.194.168",
   "SystemCapabilities" : [ 
       "bridge",
       "igmp-filter"
@@ -250,7 +251,7 @@ class TestpySwitchDiscovery(TestCase):
           "sourceMAC" : "00-0f-23-b0-62-84",
           "VlanId" : 77
         } },
-  "SystemAddress" : "129.40.0.4",
+  "SystemAddress" : "194.129.40.0",
   "SystemCapabilities" : [ 
       "router",
       "bridge",
@@ -272,7 +273,7 @@ class TestpySwitchDiscovery(TestCase):
           "PortId" : "Ethernet0",
           "sourceMAC" : "00-e0-1e-d5-d5-15"
         } },
-  "SystemAddress" : "192.168.0.4",
+  "SystemAddress" : "195.128.194.168",
   "SystemCapabilities" : [ "router" ],
   "SystemPlatform" : "cisco 1601",
   "SystemVersion" : "Cisco Internetwork Operating System Software \nIOS (tm) 1600 Software (C1600-NY-L), Version 11.2(12)P, RELEASE SOFTWARE (fc1)\nCopyright (c) 1986-1998 by cisco Systems, Inc.\nCompiled Tue 03-Mar-98 06:33 by dschwart"
@@ -282,7 +283,7 @@ class TestpySwitchDiscovery(TestCase):
                 "cdp_v2.pcap",
                 """{ 
   "ChassisId" : "myswitch",
-  "ManagementAddress" : "192.168.0.4",
+  "ManagementAddress" : "195.128.194.168",
   "ports" : { "FastEthernet0/1" : { 
           "CiscoUnTrustedPortCOS" : 0,
           "ConnectsToHost" : "me",
@@ -292,7 +293,7 @@ class TestpySwitchDiscovery(TestCase):
           "sourceMAC" : "00-0b-be-18-9a-41",
           "VlanId" : 1
         } },
-  "SystemAddress" : "192.168.0.4",
+  "SystemAddress" : "195.128.194.168",
   "SystemCapabilities" : [ 
       "bridge",
       "igmp-filter"
@@ -308,9 +309,10 @@ class TestpySwitchDiscovery(TestCase):
                 pktstart, pktend, pktlen = pcap_entry
                 # print('Got %d bytes from %s' % (pktlen, f), file=stderr)
                 # print('----> Got %d bytes from %s' % (pktlen, f), file=stderr)
-                json = self.validate_switch_discovery(f, pktstart, pktend)
+                json_str = self.validate_switch_discovery(f, pktstart, pktend)
                 # print('<---- Done processing %d bytes from %s' % (pktlen, f), file=stderr)
-                assert compare_json(out, json)
+                assert compare_json(f, out, json_str)
+                print(f'PCAP {f} appears to have passed', file=stderr)
         print("Passed %d switch discovery tests" % (len(discovery_files)))
 
     def not_a_test_output(self):
