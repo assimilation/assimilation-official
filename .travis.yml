@@ -2,14 +2,16 @@ language: minimal
 
 env:
   - BUILD_ENV=ubuntu:18.04
-    #  - BUILD_ENV=centos:7
 
 install:
+  - docker network create --driver=bridge my-net
   - |
     docker run -d\
     --env=NEO4J_AUTH=none \
     --publish=7474:7474 --publish=7687:7687 \
     --volume=$HOME/neo4j/data:/data \
+    --name neo4j
+    --net=my-net
     neo4j:3.5.6
 
 script:
@@ -35,6 +37,8 @@ script:
     --env=BUILD_ENV=$BUILD_ENV \
     -v $TRAVIS_BUILD_DIR:/root/assimilation/src \
     -v /tmp/ba:/packages \
+    --net=my-net
+    --name test-env
     $BUILD_ENV \
     bash -c "/root/assimilation/src/ci/scripts/run_tests.sh"
   # upload to artifactory
