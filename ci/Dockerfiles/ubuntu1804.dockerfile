@@ -5,14 +5,14 @@ RUN apt-get -y update && apt-get -y install software-properties-common && \
   build-essential \
   cmake \
   pkg-config \
-  python \
-  python-pip \
   python3.7 \
-  python3-pip \
   libglib2.0-dev \
   libpcap-dev \
   libsodium-dev \
   git \
+  curl \
   && rm -rf /var/lib/apt/lists/*
-RUN pip3 install -e git+https://github.com/Alan-R/ctypesgen#egg=ctypesgen
+RUN curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+RUN python3.7 get-pip.py
+RUN pip3.7 install -e git+https://github.com/Alan-R/ctypesgen#egg=ctypesgen
 WORKDIR /root/assimilation/bin
