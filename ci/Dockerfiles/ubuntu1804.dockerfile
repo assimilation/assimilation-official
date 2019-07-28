@@ -5,6 +5,7 @@ RUN apt-get -y update && apt-get -y install software-properties-common && \
   build-essential \
   cmake \
   pkg-config \
+  python \
   python3.7 \
   python3-pip \
   libglib2.0-dev \
