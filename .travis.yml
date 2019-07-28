@@ -31,6 +31,8 @@ script:
     -v /tmp/ba:/root/assimilation/ba \
     $DOCKER \
     bash -c "cmake ../src && cpack && mv *.deb /root/assimilation/ba"
+  # display any logs from the previous step for debugging
+  - find /tmp/bin/ -type f -name '*.log' -exec echo {} \; -exec cat {} \;
   # test the new packages in a stock image (install and run tests)
   - |
     docker run \
