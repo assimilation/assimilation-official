@@ -214,7 +214,7 @@ def u_string_at(s: bytes, size: int = -1) -> Optional[str]:
     s_at = string_at(s, size)
     # print('s_at_type', type(s_at), file=sys.stderr)
     assert isinstance(s_at, bytes)
-    return s_at.decode('utf8') if s_at is not None else None
+    return s_at.decode("utf8") if s_at is not None else None
 
 
 # pylint: disable=R0903
@@ -980,7 +980,7 @@ class pySwitchDiscovery(object):
                 addrstr = ""
                 for j in (offset + 2, offset + 3, offset, offset + 1):
                     addrstr += chr(pySwitchDiscovery._byteN(tlvstart, j))
-                addr = netaddr_ipv4_new(c_char_p(addrstr.encode('utf8')), 0)
+                addr = netaddr_ipv4_new(c_char_p(addrstr.encode("utf8")), 0)
             elif protolen == 8 and addrlen == 16 and prototype == 0x86DD:
                 # protocol type == 0xAAAA0300000086DD
                 addr = netaddr_ipv6_new(
@@ -2125,7 +2125,7 @@ class pyConfigContext(pyAssimObj):
             # print("CURLIST->data = %s" % data, file=stderr)
             CCref(data)
             cfgval = pyConfigValue(data).get()
-            ret.append(cfgval.encode('utf8') if isinstance(cfgval, bytes) else cfgval)
+            ret.append(cfgval.encode("utf8") if isinstance(cfgval, bytes) else cfgval)
             curlist = g_slist_next(curlist)
         return ret
 
@@ -2229,8 +2229,8 @@ class pyConfigContext(pyAssimObj):
                 try:
                     array = self[preprefix]
                     idx = int(idx)  # Possible ValueError
-                    print(f'ARRAY IS {type(array)}, {array}', file=stderr)
-                    print(f'INDEX IS {idx}', file=stderr)
+                    print(f"ARRAY IS {type(array)}, {array}", file=stderr)
+                    print(f"INDEX IS {idx}", file=stderr)
                     value = array[idx]  # possible IndexError or TypeError
                     assert not isinstance(value, bytes)
                     if suffix is None:
@@ -2344,7 +2344,7 @@ class pyConfigValue(pyAssimObj):
             return int(self._Cstruct[0].u.intvalue)
         elif vtype == CFG_STRING:
             strval = self._Cstruct[0].u.strvalue
-            value = strval.data.decode('utf8') if isinstance(strval, String) else strval
+            value = strval.data.decode("utf8") if isinstance(strval, String) else strval
             assert isinstance(value, str)
             return value
             # return u_string_at(self._Cstruct[0].u.strvalue)
@@ -2659,7 +2659,7 @@ class pyPcapCapture(object):
     """Class to read binary packets from pcap packet  capture files"""
 
     def __init__(self, filename):
-        print('READING PCAP CAPTURE FILE', filename, file=stderr)
+        print("READING PCAP CAPTURE FILE", filename, file=stderr)
         self._Cstruct = pcap_capture_iter_new(filename)
         if not self._Cstruct:
             raise ValueError("Invalid parameters to pyPcapCapture constructor")

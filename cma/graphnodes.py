@@ -1310,7 +1310,7 @@ class JSONMapNode(GraphNode):
     @staticmethod
     def strhash(string):
         """Return our canonical hash value (< 60 chars long)"""
-        return hashlib.sha224(string.encode('utf8')).hexdigest()
+        return hashlib.sha224(string.encode("utf8")).hexdigest()
 
     def __str__(self):
         """Convert to string - returning the JSON string itself"""

@@ -195,7 +195,7 @@ class FIFOEventObserver(AssimEventObserver):
         try:
             if DEBUG:
                 print("*************SENDING EVENT (%d bytes)" % (jsonlen + 1), file=sys.stderr)
-            os.write(self.FIFOwritefd, json.encode('utf8'))
+            os.write(self.FIFOwritefd, json.encode("utf8"))
             self.errcount = 0
             if DEBUG:
                 print("*************EVENT SENT (%d bytes)" % (jsonlen + 1), file=sys.stderr)
@@ -287,7 +287,7 @@ class ForkExecObserver(FIFOEventObserver):
             try:
                 if DEBUG:
                     print("ISSUING EVENT READ...", file=sys.stderr)
-                currentbuf += os.read(self.FIFOreadfd, 4096).decode('utf8')
+                currentbuf += os.read(self.FIFOreadfd, 4096).decode("utf8")
                 if DEBUG:
                     print("EVENT READ returned %d bytes" % (len(currentbuf)), file=sys.stderr)
                 if len(currentbuf) == 0:
@@ -331,7 +331,7 @@ class ForkExecObserver(FIFOEventObserver):
                 evextra = extrastuff[extra]
                 if isinstance(evextra, scalars):
                     if isinstance(evextra, bytes):
-                        evextra = evextra.decode('utf8')
+                        evextra = evextra.decode("utf8")
                     env["ASSIM_%s" % extra] = str(evextra)
         # Add all the scalars in the associated object
         for attr in aobj.keys():
@@ -353,7 +353,7 @@ class ForkExecObserver(FIFOEventObserver):
             print("TO RUN: %s" % (str(self.listscripts())), file=sys.stderr)
         # Put the full JSON in a temporary file, so our scripts can read it from stdin
         jsontmpfile = tempfile.TemporaryFile()
-        jsontmpfile.write(str(eventobj).encode('utf8'))
+        jsontmpfile.write(str(eventobj).encode("utf8"))
         jsontmpfile.seek(0)
         for script in self.listscripts():
             args = [script, eventtype, aobjclass]

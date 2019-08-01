@@ -32,6 +32,7 @@ from __future__ import print_function
 from AssimCclasses import pyConfigContext, pyNetAddr, pySignFrame, pyCompressFrame
 from consts import CMAconsts
 
+
 class ConfigFile(object):
     """
     This class implements configuration file management, including validation
@@ -74,7 +75,7 @@ class ConfigFile(object):
             "tcpdiscovery",  # Discovers network-facing processes
             "ulimit",  # Discovers ulimit settings
         },
-        "cmaport": int,        # CMA listening port
+        "cmaport": int,  # CMA listening port
         "cmainit": pyNetAddr,  # Initial contact address for the CMA
         "cmaaddr": pyNetAddr,  # CMA's base address...
         "cmadisc": pyNetAddr,  # Address to send discovery information
@@ -82,7 +83,7 @@ class ConfigFile(object):
         "outsig": pySignFrame,  # Packet signature frame
         "compress": pyCompressFrame,  # Packet compression frame
         "compression_method": {"zlib"},  # Packet compression method
-        "compression_threshold": int, # Threshold for when to start compressing
+        "compression_threshold": int,  # Threshold for when to start compressing
         "score_severity_map": {str: {"high": float, "medium": float, "low": float}},
         "SQLiteFile": str,
         "discovery": {
@@ -602,7 +603,7 @@ if __name__ == "__main__":
     # Make sure it's making correct JSON...
     pyConfigContext(str(cf.complete_config()))
     # print ('Complete config:', cf.complete_config(), file=stderr)  # also checks for validity
-    config_bytes = str(cf.complete_config()).encode('utf8')
+    config_bytes = str(cf.complete_config()).encode("utf8")
     lint = subprocess.Popen(("jsonlint", "-f"), stdin=subprocess.PIPE)
     lint.stdin.write(config_bytes)
     lint.stdin.close()

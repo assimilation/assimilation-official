@@ -94,7 +94,7 @@ def findfile(f):
 def output_json(json_s):
     """run jsonlint on our JSON"""
     process = subprocess.Popen(("jsonlint", "-f"), stdin=subprocess.PIPE)
-    process.communicate(str(json_s).encode('utf8'))
+    process.communicate(str(json_s).encode("utf8"))
     process.wait()
 
 
@@ -312,7 +312,7 @@ class TestpySwitchDiscovery(TestCase):
                 json_str = self.validate_switch_discovery(f, pktstart, pktend)
                 # print('<---- Done processing %d bytes from %s' % (pktlen, f), file=stderr)
                 assert compare_json(f, out, json_str)
-                print(f'PCAP {f} appears to have passed', file=stderr)
+                print(f"PCAP {f} appears to have passed", file=stderr)
         print("Passed %d switch discovery tests" % (len(discovery_files)))
 
     def not_a_test_output(self):
