@@ -4,6 +4,8 @@ docker
 dpath
 flask
 inject
+neobolt
+neotime
 netaddr
 py2neo>=4.0.0
 requests
