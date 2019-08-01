@@ -33,7 +33,7 @@ from __future__ import print_function, absolute_import
 import sys
 from sys import stderr
 import os
-import getent
+import pwd
 import inject
 from py2neo import Graph
 from query import ClientQuery
@@ -265,17 +265,14 @@ class genkeys(object):
             print("Unexpected number of CMA keys.  Expecting 2, but got %d." % len(cmaidlist))
         extras = []
         privatecount = 0
-        userinfo = getent.passwd(CMAUSERID)
+        userinfo = pwd.getpwnam(CMAUSERID)
         if userinfo is None:
             raise OSError('CMA user id "%s" is unknown' % CMAUSERID)
         for keyid in cmaidlist:
             privatename = pyCryptCurve25519.key_id_to_filename(keyid, pyCryptFrame.PRIVATEKEY)
             pubname = pyCryptCurve25519.key_id_to_filename(keyid, pyCryptFrame.PUBLICKEY)
-            # pylint doesn't understand about getent...
-            # pylint: disable=E1101
-            os.chown(pubname, userinfo.uid, userinfo.gid)
-            # pylint: disable=E1101
-            os.chown(privatename, userinfo.uid, userinfo.gid)
+            os.chown(pubname, userinfo.pw_uid, userinfo.pw_gid)
+            os.chown(privatename, userinfo.pw_uid, userinfo.pw_gid)
             privatecount += 1
             if privatecount > 1:
                 print("SECURELY HIDE *private* key %s" % privatename)

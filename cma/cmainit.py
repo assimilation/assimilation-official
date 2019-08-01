@@ -30,7 +30,8 @@ import os
 import logging
 import logging.handlers
 import random
-import getent
+import pwd
+import grp
 import inject
 import py2neo
 from neo4j import NeoDockerServer
@@ -128,15 +129,13 @@ class Neo4jCreds(object):
                 '%s "%s:%s" successful.' % (Neo4jCreds.passchange, self.name, self.auth),
                 file=sys.stderr,
             )
-        userinfo = getent.passwd(CMAUSERID)
+        userinfo = pwd.getpwnam(CMAUSERID)
         if userinfo is None:
             raise OSError('CMA user id "%s" is unknown.' % CMAUSERID)
         with open(self.neo4j_cred_filename, "w") as f:
             self.auth = newauth
             os.chmod(self.neo4j_cred_filename, 0o600)
-            # pylint is confused about getent.passwd...
-            # pylint: disable=E1101
-            os.chown(self.neo4j_cred_filename, userinfo.uid, userinfo.gid)
+            os.chown(self.neo4j_cred_filename, userinfo.pw_uid, userinfo.pw_gid)
             f.write("%s\n%s\n" % (self.name, self.auth))
         self._log.info("Updated Neo4j credentials cached in %s." % self.neo4j_cred_filename)
 
@@ -145,14 +144,12 @@ class Neo4jCreds(object):
         Save the credentials in our cache file...
         :return:
         """
-        userinfo = getent.passwd(CMAUSERID)
+        userinfo = pwd.getpwnam(CMAUSERID)
         if userinfo is None:
             raise OSError('CMA user id "%s" is unknown.' % CMAUSERID)
         with open(self.neo4j_cred_filename, "w") as f:
             os.chmod(self.neo4j_cred_filename, 0o600)
-            # pylint is confused about getent.passwd...
-            # pylint: disable=E1101
-            os.chown(self.neo4j_cred_filename, userinfo.uid, userinfo.gid)
+            os.chown(self.neo4j_cred_filename, userinfo.pw_uid, userinfo.pw_gid)
             f.write("%s\n%s\n" % (self.name, self.auth))
         self._log.info("Updated Neo4j credentials cached in %s." % self.neo4j_cred_filename)
 
