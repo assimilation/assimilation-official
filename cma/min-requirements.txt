@@ -1,4 +1,5 @@
-https://test-files.pythonhosted.org/packages/a8/d2/41b546e34b3befc800c32031284053aa899b4a251df42e8bbfd2095f0177/ctypesgen-1.0.1.dev6-py3-none-any.whl
+.org/packages/a8/d2/41b546e34b3befc800c32031284053aa899b4a251df42e8bbfd2095f0177/ctypesgen-1.0.1.dev6-py3-none-any.whl
+https://test-files.pythonhosted.org/packages/26/9f/afec7fa0c971e9b907def63f71a95264dab3c0ad163914390ffa7c8430bd/ctypesgen-1.0.1.dev7-py3-none-any.whl
 datetime
 docker
 dpath
