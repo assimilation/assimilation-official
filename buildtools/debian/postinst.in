@@ -1,5 +1,5 @@
 #!/bin/sh -e
-set -ex
+set -e
 #
 # This file is part of the Assimilation Project.
 #
