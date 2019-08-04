@@ -42,6 +42,6 @@ script:
     --net=my-net \
     --name test-env \
     $BUILD_ENV \
-    bash -c "apt-get -y update && apt-get -y install software-properties-common && add-apt-repository -y ppa:deadsnakes/ppa && apt-get -y update && apt-get -y install python3.7 curl && curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && python3.7 get-pip.py && pip3.7 install testify tox && find /packages -type f -name *.deb -exec apt-get -y install {} \; && sed -i -e 's/TLV_BAD64 = 18446744073709551615L/TLV_BAD64 = 18446744073709551615' /root/assimilation/src/cma/AssimCtypes.py && cd /root/assimilation/src/cma && tox"
+    bash -c "apt-get -y update && apt-get -y install software-properties-common && add-apt-repository -y ppa:deadsnakes/ppa && apt-get -y update && apt-get -y install python3.7 curl && curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && python3.7 get-pip.py && pip3.7 install testify tox && find /packages -type f -name *.deb -exec apt-get -y install {} \; && sed -i -e 's/TLV_BAD64 = 18446744073709551615L/TLV_BAD64 = 18446744073709551615/' /root/assimilation/src/cma/AssimCtypes.py && cd /root/assimilation/src/cma && tox"
 #    bash -c "/root/assimilation/src/ci/scripts/run_tests.sh"
   # upload to artifactory
