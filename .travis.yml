@@ -42,6 +42,6 @@ script:
     --net=my-net \
     --name test-env \
     $BUILD_ENV \
-    bash -c "apt-get -y update && apt-get -y install software-properties-common && add-apt-repository -y ppa:deadsnakes/ppa && apt-get -y update && apt-get -y install python3.7 curl && curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && python3.7 get-pip.py && pip3.7 install testify && find /packages -type f -name *.deb -exec apt-get -y install {} \; && cd /root/assimilation/src/cma && testify tests"
+    bash -c "apt-get -y update && apt-get -y install software-properties-common && add-apt-repository -y ppa:deadsnakes/ppa && apt-get -y update && apt-get -y install python3.7 curl && curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && python3.7 get-pip.py && pip3.7 install testify tox && find /packages -type f -name *.deb -exec apt-get -y install {} \; && cd /root/assimilation/src/cma && tox"
 #    bash -c "/root/assimilation/src/ci/scripts/run_tests.sh"
   # upload to artifactory
