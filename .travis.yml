@@ -1,8 +1,8 @@
 language: minimal
 
-global:
-  env:
-    VERSION: 0.1.0
+env:
+  global:
+    - VERSION=0.1.0
 
 stages:
   - name: lint
