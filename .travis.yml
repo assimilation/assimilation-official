@@ -28,5 +28,5 @@ stages:
 script:
   - echo "build binaries"
     # create dummy nanoprobe binary
-  - echo "echo \"nanoprobe binary\"" > nanoprobe
-  - chmod a+x nanoprobe
+  - echo "echo \"nanoprobe binary\"" > nanoprobe.bin
+  - chmod a+x nanoprobe.bin
