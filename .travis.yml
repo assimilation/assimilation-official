@@ -4,18 +4,25 @@ global:
   env:
     VERSION: 0.1.0
 
+stages:
+  - lint
+    if: branch = remove_to_enable
+  - tests
+    if: branch = remove_to_enable
+  - create packages
+  - test packages
+    if: branch = remove_to_enable
+
 jobs:
   include:
 
     - stage: lint
       name: lint
-      if: branch = remove_to_enable
       script:
         - echo "run some linter"
 
     - stage: tests
       name: tests
-      if: branch = remove_to_enable
       after_success:
         - echo "do some tests"
 
@@ -29,7 +36,6 @@ jobs:
 
     - stage: test packages
        name: test packages
-       if: branch = remove_to_enable
        script:
          - echo "download packages"
          - echo "test them out"
