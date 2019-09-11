@@ -4,26 +4,35 @@ global:
   env:
     VERSION: 0.1.0
 
-stages:
-  - name: lint
-    if: branch = ready
-    script:
-      - echo "run some linter"
-  - name: tests
-    if: branch = ready
-    after_success:
-      - echo "do some tests"
-  - name: create packages
-    after_success:
-      - docker build --build-arg VERSION -f ci/Dockerfiles/ubuntu1804_fpm.dockerfile -t ubuntu_fpm .
-      - docker cp ubuntu_fpm:/workdir/ /tmp/output/
-      - ls -al /tmp/output/*.deb
-      - echo "upload packages to artifactory"
-  - name: test packages
-    if: branch = ready
-    script:
-      - echo "download packages"
-      - echo "test them out"
+jobs:
+  include:
+
+    - stage: lint
+      name: lint
+      if: branch = remove_to_enable
+      script:
+        - echo "run some linter"
+
+    - stage: tests
+      name: tests
+      if: branch = remove_to_enable
+      after_success:
+        - echo "do some tests"
+
+    - stage: create packages
+      name: create packages
+      after_success:
+        - docker build --build-arg VERSION -f ci/Dockerfiles/ubuntu1804_fpm.dockerfile -t ubuntu_fpm .
+        - docker cp ubuntu_fpm:/workdir/ /tmp/output/
+        - ls -al /tmp/output/*.deb
+        - echo "upload packages to artifactory"
+
+    - stage: test packages
+       name: test packages
+       if: branch = remove_to_enable
+       script:
+         - echo "download packages"
+         - echo "test them out"
 
 script:
   - echo "build binaries"
