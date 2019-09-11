@@ -45,7 +45,7 @@ from cmaconfig import ConfigFile
 from linkdiscovery import discovery_indicates_link_is_up
 
 
-@SystemNode.add_json_processor   # Register ourselves to process discovery packets
+@SystemNode.add_json_processor  # Register ourselves to process discovery packets
 class ArpDiscoveryListener(DiscoveryListener):
     """
     Class for processing ARP cache discovery entries.
@@ -80,35 +80,37 @@ class ArpDiscoveryListener(DiscoveryListener):
     message.
     """
 
-    prio = DiscoveryListener.PRI_OPTION     # This is an optional feature
+    prio = DiscoveryListener.PRI_OPTION  # This is an optional feature
     # We are interested in two kinds of packets:
     # netconfig:    Packets from network configuration discovery
     #               When we hear these we send requests to listen to ARPs
     #               This is what eventually causes ARP discovery packets to be sent
     # ARP:          Packets resulting from ARP discovery - triggered by
     #               the requests we send above...
-    wantedpackets = ('ARP', 'netconfig')
+    wanted_packets = ("ARP", "netconfig")
 
-    def processpkt(self, drone, srcaddr, jsonobj, discoverychanged):
+    def processpkt(self, drone, src_addr, json_obj, discoverychanged):
         """
         Trigger ARP discovery or add ARP data to the database.
 
         :param drone: SystemNode: who discovered this?
-        :param srcaddr: pyNetAddr: address this came from
-        :param jsonobj: dict: discovery JSON as object
+        :param src_addr: pyNetAddr: address this came from
+        :param json_obj: dict: discovery JSON as object
         :param discoverychanged: bool: TRUE if this discovery has changed
         :return: None
         """
         if not discoverychanged:
             return
-        if jsonobj['discovertype'] == 'ARP':
-            self.processpkt_arp(drone, srcaddr, jsonobj)
-        elif jsonobj['discovertype'] == 'netconfig':
-            self.processpkt_netconfig(drone, srcaddr, jsonobj)
+        if json_obj["discovertype"] == "ARP":
+            self.processpkt_arp(drone, src_addr, json_obj)
+        elif json_obj["discovertype"] == "netconfig":
+            self.processpkt_netconfig(drone, src_addr, json_obj)
         else:
-            self.log.warning('Unexpected ArpDiscovery packet type [%s]' % jsonobj['discovertype'])
-            print('OOPS! unexpected ArpDiscovery packet type [%s]'
-                  % jsonobj['discovertype'], file=stderr)
+            self.log.warning("Unexpected ArpDiscovery packet type [%s]" % json_obj["discovertype"])
+            print(
+                "OOPS! unexpected ArpDiscovery packet type [%s]" % json_obj["discovertype"],
+                file=stderr,
+            )
 
     def processpkt_netconfig(self, drone, _unused_srcaddr, jsonobj):
         """
@@ -124,16 +126,16 @@ class ArpDiscoveryListener(DiscoveryListener):
         :param jsonobj: dict: discovery JSON as object
         :return: None
         """
-        init_params = ConfigFile.agent_params(self.config, 'discovery', '#ARP', drone.designation)
+        init_params = ConfigFile.agent_params(self.config, "discovery", "#ARP", drone.designation)
 
-        data = jsonobj['data']  # the data portion of the JSON message
+        data = jsonobj["data"]  # the data portion of the JSON message
         discovery_args = []
         for devname in data.keys():
             # print ("*** devname:", devname, file=stderr)
             devinfo = data[devname]
             if discovery_indicates_link_is_up(devinfo):
                 params = pyConfigContext(init_params)
-                params[CONFIGNAME_INSTANCE] = '_ARP_' + devname
+                params[CONFIGNAME_INSTANCE] = "_ARP_" + devname
                 params[CONFIGNAME_DEVNAME] = devname
                 # print('#ARP parameters:', params, file=stderr)
                 discovery_args.append(params)
@@ -176,14 +178,14 @@ class ArpDiscoveryListener(DiscoveryListener):
         :return:
         """
 
-        data = jsonobj['data']
-        device_name = jsonobj['device']
+        data = jsonobj["data"]
+        device_name = jsonobj["device"]
         device = drone.find_nic(device_name)
         if drone is None:
-            raise(ValueError("Cannot find NIC %s for drone %s" % (device_name, str(drone))))
+            raise (ValueError("Cannot find NIC %s for drone %s" % (device_name, str(drone))))
         mac_ip_table = {}
         # Group the IP addresses by MAC address - inverting the map
-        for ip, mac in data.viewitems():
+        for ip, mac in data.items():
             macstr = str(mac)
             if macstr not in mac_ip_table:
                 mac_ip_table[macstr] = []
@@ -191,8 +193,9 @@ class ArpDiscoveryListener(DiscoveryListener):
 
         net_segment = self.find_net_segment(drone, device, mac_ip_table)
         device.net_segment = net_segment.name
-        self.fix_net_segment(domain=drone.domain, device=device, net_segment=net_segment,
-                             mac_ip_table=mac_ip_table)
+        self.fix_net_segment(
+            domain=drone.domain, device=device, net_segment=net_segment, mac_ip_table=mac_ip_table
+        )
 
     def find_net_segment(self, _drone, device, mac_ip_table):
         """
@@ -204,13 +207,16 @@ class ArpDiscoveryListener(DiscoveryListener):
         :return: NetworkSegment
         """
         if device.net_segment is not None:
-            return self.store.load(NetworkSegment, domain=device.domain, name=device.net_segment)
+            return self.store.load_or_create(
+                NetworkSegment, domain=device.domain, name=str(device.net_segment)
+            )
         mac_ip_pairs = []
-        for mac, ip_list in mac_ip_table.viewitems():
+        for mac, ip_list in mac_ip_table.items():
             for ip in ip_list:
                 mac_ip_pairs.append((mac, ip))
         segment = NetworkSegment.guess_net_segment(self.store, device.domain, mac_ip_pairs)
-        self.store.log.debug("Guess_net_segment() returned %s" % segment)
+        if self.debug:
+            self.log.debug("Guess_net_segment() returned %s" % segment)
         if segment is None:
             result = self.store.load_or_create(NetworkSegment, domain=device.domain)
         else:
@@ -228,6 +234,10 @@ class ArpDiscoveryListener(DiscoveryListener):
         :param mac_ip_table: MAC/IP map - organized by MAC address
         :return: None
         """
+        if self.debug:
+            self.log.debug(
+                "FIX_NET_SEGMENT: %s %s %s %s" % (domain, device, net_segment, mac_ip_table)
+            )
         mac_ip_query = """
         MATCH(nic:Class_NICNode)-[:ipowner]->(ip:Class_IPaddrNode)
         WHERE ip.ipaddr in $ipaddrs AND nic.macaddr in $macaddrs
@@ -249,28 +259,36 @@ class ArpDiscoveryListener(DiscoveryListener):
         #   What happens when a MAC address gets a new IP address?
         #
         mac_ip_pairs = set()
-        mac_list = []
-        ip_list = []
-        for mac, ip_list in mac_ip_table.viewitems():
-            mac_list.append(mac)
+        mac_set = set()
+        ip_set = set()
+        for mac, ip_list in mac_ip_table.items():
+            if self.debug:
+                self.log.debug("LOOKNG AT (%s,%s)" % (mac, str(ip_list)))
+            mac_set.add(str(mac))
             for ip in ip_list:
                 mac_ip_pairs.add((mac, ip))
-                ip_list.append(ip)
+                ip_set.add(str(ip))
         parameters = {
-            'ipaddrs': ip_list,
-            'macaddrs': mac_list,
-            'net_segment': net_segment
+            "ipaddrs": sorted(ip_set),
+            "macaddrs": sorted(mac_set),
+            "net_segment": str(net_segment),
         }
+        self.log.debug("MAC_IP_QUERY: %s %s" % (mac_ip_query, parameters))
         missing_pairs = mac_ip_pairs
         found_pairs = set()
         found_subnets = set()
         subnet_names = set()
 
+        if self.debug:
+            self.log.debug("MAC_IP_QUERY: %s::%s" % (mac_ip_query, str(parameters)))
         for mac, ip in self.store.load_cypher_query(mac_ip_query, parameters):
+            if self.debug:
+                self.log.debug("FIX_NET_SEGMENT: LOOKING AT (%s, %s)" % (mac, ip))
             if (mac.macaddr, ip.ipaddr) not in missing_pairs:
                 # Could be a mismatched pair or a new/old IP for this same MAC
                 continue
             missing_pairs.remove((mac.macaddr, ip.ipaddr))
+            self.log.debug("FIX_NET_SEGMENT: ADDING FOUND PAIRS (%s, %s)" % (mac, ip))
             found_pairs.add((mac, ip))
             mac.net_segment = net_segment
             if ip.subnet is not None and ip.subnet not in subnet_names:
@@ -278,8 +296,9 @@ class ArpDiscoveryListener(DiscoveryListener):
                 subnet_names.add(ip.subnet)
         Subnet.normalize_subnet_set(found_subnets)  # This removes duplicate/overlapping subnets
         # Now we have a list of all the missing (MAC, IP) pairs - create them
-        self.create_missing_mac_ip_pairs(domain, device.scope, net_segment,
-                                         missing_pairs, found_subnets)
+        self.create_missing_mac_ip_pairs(
+            domain, device.scope, net_segment, missing_pairs, found_subnets
+        )
         self.fix_ip_subnets(found_subnets, [pair[1] for pair in found_pairs])
 
     def create_missing_mac_ip_pairs(self, domain, scope, net_segment, missing_pairs, found_subnets):
@@ -292,23 +311,38 @@ class ArpDiscoveryListener(DiscoveryListener):
         :param found_subnets: set(Subnet) - list of subnets found on this network segment
         :return: None
         """
+        if self.debug:
+            self.log.debug(
+                "CREATE_MISSING_MAC_IP_PAIRS: %s / %s / %s" % (domain, scope, net_segment)
+            )
+            self.log.debug("CREATE_MISSING_MAC_IP_PAIRS: PAIRS: %s" % missing_pairs)
         for mac, ip in missing_pairs:
+            self.log.debug("CREATE_MISSING_MAC_IP_PAIRS: PROCESSING (%s, %s)" % (mac, ip))
             # find_this_macaddr is a more "generous" find operation than load_or_create()...
-            nic = NICNode.find_this_macaddr(self.store, domain=domain,  macaddr=mac,
-                                            net_segment=net_segment)
+            nic = NICNode.find_this_macaddr(
+                self.store, domain=domain, macaddr=mac, net_segment=net_segment
+            )
+            if self.debug:
+                self.log.debug("CREATE_MISSING_MAC_IP_PAIRS: FOUND NICs: %s" % nic)
             if nic is None:
-                nic = self.store.load_or_create(NICNode, domain=domain, macaddr=mac,
-                                                scope=scope, net_segment=net_segment)
+                nic = self.store.load_or_create(
+                    NICNode, domain=domain, macaddr=mac, scope=scope, net_segment=str(net_segment)
+                )
             subnet = Subnet.find_matching_subnet(ip, found_subnets)
+            if self.debug:
+                self.log.debug("CREATE_MISSING_MAC_IP_PAIRS: FOUND SUBNET: %s" % subnet)
             other_ip = None
             for other_ip in self.store.load_related(nic, CMAconsts.REL_ipowner):
                 if other_ip.ipaddr == ip:
                     other_ip.subnet = subnet
                     break  # Strange... It already exists...
             if other_ip is None or other_ip.ipaddr != ip:
-                ipnode = self.store.load_or_create(IPaddrNode, ipaddr=ip,
-                                                   domain=domain, subnet=subnet)
-                self.store.relate(nic, CMAconsts.REL_ipowner, ipnode)
+                ip_node = self.store.load_or_create(
+                    IPaddrNode, ipaddr=ip, domain=domain, subnet=subnet
+                )
+                if self.debug:
+                    self.log.debug("CREATE_MISSING_MAC_IP_PAIRS: IP_NODE: %s" % ip_node)
+                self.store.relate(nic, CMAconsts.REL_ipowner, ip_node)
 
     @staticmethod
     def fix_ip_subnets(found_subnets, ip_list):
@@ -321,6 +355,7 @@ class ArpDiscoveryListener(DiscoveryListener):
         :return:
         """
         for ip in ip_list:
-            subnet = Subnet.find_matching_subnet(ip, found_subnets)
-            if subnet is not None:
-                ip.subnet = subnet.name
+            if hasattr(ip, "subnet") and ip.subnet is not None:
+                subnet = Subnet.find_matching_subnet(ip, found_subnets)
+                if subnet is not None:
+                    ip.subnet = subnet.name

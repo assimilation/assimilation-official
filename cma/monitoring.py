@@ -40,14 +40,30 @@ from graphnodeexpression import GraphNodeExpression, ExpressionContext
 from assimevent import AssimEvent
 from cmadb import CMAdb
 from consts import CMAconsts
-from AssimCtypes import (CONFIGNAME_TYPE, CONFIGNAME_WARNTIME,
-                         CONFIGNAME_INSTANCE, CONFIGNAME_INTERVAL, CONFIGNAME_TIMEOUT,
-                         REQCLASSNAMEFIELD, REQPROVIDERNAMEFIELD, REQENVIRONNAMEFIELD,
-                         REQREASONENUMNAMEFIELD, REQOPERATIONNAMEFIELD, REQIDENTIFIERNAMEFIELD,
-                         REQNAGIOSPATH, REQRCNAMEFIELD, REQSIGNALNAMEFIELD, REQARGVNAMEFIELD,
-                         REQSTRINGRETNAMEFIELD,
-                         EXITED_TIMEOUT, EXITED_SIGNAL, EXITED_NONZERO, EXITED_HUNG, EXITED_ZERO,
-                         EXITED_INVAL)
+from AssimCtypes import (
+    CONFIGNAME_TYPE,
+    CONFIGNAME_WARNTIME,
+    CONFIGNAME_INSTANCE,
+    CONFIGNAME_INTERVAL,
+    CONFIGNAME_TIMEOUT,
+    REQCLASSNAMEFIELD,
+    REQPROVIDERNAMEFIELD,
+    REQENVIRONNAMEFIELD,
+    REQREASONENUMNAMEFIELD,
+    REQOPERATIONNAMEFIELD,
+    REQIDENTIFIERNAMEFIELD,
+    REQNAGIOSPATH,
+    REQRCNAMEFIELD,
+    REQSIGNALNAMEFIELD,
+    REQARGVNAMEFIELD,
+    REQSTRINGRETNAMEFIELD,
+    EXITED_TIMEOUT,
+    EXITED_SIGNAL,
+    EXITED_NONZERO,
+    EXITED_HUNG,
+    EXITED_ZERO,
+    EXITED_INVAL,
+)
 
 
 # too many instance attributes
@@ -57,14 +73,15 @@ class MonitorAction(GraphNode):
     """
     Class representing monitoring actions
     """
+
     request_id = time.time()
 
-    FINDQUERY1 = '''MATCH(m:Class_MonitorAction) WHERE m.monitorname = $name RETURN m'''
-    FINDQUERY2 = '''
+    FINDQUERY1 = """MATCH(m:Class_MonitorAction) WHERE m.monitorname = $name RETURN m"""
+    FINDQUERY2 = """
     MATCH (m:Class_MonitorAction)
     WHERE m.monitorname = $name AND m.domain = $domain
     RETURN m
-    '''
+    """
 
     @classmethod
     def meta_key_attributes(cls):
@@ -72,12 +89,23 @@ class MonitorAction(GraphNode):
         Return our key attributes in order of significance (sort order)
         :return: [str]: key attributes...
         """
-        return ['monitorname', 'domain']
+        return ["monitorname", "domain"]
 
     # R0913: too many arguments
     # pylint: disable=R0913
-    def __init__(self, domain, monitorname, monitorclass, monitortype, interval, timeout,
-                 warntime=None, provider=None, arglist=None, argv=None):
+    def __init__(
+        self,
+        domain,
+        monitorname,
+        monitorclass,
+        monitortype,
+        interval,
+        timeout,
+        warntime=None,
+        provider=None,
+        arglist=None,
+        argv=None,
+    ):
         """
         Create the requested monitoring rule object.
 
@@ -103,11 +131,11 @@ class MonitorAction(GraphNode):
         self.monitortype = monitortype
         self.interval = int(interval)
         self.timeout = int(timeout)
-        self.warntime = int(warntime) if warntime is not None else self.timeout/2
+        self.warntime = int(warntime) if warntime is not None else self.timeout / 2
         self.provider = provider
         self.isactive = False
         self.isworking = True
-        self.reason = 'initial monitor creation'
+        self.reason = "initial monitor creation"
         self.request_id = MonitorAction.request_id
         self.argv = argv
         MonitorAction.request_id += 1
@@ -116,16 +144,16 @@ class MonitorAction(GraphNode):
             self._arglist = {}
         elif isinstance(arglist, list):
             if (len(arglist) % 2) != 0:
-                raise(ValueError('arglist list must have an even number of elements'))
+                raise (ValueError("arglist list must have an even number of elements"))
             self._arglist = {}
             for j in range(0, len(arglist), 2):
-                self._arglist[arglist[j]] = arglist[j+1]
+                self._arglist[arglist[j]] = arglist[j + 1]
             self.arglist = arglist
         else:
             self._arglist = arglist
             newargs = []  # Can't do this directly to self.arglist - it's modeled with Neo4j
             #               restrictions disallowing empty arrays
-            for name, value in self._arglist.viewitems():
+            for name, value in self._arglist.items():
                 newargs.append(name)
                 newargs.append(str(value))
             self.arglist = newargs
@@ -133,8 +161,8 @@ class MonitorAction(GraphNode):
     def longname(self):
         """Return a long name for the type of monitoring this rule provides"""
         if self.provider is not None:
-            return '%s::%s:%s' % (self.monitorclass, self.provider, self.monitortype)
-        return '%s:%s' % (self.monitorclass, self.monitortype)
+            return "%s::%s:%s" % (self.monitorclass, self.provider, self.monitortype)
+        return "%s:%s" % (self.monitorclass, self.monitortype)
 
     def shortname(self):
         """Return a short name for the type of monitoring this rule provides"""
@@ -151,44 +179,50 @@ class MonitorAction(GraphNode):
                 Defaults to 'monitoredentity'
         """
         from droneinfo import Drone
+
         if runon is None:
             runon = monitoredentity
         assert isinstance(monitoredentity, GraphNode)
         assert isinstance(runon, Drone)
         CMAdb.store.relate_new(self, CMAconsts.REL_monitoring, monitoredentity)
         CMAdb.store.relate_new(runon, CMAconsts.REL_hosting, self)
-        if self.monitorclass == 'NEVERMON':
+        if self.monitorclass == "NEVERMON":
             # NEVERMON is a class that doesn't monitor anything
             # A bit like the The Pirates Who Don't Do Anything
             # So, we create the node in the graph, but don't activate it, don't
             # send a message to the server to try and monitor it...
             #       And we never go to Boston in the fall...
-            CMAdb.log.info("Avast! Those Scurvy 'Pirates That Don't Do Anything'"
-                           " spyed lounging around on %s" % (str(runon)))
+            CMAdb.log.info(
+                "Avast! Those Scurvy 'Pirates That Don't Do Anything'"
+                " spyed lounging around on %s" % (str(runon))
+            )
         else:
             reqjson = self.construct_mon_json()
-            CMAdb.net_transaction.add_packet(runon.destaddr(), FrameSetTypes.DORSCOP,
-                                             reqjson, frametype=FrameTypes.RSCJSON)
+            CMAdb.net_transaction.add_packet(
+                runon.destaddr(), FrameSetTypes.DORSCOP, reqjson, frametype=FrameTypes.RSCJSON
+            )
             self.isactive = True
-        print ('Monitoring of service %s activated.' % self.monitorname, file=stderr)
-        CMAdb.log.info('Monitoring of service %s activated' % self.monitorname)
+        print("Monitoring of service %s activated." % self.monitorname, file=stderr)
+        CMAdb.log.info("Monitoring of service %s activated" % self.monitorname)
 
     def deactivate(self):
         """Deactivate this monitoring action. Does not remove relationships from the graph"""
         from droneinfo import Drone
+
         reqjson = self.construct_mon_json()
         for drone in CMAdb.store.load_related(self, CMAconsts.REL_hosting, Drone):
-            CMAdb.net_transaction.add_packet(drone.primary_ip(), FrameSetTypes.STOPRSCOP,
-                                             reqjson, frametype=FrameTypes.RSCJSON)
+            CMAdb.net_transaction.add_packet(
+                drone.primary_ip(), FrameSetTypes.STOPRSCOP, reqjson, frametype=FrameTypes.RSCJSON
+            )
         self.isactive = False
 
     @staticmethod
     def find(name, domain=None):
         """Iterate through a series of MonitorAction nodes matching the criteria"""
         query = MonitorAction.FINDQUERY1 if domain is None else MonitorAction.FINDQUERY2
-        print("FIND MONITOR QUERY: '%s' || name='%s' domain='%s'"
-              % (query, name, domain), file=stderr)
-        return CMAdb.store.load_cypher_nodes(query, params={'domain': domain, 'name': name})
+        # print("FIND MONITOR QUERY: '%s' || name='%s' domain='%s'"
+        #      % (query, name, domain), file=stderr)
+        return CMAdb.store.load_cypher_nodes(query, params={"domain": domain, "name": name})
 
     @staticmethod
     def find1(name, domain=None):
@@ -215,8 +249,9 @@ class MonitorAction(GraphNode):
         rscname = monmsgobj[CONFIGNAME_INSTANCE]
         monnode = MonitorAction.find1(rscname)
         if monnode is None:
-            CMAdb.log.critical('Could not locate monitor node for %s from %s'
-                               % (str(monmsgobj), str(origaddr)))
+            CMAdb.log.critical(
+                "Could not locate monitor node for %s from %s" % (str(monmsgobj), str(origaddr))
+            )
         else:
             monnode.monitorchange(origaddr, monmsgobj)
 
@@ -237,32 +272,36 @@ class MonitorAction(GraphNode):
         reason_enum = monmsgobj[REQREASONENUMNAMEFIELD]
         if reason_enum == EXITED_ZERO:
             success = True
-            explanation = 'is now operational'
+            explanation = "is now operational"
         elif reason_enum == EXITED_NONZERO:
-            explanation = 'monitoring failed with return code %s' % monmsgobj[REQRCNAMEFIELD]
+            explanation = "monitoring failed with return code %s" % monmsgobj[REQRCNAMEFIELD]
             if REQSTRINGRETNAMEFIELD in monmsgobj:
-                explanation += ': %s' % str(monmsgobj[REQSTRINGRETNAMEFIELD])
+                explanation += ": %s" % str(monmsgobj[REQSTRINGRETNAMEFIELD])
         elif reason_enum == EXITED_SIGNAL:
-            explanation = 'monitoring was killed by signal %s' % monmsgobj[REQSIGNALNAMEFIELD]
+            explanation = "monitoring was killed by signal %s" % monmsgobj[REQSIGNALNAMEFIELD]
         elif reason_enum == EXITED_HUNG:
-            explanation = 'monitoring could not be killed'
+            explanation = "monitoring could not be killed"
         elif reason_enum == EXITED_TIMEOUT:
-            explanation = 'monitoring timed out'
+            explanation = "monitoring timed out"
         elif reason_enum == EXITED_INVAL:
-            explanation = 'invalid monitoring request'
+            explanation = "invalid monitoring request"
         else:
-            explanation = 'GOT REAL WEIRD (%d)' % int(reason_enum)
+            explanation = "GOT REAL WEIRD (%d)" % int(reason_enum)
             fubar = True
         rscname = monmsgobj[CONFIGNAME_INSTANCE]
-        msg = 'Service %s %s' % (rscname, explanation)
+        msg = "Service %s %s" % (rscname, explanation)
         self.isworking = success and not fubar
         self.reason = explanation
-        print('MESSAGE: %s' % msg, file=stderr)
+        print("MESSAGE: %s" % msg, file=stderr)
         if fubar:
             CMAdb.log.critical(msg)
         else:
-            extrainfo = {'comment': explanation, 'origaddr': origaddr
-            ,   'resourcename': rscname, 'monmsg': monmsgobj}
+            extrainfo = {
+                "comment": explanation,
+                "origaddr": origaddr,
+                "resourcename": rscname,
+                "monmsg": monmsgobj,
+            }
             if success:
                 CMAdb.log.info(msg)
                 AssimEvent(self, AssimEvent.OBJUP, extrainfo=extrainfo)
@@ -270,7 +309,7 @@ class MonitorAction(GraphNode):
                 CMAdb.log.warning(msg)
                 AssimEvent(self, AssimEvent.OBJDOWN, extrainfo=extrainfo)
 
-    def construct_mon_json(self, operation='monitor'):
+    def construct_mon_json(self, operation="monitor"):
         """
           Parameters
           ----------
@@ -279,44 +318,56 @@ class MonitorAction(GraphNode):
           JSON string representing this particular monitor action.
           """
         if self.arglist is None:
-            arglist_str = ''
+            arglist_str = ""
         else:
             arglist_str = ', "%s": {' % REQENVIRONNAMEFIELD
-            comma = ''
+            comma = ""
             for arg in self._arglist:
-                arglist_str += '%s"%s":"%s"' % (comma, str(arg)
-                ,   str(self._arglist[arg]))
-                comma = ', '
-            arglist_str += '}'
+                arglist_str += '%s"%s":"%s"' % (comma, str(arg), str(self._arglist[arg]))
+                comma = ", "
+            arglist_str += "}"
 
         if self.provider is None:
-            provider_str = ''
+            provider_str = ""
         else:
             provider_str = ', "%s":"%s"' % (REQPROVIDERNAMEFIELD, self.provider)
-        path_str = ''
-        if hasattr(self, 'nagiospath'):
-            path_str = ', "%s": %s' % (REQNAGIOSPATH, getattr(self, 'nagiospath'))
+        path_str = ""
+        if hasattr(self, "nagiospath"):
+            path_str = ', "%s": %s' % (REQNAGIOSPATH, getattr(self, "nagiospath"))
             path_str = path_str.replace("u'", '"')
             path_str = path_str.replace("'", '"')
-        argv_str = ''
+        argv_str = ""
         if self.argv is not None:
-            argv_str = ', "%s": %s' % (REQARGVNAMEFIELD, getattr(self, 'argv'))
+            argv_str = ', "%s": %s' % (REQARGVNAMEFIELD, getattr(self, "argv"))
             argv_str = argv_str.replace("u'", '"')
             argv_str = argv_str.replace("'", '"')
 
         json = (
-        '{"%s": %d, "%s":"%s", "%s":"%s", "%s":"%s", "%s":"%s", "%s":%d, "%s": %d,"%s":%d%s%s%s%s}'
-            %
-        (   REQIDENTIFIERNAMEFIELD, self.request_id
-        ,   REQOPERATIONNAMEFIELD, operation
-        ,   REQCLASSNAMEFIELD, self.monitorclass
-        ,   CONFIGNAME_TYPE, self.monitortype
-        ,   CONFIGNAME_INSTANCE, self.monitorname
-        ,   CONFIGNAME_INTERVAL, self.interval
-        ,   CONFIGNAME_TIMEOUT, self.timeout
-        ,   CONFIGNAME_WARNTIME, self.warntime
-        ,   provider_str, arglist_str, path_str, argv_str))
-        #print ('MONITOR JSON: %s' % str(pyConfigContext(init=json)), file=stderr)
+            '{"%s": %d, "%s":"%s", "%s":"%s", "%s":"%s", "%s":"%s", "%s":%d, "%s": %d,"%s":%d%s%s%s%s}'
+            % (
+                REQIDENTIFIERNAMEFIELD,
+                self.request_id,
+                REQOPERATIONNAMEFIELD,
+                operation,
+                REQCLASSNAMEFIELD,
+                self.monitorclass,
+                CONFIGNAME_TYPE,
+                self.monitortype,
+                CONFIGNAME_INSTANCE,
+                self.monitorname,
+                CONFIGNAME_INTERVAL,
+                self.interval,
+                CONFIGNAME_TIMEOUT,
+                self.timeout,
+                CONFIGNAME_WARNTIME,
+                self.warntime,
+                provider_str,
+                arglist_str,
+                path_str,
+                argv_str,
+            )
+        )
+        # print ('MONITOR JSON: %s' % str(pyConfigContext(init=json)), file=stderr)
         return str(pyConfigContext(init=json))
 
 
@@ -352,16 +403,17 @@ class MonitoringRule(object):
     If it matches python, then match it against the second argument (arg[1])
 
     """
-    NOMATCH = 0         # Did not match this rule
-    NEVERMATCH = 1      # Matched this 'un-rule' - OK not to monitor this service
-    PARTMATCH = 2       # Partial match - we match this rule, but need more config info
-    LOWPRIOMATCH = 3    # We match - but we aren't a very good monitoring method
-    MEDPRIOMATCH = 4    # We match - but we could be a better monitoring method
-    HIGHPRIOMATCH = 5   # We match and we are a good monitoring method
 
-    monitor_objects = {'service': {}, 'host': {}}
+    NOMATCH = 0  # Did not match this rule
+    NEVERMATCH = 1  # Matched this 'un-rule' - OK not to monitor this service
+    PARTMATCH = 2  # Partial match - we match this rule, but need more config info
+    LOWPRIOMATCH = 3  # We match - but we aren't a very good monitoring method
+    MEDPRIOMATCH = 4  # We match - but we could be a better monitoring method
+    HIGHPRIOMATCH = 5  # We match and we are a good monitoring method
 
-    def __init__(self, monitorclass, tuplespec, objclass='service'):
+    monitor_objects = {"service": {}, "host": {}}
+
+    def __init__(self, monitorclass, tuplespec, objclass="service"):
         """It is constructed from an list of tuples, each one of which represents
         a value expression and a regular expression.  Each value expression
         is a specification to a GraphNode 'get' operation - or a more complex GraphNodeExpression.
@@ -372,16 +424,16 @@ class MonitoringRule(object):
         NOTE: It can still fail to apply even if the RegExes all match.
         """
         if tuplespec is None or len(tuplespec) == 0:
-            raise ValueError('Improper tuplespec')
+            raise ValueError("Improper tuplespec")
 
         self.monitorclass = monitorclass
         self.objclass = objclass
         self._tuplespec = []
-        if not(hasattr(self, 'nvpairs')):
+        if not (hasattr(self, "nvpairs")):
             self.nvpairs = {}
         for tup in tuplespec:
             if len(tup) < 2 or len(tup) > 3:
-                raise ValueError('Improperly formed constructor argument')
+                raise ValueError("Improperly formed constructor argument")
             try:
                 if len(tup) == 3:
                     flags = tup[2]
@@ -389,20 +441,19 @@ class MonitoringRule(object):
                 else:
                     regex = re.compile(tup[1])
             except:
-                raise ValueError('Improperly formed regular expression: %s'
-                %   tup[1])
+                raise ValueError("Improperly formed regular expression: %s" % tup[1])
             self._tuplespec.append((tup[0], regex))
 
         # Register us in the grand and glorious set of all monitoring rules
         if self.objclass not in self.monitor_objects:
-            raise ValueError('Monitor object class %s is not recognized' % self.objclass)
+            raise ValueError("Monitor object class %s is not recognized" % self.objclass)
         monrules = self.monobjclass(self.objclass)
         if monitorclass not in monrules:
             monrules[monitorclass] = []
         monrules[monitorclass].append(self)
 
     @staticmethod
-    def monobjclass(mtype='service'):
+    def monobjclass(mtype="service"):
         """Return the monitoring objects that go with this service type"""
         return MonitoringRule.monitor_objects[mtype]
 
@@ -426,11 +477,10 @@ class MonitoringRule(object):
                 name = tup[0]
                 expression = None
             else:
-                raise ValueError('Invalid tuple length (%d)' % tuplen)
-            if name is not None and name != '-':
+                raise ValueError("Invalid tuple length (%d)" % tuplen)
+            if name is not None and name != "-":
                 self.nvpairs[name] = expression
         return tuplespec
-
 
     def specmatch(self, context):
         """Return a MonitorAction if this rule can be applies in this context (GraphNodes)
@@ -461,11 +511,9 @@ class MonitoringRule(object):
                 return MonitoringRule.NOMATCH, None
         # We now have a matching set of values to give our monitoring constructor
         # print('CALLING CONSTRUCTACTION:', self._tuplespec, file=stderr)
-        ret =  self.constructaction(context)
+        ret = self.constructaction(context)
         # CMAdb.log.debug('GOT MATCH: CONSTRUCTACTION => %s' % str(ret))
         return ret
-
-
 
     def constructaction(self, context):
         """Return a tuple consisting of a tuple as noted:
@@ -503,10 +551,10 @@ class MonitoringRule(object):
         Not that the implementation in the base class does nothing, and will result in
         raising a NotImplementedError exception.
         """
-        raise NotImplementedError('Abstract class')
+        raise NotImplementedError("Abstract class")
 
     @staticmethod
-    def construct_from_string(s, objclass='service'):
+    def construct_from_string(s, objclass="service"):
         """
         Construct a MonitoringRule from a string parameter.
         It will construct the appropriate subclass depending on its input
@@ -516,62 +564,66 @@ class MonitoringRule(object):
         obj = pyConfigContext(s)
         # print('CONSTRUCTING MONITORING RULE FROM', obj, file=stderr)
         if obj is None:
-            raise ValueError('Invalid JSON: %s' % s)
-        if 'class' not in obj:
-            raise ValueError('Must have class value')
-        legit = {'ocf':
-                    {'class': True, 'type': True, 'classconfig': True, 'provider': True},
-                 'lsb':
-                    {'class': True, 'type': True, 'classconfig': True},
-                 'nagios':
-                    {'class': True, 'type': True, 'classconfig': True
-                    ,       'prio': True, 'initargs': True, 'objclass': True},
-                 'NEVERMON':
-                    {'class': True, 'type': True, 'classconfig': True}
-                }
-        rscclass = obj['class']
+            raise ValueError("Invalid JSON: %s" % s)
+        if "class" not in obj:
+            raise ValueError("Must have class value")
+        legit = {
+            "ocf": {"class": True, "type": True, "classconfig": True, "provider": True},
+            "lsb": {"class": True, "type": True, "classconfig": True},
+            "nagios": {
+                "class": True,
+                "type": True,
+                "classconfig": True,
+                "prio": True,
+                "initargs": True,
+                "objclass": True,
+            },
+            "NEVERMON": {"class": True, "type": True, "classconfig": True},
+        }
+        rscclass = obj["class"]
         if rscclass not in legit:
-            raise ValueError('Illegal class value: %s' % rscclass)
+            raise ValueError("Illegal class value: %s" % rscclass)
 
-        l = legit[obj['class']]
+        l = legit[obj["class"]]
         for key in l.keys():
             if l[key] and key not in obj:
-                raise ValueError('%s object must have %s field' % (rscclass, key))
+                raise ValueError("%s object must have %s field" % (rscclass, key))
         for key in obj.keys():
             if key not in l:
-                raise ValueError('%s object cannot have a %s field' % (rscclass, key))
+                raise ValueError("%s object cannot have a %s field" % (rscclass, key))
 
-        objclass = obj.get('objclass', 'service')
-        if rscclass == 'lsb':
-            return LSBMonitoringRule(obj['type'], obj['classconfig'])
-        if rscclass == 'ocf':
-            return OCFMonitoringRule(obj['provider'], obj['type'], obj['classconfig'])
-        if rscclass == 'nagios':
-            return NagiosMonitoringRule(obj['type'], obj['prio']
-            ,   obj['initargs'], obj['classconfig'], objclass=objclass)
-        if rscclass == 'NEVERMON':
-            return NEVERMonitoringRule(obj['type'], obj['classconfig'])
+        objclass = obj.get("objclass", "service")
+        if rscclass == "lsb":
+            return LSBMonitoringRule(obj["type"], obj["classconfig"])
+        if rscclass == "ocf":
+            return OCFMonitoringRule(obj["provider"], obj["type"], obj["classconfig"])
+        if rscclass == "nagios":
+            return NagiosMonitoringRule(
+                obj["type"], obj["prio"], obj["initargs"], obj["classconfig"], objclass=objclass
+            )
+        if rscclass == "NEVERMON":
+            return NEVERMonitoringRule(obj["type"], obj["classconfig"])
 
         raise ValueError('Invalid resource class ("class" = "%s")' % rscclass)
 
     @staticmethod
     def compute_available_agents(context):
         """Create a cache of all our available monitoring agents - and return it"""
-        if not hasattr(context, 'get') or not hasattr(context, 'objects'):
+        if not hasattr(context, "get") or not hasattr(context, "objects"):
             context = ExpressionContext(context)
-        #CMAdb.log.debug('CREATING AGENT CACHE (%s)' % str(context))
+        # CMAdb.log.debug('CREATING AGENT CACHE (%s)' % str(context))
         for node in context.objects:
-            if hasattr(node, '_agentcache'):
+            if hasattr(node, "_agentcache"):
                 # Keep pylint from getting irritated...
-                #CMAdb.log.debug('AGENT ATTR IS %s' % getattr(node, '_agentcache'))
-                return getattr(node, '_agentcache')
-            if not hasattr(node, '__iter__') or '_init_monitoringagents' not in node:
-                #CMAdb.log.debug('SKIPPING AGENT NODE (%s)' % (str(node)))
-                #if hasattr(node, 'keys'):
+                # CMAdb.log.debug('AGENT ATTR IS %s' % getattr(node, '_agentcache'))
+                return getattr(node, "_agentcache")
+            if not hasattr(node, "__iter__") or "_init_monitoringagents" not in node:
+                # CMAdb.log.debug('SKIPPING AGENT NODE (%s)' % (str(node)))
+                # if hasattr(node, 'keys'):
                 #    CMAdb.log.debug('SKIPPING AGENT NODE keys: (%s)' % (str(node.keys())))
                 continue
-            agentobj = pyConfigContext(node['_init_monitoringagents'])
-            agentobj = agentobj['data']
+            agentobj = pyConfigContext(node["_init_monitoringagents"])
+            agentobj = agentobj["data"]
             ret = {}
             for cls in agentobj.keys():
                 agents = agentobj[cls]
@@ -579,14 +631,14 @@ class MonitoringRule(object):
                     if cls not in ret:
                         ret[cls] = {}
                     ret[cls][agent] = True
-            setattr(node, '_agentcache', ret)
-            #CMAdb.log.debug('AGENT CACHE IS: %s' % str(ret))
+            setattr(node, "_agentcache", ret)
+            # CMAdb.log.debug('AGENT CACHE IS: %s' % str(ret))
             return ret
-        #CMAdb.log.debug('RETURNING NO AGENT CACHE AT ALL!')
+        # CMAdb.log.debug('RETURNING NO AGENT CACHE AT ALL!')
         return {}
 
     @staticmethod
-    def findbestmatch(context, preferlowoverpart=True, objclass='service'):
+    def findbestmatch(context, preferlowoverpart=True, objclass="service"):
         """
         Find the best match among the complete collection of MonitoringRules
         against this particular set of graph nodes.
@@ -612,12 +664,12 @@ class MonitoringRule(object):
             Of course, we always prefer a HIGHPRIOMATCH monitoring method first
             and a MEDPRIOMATCH if that's not available.
         """
-        rsctypes = ['ocf', 'nagios', 'lsb', 'NEVERMON']  # Priority ordering...
+        rsctypes = ["ocf", "nagios", "lsb", "NEVERMON"]  # Priority ordering...
         # This will make sure the priority list above is maintained :-D
         # Nagios rules can be of a variety of monitoring levels...
         mon_objects = MonitoringRule.monobjclass(objclass)
         if len(rsctypes) < len(mon_objects.keys()):
-            raise RuntimeError('Update rsctypes list in findbestmatch()!')
+            raise RuntimeError("Update rsctypes list in findbestmatch()!")
 
         bestmatch = (MonitoringRule.NOMATCH, None)
 
@@ -649,15 +701,14 @@ class MonitoringRule(object):
         return bestmatch
 
     @staticmethod
-    def findallmatches(context, objclass='service'):
+    def findallmatches(context, objclass="service"):
         """
         We return all possible matches as seen by our complete and wonderful set of
         MonitoringRules.
         """
         result = []
         mon_objects = MonitoringRule.monobjclass(objclass)
-        keys = mon_objects.keys()
-        keys.sort()
+        keys = sorted(mon_objects.keys())
         for rtype in keys:
             for rule in mon_objects[rtype]:
                 match = rule.specmatch(context)
@@ -672,7 +723,7 @@ class MonitoringRule(object):
         It will construct the appropriate subclass depending on its input
         string.  Note that the input is JSON -- with # comments.
         """
-        f = open(filename, 'r')
+        f = open(filename, "r")
         s = f.read()
         f.close()
         return MonitoringRule.construct_from_string(s)
@@ -696,27 +747,33 @@ class MonitoringRule(object):
                 path = os.path.join(dirpath, filename)
                 MonitoringRule.construct_from_file_name(path)
 
+
 class LSBMonitoringRule(MonitoringRule):
 
     """Class for implementing monitoring rules for sucky LSB style init script monitoring
     """
+
     def __init__(self, servicename, tuplespec):
         self.servicename = servicename
-        MonitoringRule.__init__(self, 'lsb', tuplespec)
+        MonitoringRule.__init__(self, "lsb", tuplespec)
 
     def constructaction(self, context):
         """Construct arguments
         """
         agentcache = MonitoringRule.compute_available_agents(context)
-        if 'lsb' not in agentcache or self.servicename not in agentcache['lsb']:
+        if "lsb" not in agentcache or self.servicename not in agentcache["lsb"]:
             return (MonitoringRule.NOMATCH, None)
-        return (MonitoringRule.LOWPRIOMATCH
-        ,       {   'monitorclass': 'lsb'
-                ,   'monitortype':  self.servicename
-                ,   'rscname':      'lsb_' + self.servicename # There can only be one
-                ,   'provider':     None
-                ,   'arglist':      None}
+        return (
+            MonitoringRule.LOWPRIOMATCH,
+            {
+                "monitorclass": "lsb",
+                "monitortype": self.servicename,
+                "rscname": "lsb_" + self.servicename,  # There can only be one
+                "provider": None,
+                "arglist": None,
+            },
         )
+
 
 class NEVERMonitoringRule(MonitoringRule):
 
@@ -724,20 +781,23 @@ class NEVERMonitoringRule(MonitoringRule):
     This is mostly things like Skype and friends which are started by users not
     by the system.
     """
+
     def __init__(self, servicename, tuplespec):
         self.servicename = servicename
-        MonitoringRule.__init__(self, 'NEVERMON', tuplespec)
+        MonitoringRule.__init__(self, "NEVERMON", tuplespec)
 
     def constructaction(self, context):
         """Construct arguments
         """
-        return (MonitoringRule.NEVERMATCH
-        ,       {   'monitorclass': 'NEVERMON'
-                ,   'monitortype':  self.servicename
-                ,   'provider':     None
-                ,   'arglist':      None}
+        return (
+            MonitoringRule.NEVERMATCH,
+            {
+                "monitorclass": "NEVERMON",
+                "monitortype": self.servicename,
+                "provider": None,
+                "arglist": None,
+            },
         )
-
 
 
 class OCFMonitoringRule(MonitoringRule):
@@ -775,8 +835,7 @@ class OCFMonitoringRule(MonitoringRule):
         self.rsctype = rsctype
 
         tuplespec = self.tripletuplecheck(triplespec)
-        MonitoringRule.__init__(self, 'ocf', tuplespec)
-
+        MonitoringRule.__init__(self, "ocf", tuplespec)
 
     def constructaction(self, context):
         """Construct arguments to give MonitorAction constructor
@@ -787,8 +846,8 @@ class OCFMonitoringRule(MonitoringRule):
             at all.
         """
         agentcache = MonitoringRule.compute_available_agents(context)
-        agentpath = '%s/%s' % (self.provider, self.rsctype)
-        if 'ocf' not in agentcache or agentpath not in agentcache['ocf']:
+        agentpath = "%s/%s" % (self.provider, self.rsctype)
+        if "ocf" not in agentcache or agentpath not in agentcache["ocf"]:
             # print("OCF agent %s not in agent cache" % agentpath, file=stderr)
             return MonitoringRule.NOMATCH, None
         #
@@ -797,13 +856,13 @@ class OCFMonitoringRule(MonitoringRule):
         # Figure out what we know how to supply and what we need to ask
         # a human for -- in order to properly monitor this resource
         for name in self.nvpairs:
-            if name.startswith('?'):
+            if name.startswith("?"):
                 optional = True
                 exprname = name[1:]
             else:
                 optional = False
-                exprname=name
-            expression = self.nvpairs[name] # NOT exprname
+                exprname = name
+            expression = self.nvpairs[name]  # NOT exprname
             val = GraphNodeExpression.evaluate(expression, context)
             # print('CONSTRUCTACTION.eval(%s) => %s' % (expression, val), file=stderr)
             if val is None and not optional:
@@ -812,34 +871,41 @@ class OCFMonitoringRule(MonitoringRule):
                 arglist[exprname] = str(val)
         if len(missinglist) == 0:
             # Hah!  We can automatically monitor it!
-            return  (MonitoringRule.HIGHPRIOMATCH
-                    ,    {   'monitorclass':    'ocf'
-                            ,   'monitortype':  self.rsctype
-                            ,   'provider':     self.provider
-                            ,   'arglist':      arglist
-                        }
-                    )
+            return (
+                MonitoringRule.HIGHPRIOMATCH,
+                {
+                    "monitorclass": "ocf",
+                    "monitortype": self.rsctype,
+                    "provider": self.provider,
+                    "arglist": arglist,
+                },
+            )
         else:
             # We can monitor it with some more help from a human
             # Better incomplete than a sharp stick in the eye ;-)
-            return (MonitoringRule.PARTMATCH
-                    ,   {   'monitorclass':     'ocf'
-                            ,   'monitortype':  self.rsctype
-                            ,   'provider':     self.provider
-                            ,   'arglist':      arglist
-                        }
-                    ,   missinglist
-                    )
+            return (
+                MonitoringRule.PARTMATCH,
+                {
+                    "monitorclass": "ocf",
+                    "monitortype": self.rsctype,
+                    "provider": self.provider,
+                    "arglist": arglist,
+                },
+                missinglist,
+            )
+
 
 class NagiosMonitoringRule(MonitoringRule):
     """Class for implementing monitoring rules for Nagios style init script monitoring
     """
+
     priomap = {
-            'low':  MonitoringRule.LOWPRIOMATCH,
-            'med':  MonitoringRule.MEDPRIOMATCH,
-            'high': MonitoringRule.HIGHPRIOMATCH,
+        "low": MonitoringRule.LOWPRIOMATCH,
+        "med": MonitoringRule.MEDPRIOMATCH,
+        "high": MonitoringRule.HIGHPRIOMATCH,
     }
-    def __init__(self, rsctype, prio, initargs, triplespec, objclass='service'):
+
+    def __init__(self, rsctype, prio, initargs, triplespec, objclass="service"):
         """
         Parameters
         ----------
@@ -869,15 +935,14 @@ class NagiosMonitoringRule(MonitoringRule):
             If there is a name and expression but no regex, the regex is assumed to be '.'
         """
         if prio not in self.priomap:
-            raise ValueError('Priority %s is not a valid priority' % prio)
+            raise ValueError("Priority %s is not a valid priority" % prio)
 
         self.rsctype = rsctype
         self.argv = None
         self.initargs = initargs
         self.prio = self.priomap[prio]
         tuplespec = self.tripletuplecheck(triplespec)
-        MonitoringRule.__init__(self, 'nagios', tuplespec, objclass=objclass)
-
+        MonitoringRule.__init__(self, "nagios", tuplespec, objclass=objclass)
 
     # [R0912:NagiosMonitoringRule.constructaction] Too many branches (13/12)
     # pylint: disable=R0912
@@ -890,9 +955,9 @@ class NagiosMonitoringRule(MonitoringRule):
             at all.
         """
         agentcache = MonitoringRule.compute_available_agents(context)
-        if 'nagios' not in agentcache or str(self.rsctype) not in agentcache['nagios']:
-            #CMAdb.log.debug('CONSTRUCTACTION.NOMATCH(%s) %s' % (self.rsctype, type(self.rsctype)))
-            #CMAdb.log.debug('AGENTCACHE: %s' % (str(agentcache)))
+        if "nagios" not in agentcache or str(self.rsctype) not in agentcache["nagios"]:
+            # CMAdb.log.debug('CONSTRUCTACTION.NOMATCH(%s) %s' % (self.rsctype, type(self.rsctype)))
+            # CMAdb.log.debug('AGENTCACHE: %s' % (str(agentcache)))
             return MonitoringRule.NOMATCH, None
         #
         missinglist = []
@@ -907,25 +972,25 @@ class NagiosMonitoringRule(MonitoringRule):
         # a human for -- in order to properly monitor this resource
         for name in self.nvpairs:
             # This code is very similar to the OCF code - but not quite the same...
-            if name.startswith('?'):
+            if name.startswith("?"):
                 optional = True
                 exprname = name[1:]
             else:
                 optional = False
-                exprname=name
+                exprname = name
             expression = self.nvpairs[exprname]
-            #CMAdb.log.debug('exprname is %s, expression is %s' % (exprname,expression))
+            # CMAdb.log.debug('exprname is %s, expression is %s' % (exprname,expression))
             val = GraphNodeExpression.evaluate(expression, context)
-            #CMAdb.log.debug('CONSTRUCTACTION.eval(%s) => %s' % (expression, val))
+            # CMAdb.log.debug('CONSTRUCTACTION.eval(%s) => %s' % (expression, val))
             if val is None:
                 if not optional:
                     missinglist.append(exprname)
                 else:
                     continue
-            if exprname.startswith('-'):
+            if exprname.startswith("-"):
                 argv.append(exprname)
                 argv.append(str(val))
-            elif exprname == '__ARGV__':
+            elif exprname == "__ARGV__":
                 final_argv.append(str(val))
             else:
                 arglist[exprname] = str(val)
@@ -936,35 +1001,42 @@ class NagiosMonitoringRule(MonitoringRule):
             argv = None
         if len(missinglist) == 0:
             # Hah!  We can automatically monitor it!
-            return  (self.prio
-                    ,    {   'monitorclass':    'nagios'
-                            ,   'monitortype':  self.rsctype
-                            ,   'provider':     None
-                            ,   'argv':         argv
-                            ,   'arglist':      arglist
-                        }
-                    )
+            return (
+                self.prio,
+                {
+                    "monitorclass": "nagios",
+                    "monitortype": self.rsctype,
+                    "provider": None,
+                    "argv": argv,
+                    "arglist": arglist,
+                },
+            )
         else:
             # We can monitor it with some more help from a human
             # Better incomplete than a sharp stick in the eye ;-)
-            return (MonitoringRule.PARTMATCH
-                    ,   {   'monitorclass':     'nagios'
-                            ,   'monitortype':  self.rsctype
-                            ,   'provider':     None
-                            ,   'argv':         argv
-                            ,   'arglist':      arglist
-                        }
-                    ,   missinglist
-                    )
-if __name__ == '__main__':
+            return (
+                MonitoringRule.PARTMATCH,
+                {
+                    "monitorclass": "nagios",
+                    "monitortype": self.rsctype,
+                    "provider": None,
+                    "argv": argv,
+                    "arglist": arglist,
+                },
+                missinglist,
+            )
+
+
+if __name__ == "__main__":
     # pylint: disable=C0413,C0411
     import inject
     from cmainit import CMAInjectables
     from graphnodes import ProcessNode
+
     inject.configure_once(CMAInjectables.test_config_injection)
 
     # R0903 too few public methods (it's test code!)
-    #pylint: disable=R0903
+    # pylint: disable=R0903
     class FakeDrone(dict):
         """Fake Drone class just for monitoring agents"""
 
@@ -976,111 +1048,141 @@ if __name__ == '__main__':
         def __init__(self, obj):
             """Fake Drone init for knowing monitoring agents"""
             dict.__init__(self)
-            self['_init_monitoringagents'] = obj
+            self["_init_monitoringagents"] = obj
 
-    fdrone = FakeDrone({
-        'data': {
-            'lsb':  {
-                    'neo4j-service',
-                    'ssh'
-                    },
-            'nagios':{
-                    'check_ssh',
-                    'check_sensors',
-            },
-            'ocf':  {
-                    'assimilation/neo4j',
-                    'heartbeat/oracle',
-                },
+    fdrone = FakeDrone(
+        {
+            "data": {
+                "lsb": {"neo4j-service", "ssh"},
+                "nagios": {"check_ssh", "check_sensors"},
+                "ocf": {"assimilation/neo4j", "heartbeat/oracle"},
             }
-        })
-    neolsbargs = (
-                ('$argv[0]', r'.*/[^/]*java[^/]*$'),   # Might be overkill
-                ('$argv[3]', r'-server$'),             # Probably overkill
-                ('$argv[-1]', r'org\.neo4j\.server\.Bootstrapper$'),
-        )
-    neorule = LSBMonitoringRule('neo4j-service', neolsbargs)
-    neoocfargs = (
-        (None,          "@basename()",               "java$"),
-        (None,          "$argv[-1]",                 "org\\.neo4j\\.server\\.Bootstrapper$"),
-        #("ipport",      "@serviceipport()",          "..."),
-        ("neo4j_home",  "@argequals(-Dneo4j.home)", "/"),
-        ("neo4j",       "@basename(@argequals(-Dneo4j.home))",".")
+        }
     )
-    neoocfrule = OCFMonitoringRule('assimilation', 'neo4j', neoocfargs)
+    neolsbargs = (
+        ("$argv[0]", r".*/[^/]*java[^/]*$"),  # Might be overkill
+        ("$argv[3]", r"-server$"),  # Probably overkill
+        ("$argv[-1]", r"org\.neo4j\.server\.Bootstrapper$"),
+    )
+    neorule = LSBMonitoringRule("neo4j-service", neolsbargs)
+    neoocfargs = (
+        (None, "@basename()", "java$"),
+        (None, "$argv[-1]", "org\\.neo4j\\.server\\.Bootstrapper$"),
+        # ("ipport",      "@serviceipport()",          "..."),
+        ("neo4j_home", "@argequals(-Dneo4j.home)", "/"),
+        ("neo4j", "@basename(@argequals(-Dneo4j.home))", "."),
+    )
+    neoocfrule = OCFMonitoringRule("assimilation", "neo4j", neoocfargs)
 
-    #ProcessNode:
+    # ProcessNode:
     #   (domain, processname, host, pathname, argv, uid, gid, cwd, roles=None):
-    sshnode = ProcessNode('global', 'fred', 'servidor', '/usr/bin/sshd', ['/usr/bin/sshd', '-D' ]
-    ,   'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
-    setattr(sshnode, 'procinfo'
-    ,   '{"listenaddrs":{"0.0.0.0:22":"tcp", ":::22":"tcp6"}}')
+    sshnode = ProcessNode(
+        "global",
+        "fred",
+        "servidor",
+        "/usr/bin/sshd",
+        ["/usr/bin/sshd", "-D"],
+        "root",
+        "root",
+        "/",
+        roles=(CMAconsts.ROLE_server,),
+    )
+    setattr(sshnode, "procinfo", '{"listenaddrs":{"0.0.0.0:22":"tcp", ":::22":"tcp6"}}')
 
     lsbsshargs = (
-                # This means one of our nodes should have a value called
-                # pathname, and it should end in '/sshd'
-                ('$pathname', '.*/sshd$'),
-        )
-    lsbsshrule = LSBMonitoringRule('ssh', lsbsshargs)
+        # This means one of our nodes should have a value called
+        # pathname, and it should end in '/sshd'
+        ("$pathname", ".*/sshd$"),
+    )
+    lsbsshrule = LSBMonitoringRule("ssh", lsbsshargs)
 
     nagiossshargs = (
-                (None, '@basename()', '.*sshd$'),
-                ('-p', '@serviceport()', '[0-9]+'),
-                ('__ARGV__', '@serviceip()', '.'),
+        (None, "@basename()", ".*sshd$"),
+        ("-p", "@serviceport()", "[0-9]+"),
+        ("__ARGV__", "@serviceip()", "."),
     )
-    nagiossshrule = NagiosMonitoringRule('check_ssh', 'med', ['-t', '3600'], nagiossshargs)
+    nagiossshrule = NagiosMonitoringRule("check_ssh", "med", ["-t", "3600"], nagiossshargs)
 
-    nagiossensorsargs =  ((None, 'hascmd(sensors)', "True"),)
-    nagiossensorsrule = NagiosMonitoringRule('check_sensors', 'med', [], nagiossensorsargs
-    ,   objclass='host')
+    nagiossensorsargs = ((None, "hascmd(sensors)", "True"),)
+    nagiossensorsrule = NagiosMonitoringRule(
+        "check_sensors", "med", [], nagiossensorsargs, objclass="host"
+    )
 
+    udevnode = ProcessNode(
+        "global",
+        "fred",
+        "servidor",
+        "/usr/bin/udevd",
+        ["/usr/bin/udevd"],
+        "root",
+        "root",
+        "/",
+        roles=(CMAconsts.ROLE_server,),
+    )
 
-    udevnode = ProcessNode('global', 'fred', 'servidor', '/usr/bin/udevd', ['/usr/bin/udevd']
-    ,   'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
+    neoprocargs = (
+        "/usr/bin/java",
+        "-cp",
+        "/var/lib/neo4j/lib/concurrentlinkedhashmap-lru-1.3.1.jar:"
+        "/var/lib/neo4j/lib/geronimo-jta_1.1_spec-1.1.1.jar:/var/lib/neo4j/lib/lucene-core-3.6.2.jar"
+        ":/var/lib/neo4j/lib/neo4j-cypher-2.0.0-M04.jar"
+        ":/var/lib/neo4j/lib/neo4j-graph-algo-2.0.0-M04.jar"
+        ":/var/lib/neo4j/lib/neo4j-graph-matching-2.0.0-M04.jar"
+        ":/var/lib/neo4j/lib/neo4j-jmx-2.0.0-M04.jar"
+        ":/var/lib/neo4j/lib/neo4j-kernel-2.0.0-M04.jar"
+        ":/var/lib/neo4j/lib/neo4j-lucene-index-2.0.0-M04.jar"
+        ":/var/lib/neo4j/lib/neo4j-shell-2.0.0-M04.jar"
+        ":/var/lib/neo4j/lib/neo4j-udc-2.0.0-M04.jar"
+        "/var/lib/neo4j/system/lib/neo4j-server-2.0.0-M04-static-web.jar:"
+        "AND SO ON:"
+        "/var/lib/neo4j/system/lib/slf4j-api-1.6.2.jar:"
+        "/var/lib/neo4j/conf/",
+        "-server",
+        "-XX:" "+DisableExplicitGC",
+        "-Dorg.neo4j.server.properties=conf/neo4j-server.properties",
+        "-Djava.util.logging.config.file=conf/logging.properties",
+        "-Dlog4j.configuration=file:conf/log4j.properties",
+        "-XX:+UseConcMarkSweepGC",
+        "-XX:+CMSClassUnloadingEnabled",
+        "-Dneo4j.home=/var/lib/neo4j",
+        "-Dneo4j.instance=/var/lib/neo4j",
+        "-Dfile.encoding=UTF-8",
+        "org.neo4j.server.Bootstrapper",
+    )
 
-
-    neoprocargs = ("/usr/bin/java", "-cp"
-    , "/var/lib/neo4j/lib/concurrentlinkedhashmap-lru-1.3.1.jar:"
-    "/var/lib/neo4j/lib/geronimo-jta_1.1_spec-1.1.1.jar:/var/lib/neo4j/lib/lucene-core-3.6.2.jar"
-    ":/var/lib/neo4j/lib/neo4j-cypher-2.0.0-M04.jar"
-    ":/var/lib/neo4j/lib/neo4j-graph-algo-2.0.0-M04.jar"
-    ":/var/lib/neo4j/lib/neo4j-graph-matching-2.0.0-M04.jar"
-    ":/var/lib/neo4j/lib/neo4j-jmx-2.0.0-M04.jar"
-    ":/var/lib/neo4j/lib/neo4j-kernel-2.0.0-M04.jar"
-    ":/var/lib/neo4j/lib/neo4j-lucene-index-2.0.0-M04.jar"
-    ":/var/lib/neo4j/lib/neo4j-shell-2.0.0-M04.jar"
-    ":/var/lib/neo4j/lib/neo4j-udc-2.0.0-M04.jar"
-    "/var/lib/neo4j/system/lib/neo4j-server-2.0.0-M04-static-web.jar:"
-    "AND SO ON:"
-    "/var/lib/neo4j/system/lib/slf4j-api-1.6.2.jar:"
-    "/var/lib/neo4j/conf/", "-server", "-XX:"
-    "+DisableExplicitGC"
-    ,   "-Dorg.neo4j.server.properties=conf/neo4j-server.properties"
-    ,   "-Djava.util.logging.config.file=conf/logging.properties"
-    ,   "-Dlog4j.configuration=file:conf/log4j.properties"
-    ,   "-XX:+UseConcMarkSweepGC"
-    ,   "-XX:+CMSClassUnloadingEnabled"
-    ,   "-Dneo4j.home=/var/lib/neo4j"
-    ,   "-Dneo4j.instance=/var/lib/neo4j"
-    ,   "-Dfile.encoding=UTF-8"
-    ,   "org.neo4j.server.Bootstrapper")
-
-    neonode = ProcessNode('global', 'fred', 'servidor', '/usr/bin/java', neoprocargs
-    ,   'root', 'root', '/', roles=(CMAconsts.ROLE_server,))
+    neonode = ProcessNode(
+        "global",
+        "fred",
+        "servidor",
+        "/usr/bin/java",
+        neoprocargs,
+        "root",
+        "root",
+        "/",
+        roles=(CMAconsts.ROLE_server,),
+    )
     withsensors = pyConfigContext('{"_init_commands" :  {"data": {"sensors": null}}}')
     nosensors = pyConfigContext('{"_init_commands": {"data": {"bash": null}}}')
 
-    oracleocfargs = (
-        (None,          "@basename()",               "oracle$"),
-        ("sid",         "@argmatch(\"ora_pmon_(.*)\")", "..*")
+    oracleocfargs = ((None, "@basename()", "oracle$"), ("sid", '@argmatch("ora_pmon_(.*)")', "..*"))
+    oracleocfrule = OCFMonitoringRule("heartbeat", "oracle", oracleocfargs)
+    oraclenode = ProcessNode(
+        "global",
+        "fred",
+        "servidor",
+        "/usr/bin/oracle",
+        ["ora_pmon_InstanceName"],
+        "oracle",
+        "oracle",
+        "/",
+        roles=(CMAconsts.ROLE_server,),
     )
-    oracleocfrule = OCFMonitoringRule('heartbeat', 'oracle', oracleocfargs)
-    oraclenode = ProcessNode('global', 'fred', 'servidor', '/usr/bin/oracle'
-    ,   ['ora_pmon_InstanceName'], 'oracle', 'oracle', '/', roles=(CMAconsts.ROLE_server,))
 
     tests = [
-        (oracleocfrule.specmatch(ExpressionContext((oraclenode, fdrone))),
-                                 MonitoringRule.HIGHPRIOMATCH),
+        (
+            oracleocfrule.specmatch(ExpressionContext((oraclenode, fdrone))),
+            MonitoringRule.HIGHPRIOMATCH,
+        ),
         (lsbsshrule.specmatch(ExpressionContext((sshnode, fdrone))), MonitoringRule.LOWPRIOMATCH),
         (lsbsshrule.specmatch(ExpressionContext((udevnode, fdrone))), MonitoringRule.NOMATCH),
         (lsbsshrule.specmatch(ExpressionContext((neonode, fdrone))), MonitoringRule.NOMATCH),
@@ -1088,20 +1190,26 @@ if __name__ == '__main__':
         (neorule.specmatch(ExpressionContext((neonode, fdrone))), MonitoringRule.LOWPRIOMATCH),
         (neoocfrule.specmatch(ExpressionContext((neonode, fdrone))), MonitoringRule.HIGHPRIOMATCH),
         (neoocfrule.specmatch(ExpressionContext((neonode, fdrone))), MonitoringRule.HIGHPRIOMATCH),
-        (nagiossshrule.specmatch(ExpressionContext((sshnode, fdrone))),
-         MonitoringRule.MEDPRIOMATCH),
+        (
+            nagiossshrule.specmatch(ExpressionContext((sshnode, fdrone))),
+            MonitoringRule.MEDPRIOMATCH,
+        ),
         (nagiossshrule.specmatch(ExpressionContext((udevnode, fdrone))), MonitoringRule.NOMATCH),
         (nagiossshrule.specmatch(ExpressionContext((neonode, fdrone))), MonitoringRule.NOMATCH),
-        (nagiossensorsrule.specmatch(ExpressionContext((withsensors, fdrone))),
-         MonitoringRule.MEDPRIOMATCH),
-        (nagiossensorsrule.specmatch(ExpressionContext((nosensors, fdrone))),
-         MonitoringRule.NOMATCH),
+        (
+            nagiossensorsrule.specmatch(ExpressionContext((withsensors, fdrone))),
+            MonitoringRule.MEDPRIOMATCH,
+        ),
+        (
+            nagiossensorsrule.specmatch(ExpressionContext((nosensors, fdrone))),
+            MonitoringRule.NOMATCH,
+        ),
     ]
-    fieldmap = {'monitortype': str, 'arglist':dict, 'monitorclass': str, 'provider':str}
+    fieldmap = {"monitortype": str, "arglist": dict, "monitorclass": str, "provider": str}
     for count in range(0, len(tests)):
         testresult = tests[count][0]
         expected = tests[count][1]
-        assert (testresult[0] == expected)
+        assert testresult[0] == expected
         if testresult[0] == MonitoringRule.NOMATCH:
             assert testresult[1] is None
         else:
@@ -1110,33 +1218,33 @@ if __name__ == '__main__':
                 assert field in testresult[1]
                 fieldvalue = testresult[1][field]
                 assert fieldvalue is None or isinstance(fieldvalue, fieldmap[field])
-            assert testresult[1]['monitorclass'] in ('ocf', 'lsb', 'nagios')
-            if testresult[1]['monitorclass'] == 'ocf':
-                assert testresult[1]['provider'] is not None
-                assert isinstance(testresult[1]['arglist'], dict)
-            elif testresult[1]['monitorclass'] == 'lsb':
-                assert testresult[1]['provider'] is None
-                assert testresult[1]['arglist'] is None
-                assert isinstance(testresult[1]['rscname'], str)
+            assert testresult[1]["monitorclass"] in ("ocf", "lsb", "nagios")
+            if testresult[1]["monitorclass"] == "ocf":
+                assert testresult[1]["provider"] is not None
+                assert isinstance(testresult[1]["arglist"], dict)
+            elif testresult[1]["monitorclass"] == "lsb":
+                assert testresult[1]["provider"] is None
+                assert testresult[1]["arglist"] is None
+                assert isinstance(testresult[1]["rscname"], str)
             if testresult[0] == MonitoringRule.PARTMATCH:
-                assert testresult[1]['monitorclass'] in ('ocf',)
+                assert testresult[1]["monitorclass"] in ("ocf",)
                 assert len(testresult) == 3
-                assert isinstance(testresult[2], (list, tuple)) # List of missing fields...
+                assert isinstance(testresult[2], (list, tuple))  # List of missing fields...
                 assert len(testresult[2]) > 0
 
         print("Test %s passes [%s]." % (count, testresult))
 
-    print('Documentation of functions available for use in match expressions:')
+    print("Documentation of functions available for use in match expressions:")
     longest = 0
     for (funcname, description) in GraphNodeExpression.FunctionDescriptions():
         if len(funcname) > longest:
             longest = len(funcname)
-    fmt = '%%%ds: %%s' % longest
-    pad = (longest +2) * ' '
-    fmt2 = pad + '%s'
+    fmt = "%%%ds: %%s" % longest
+    pad = (longest + 2) * " "
+    fmt2 = pad + "%s"
 
     for (funcname, description) in GraphNodeExpression.FunctionDescriptions():
-        descriptions = description.split('\n')
+        descriptions = description.split("\n")
         print(fmt % (funcname, descriptions[0]))
         for descr in descriptions[1:]:
             print(fmt2 % descr)

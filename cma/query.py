@@ -27,8 +27,10 @@
 This module provides classes associated with querying - including providing metadata
 about these queries for the client code.
 """
+from __future__ import print_function
 import os
 import sys
+from sys import stderr
 import re
 import collections
 import operator
@@ -41,6 +43,7 @@ from bestpractices import BestPractices
 from cmadb import CMAdb
 from droneinfo import Drone
 from consts import CMAconsts
+from invariant_data import SQLiteInstance
 
 
 @registergraphclass
@@ -48,12 +51,13 @@ class ClientQuery(GraphNode):
     """This class defines queries which can be requested from clients (typically JavaScript)
     The output of all queries is JSON - as filtered by our security mechanism
     """
+
     node_query_url = "/doquery/GetaNodeById"
 
-    def __init__(self, queryname, JSON_metadata=None):
+    def __init__(self, queryname, json_metadata=None):
         """Parameters
         ----------
-        JSON_metadata  - a JSON string containing
+        json_metadata  - a JSON string containing
                 'querytype':    a string denoting our query type - defaults to 'cypher'
                 'cypher':       a string containing our cypher query (if a cypher query)
                 'subtype':      a string giving the query subtype (if applicable)
@@ -86,26 +90,26 @@ class ClientQuery(GraphNode):
         """
 
         self.queryname = queryname
-        self.JSON_metadata = JSON_metadata
+        self.JSON_metadata = json_metadata
         self._store = None
         self._db = None
         self._queryobj = None
-        if JSON_metadata is None:
+        if json_metadata is None:
             self._JSON_metadata = None
         else:
-            self._JSON_metadata = pyConfigContext(JSON_metadata)
+            self._JSON_metadata = pyConfigContext(json_metadata)
             if self._JSON_metadata is None:
-                raise ValueError('Parameter JSON_metadata is invalid [%s]' % JSON_metadata)
-        GraphNode.__init__(self, domain='metadata')
+                raise ValueError("Parameter json_metadata is invalid [%s]" % json_metadata)
+        GraphNode.__init__(self, domain="metadata")
 
     @classmethod
     def meta_key_attributes(cls):
-        'Return our key attributes in order of decreasing significance'
-        return ['queryname']
+        """Return our key attributes in order of decreasing significance"""
+        return ["queryname"]
 
     @staticmethod
     def set_node_query_url(node_query_url):
-        'Set the base URL for the query operation that returns a node by node id'
+        """Set the base URL for the query operation that returns a node by node id"""
         ClientQuery.node_query_url = node_query_url
 
     def post_db_init(self):
@@ -115,7 +119,7 @@ class ClientQuery(GraphNode):
             self.validate_json()
 
     def bind_store(self, store):
-        'Connect our query to a database'
+        """Connect our query to a database"""
         db = store.db
         if self._store is not store:
             self._store = store
@@ -125,43 +129,53 @@ class ClientQuery(GraphNode):
         self.validate_json()
 
     def parameter_names(self):
-        'Return the parameter names that go with this query'
+        """Return the parameter names that go with this query"""
         return self._queryobj.parameter_names()
 
-    def execute(self, executor_context, idsonly=False, expandJSON=False, maxJSON=0, elemsonly=False
-    ,       **params):
-        'Execute the query and return an iterator that produces sanitized (filtered) results'
+    def execute(
+        self,
+        executor_context,
+        idsonly=False,
+        expandjson=False,
+        maxjson=0,
+        elemsonly=False,
+        **params
+    ):
+        """Execute the query and return an iterator that produces sanitized (filtered) results"""
         if self._db is None:
-            raise ValueError('query must be bound to a Store')
+            raise ValueError("query must be bound to a Store")
 
         queryobj = QueryExecutor.construct_query(self._store, self._JSON_metadata)
         qparams = queryobj.parameter_names()
         for pname in qparams:
             if pname not in params:
-                raise ValueError('Required parameter "%s" for %s query is missing'
-                %    (pname, self.queryname))
+                raise ValueError(
+                    'Required parameter "%s" for %s query is missing' % (pname, self.queryname)
+                )
         for pname in params.keys():
             if pname not in qparams:
-                raise ValueError('Excess parameter "%s" supplied for %s query'
-                %    (pname, self.queryname))
+                raise ValueError(
+                    'Excess parameter "%s" supplied for %s query' % (pname, self.queryname)
+                )
         fixedparams = self.validate_parameters(params)
         resultiter = queryobj.result_iterator(fixedparams)
-        return self.filter_json(executor_context, idsonly, expandJSON
-        ,   maxJSON, resultiter, elemsonly)
+        return self.filter_json(
+            executor_context, idsonly, expandjson, maxjson, resultiter, elemsonly
+        )
 
-
-    def supports_cmdline(self, language='en'):
-        'Return True if this query supports command line formatting'
+    def supports_cmdline(self, language="en"):
+        """Return True if this query supports command line formatting"""
         meta = self._JSON_metadata
-        return 'cmdline' in meta and language in meta['cmdline']
+        return "cmdline" in meta and language in meta["cmdline"]
 
-    def cmdline_exec(self, executor_context, language='en', fmtstring=None, **params):
-        'Execute the command line version of the query for the specified language'
+    def cmdline_exec(self, executor_context, language="en", fmtstring=None, **params):
+        """Execute the command line version of the query for the specified language"""
         if fmtstring is None:
-            fmtstring = self._JSON_metadata['cmdline'][language]
+            fmtstring = self._JSON_metadata["cmdline"][language]
         fixedparams = self.validate_parameters(params)
-        for json in self.execute(executor_context, expandJSON=True
-        ,           maxJSON=5120, elemsonly=True, **fixedparams):
+        for json in self.execute(
+            executor_context, expandjson=True, maxjson=5120, elemsonly=True, **fixedparams
+        ):
             obj = pyConfigContext(json)
             yield ClientQuery._cmdline_substitute(fmtstring, obj)
 
@@ -169,18 +183,17 @@ class ClientQuery(GraphNode):
     def _cmdline_substitute(fmtstring, queryresult):
         """Perform expression substitution for command line queries.
         'Substitute fields into the command line output"""
-        chunks = fmtstring.split('${')
+        chunks = fmtstring.split("${")
         result = chunks[0]
         for j in range(1, len(chunks)):
             # Now we split it up into variable-expression, '}' and extrastuff...
-            (variable, extra) = chunks[j].split('}',1)
-            result += str(JSONtree(queryresult.deepget(variable, 'undefined')))
+            (variable, extra) = chunks[j].split("}", 1)
+            result += str(JSONtree(queryresult.deepget(variable, "undefined")))
             result += extra
         return result
 
     @staticmethod
-    def filter_json(executor_context, idsonly, expandJSON, maxJSON
-    ,       resultiter, elemsonly=False):
+    def filter_json(executor_context, idsonly, expandjson, maxjson, resultiter, elemsonly=False):
         """Return a sanitized (filtered) JSON stream from the input iterator
         The idea of the filtering is to enforce security restrictions on which
         things can be returned and which fields the executor is allowed to view.
@@ -196,23 +209,24 @@ class ClientQuery(GraphNode):
         """
         idsonly = idsonly
         executor_context = executor_context
-        rowdelim = '{"data":[' if not elemsonly else ''
+        rowdelim = '{"data":[' if not elemsonly else ""
         rowcount = 0
         for result in resultiter:
             # result is a namedtuple
             rowcount += 1
             if len(result) == 1:
                 if idsonly:
-                    yield ('%s"%s/%d"' %
-                           (rowdelim,
-                            ClientQuery.node_query_url,
-                            result[0].association.node_id))
+                    yield (
+                        '%s"%s/%d"'
+                        % (rowdelim, ClientQuery.node_query_url, result[0].association.node_id)
+                    )
                 else:
-                    yield rowdelim + str(JSONtree(result[0], expandJSON=expandJSON,
-                                                  maxJSON=maxJSON))
+                    yield rowdelim + str(
+                        JSONtree(result[0], expandJSON=expandjson, maxJSON=maxjson)
+                    )
             else:
-                delim = rowdelim + '{'
-                row = ''
+                delim = rowdelim + "{"
+                row = ""
                 # W0212: Access to a protected member _fields of a client class
                 # No other way to get the list of columns/fields...
                 # OK - there may be another way, but I didn't how to apply what Nigel told me
@@ -223,19 +237,20 @@ class ClientQuery(GraphNode):
                         row += '%s"%s":"%s"' % (delim, attr, value.association.node_id)
 
                     else:
-                        row += '%s"%s":%s' % (delim,
-                                              attr,
-                                              str(JSONtree(value, expandJSON=expandJSON,
-                                                           maxJSON=maxJSON)))
-                    delim = ','
-                yield row + '}'
+                        row += '%s"%s":%s' % (
+                            delim,
+                            attr,
+                            str(JSONtree(value, expandJSON=expandjson, maxJSON=maxjson)),
+                        )
+                    delim = ","
+                yield row + "}"
             if not elemsonly:
-                rowdelim = ','
+                rowdelim = ","
         if not elemsonly:
             if rowcount == 0:
                 yield '{"data":[]}'
             else:
-                yield ']}'
+                yield "]}"
 
     # R0912: Too many branches; R0914: too many local variables
     # pylint: disable=R0914,R0912
@@ -243,104 +258,110 @@ class ClientQuery(GraphNode):
         """Validate the JSON metadata for this query - it's complicated!"""
         queryobj = QueryExecutor.construct_query(self._store, self._JSON_metadata)
         query_parameter_names = queryobj.parameter_names()
-        if 'parameters' not in self._JSON_metadata:
-            raise ValueError('parameters missing from metadata')
-        paramdict = self._JSON_metadata['parameters']
-        if 'descriptions' not in self._JSON_metadata:
-            print >> sys.stderr, 'METADATA:', self._JSON_metadata
-            raise ValueError('descriptions missing from metadata')
+        if "parameters" not in self._JSON_metadata:
+            raise ValueError("parameters missing from metadata")
+        paramdict = self._JSON_metadata["parameters"]
+        if "descriptions" not in self._JSON_metadata:
+            print("METADATA:", self._JSON_metadata, file=stderr)
+            raise ValueError("descriptions missing from metadata")
 
         # Validate query descriptions
-        languages = self._JSON_metadata['descriptions']
+        languages = self._JSON_metadata["descriptions"]
         for lang in languages:
             thislang = languages[lang]
-            if 'short' not in thislang:
+            if "short" not in thislang:
                 raise ValueError('"short" query description missing from language %s' % lang)
-            if 'long' not in thislang:
+            if "long" not in thislang:
                 raise ValueError('"long" query description missing from language %s' % lang)
-        if 'en' not in languages:
+        if "en" not in languages:
             raise ValueError("Query description must include language en'")
         for name in query_parameter_names:
             if name not in paramdict:
-                raise ValueError('Required parameter %s missing from JSON parameters' % name)
+                raise ValueError("Required parameter %s missing from JSON parameters" % name)
         for name in paramdict.keys():
             if name not in query_parameter_names:
-                raise ValueError('JSON parameter %s not required by query' % name)
+                raise ValueError("JSON parameter %s not required by query" % name)
 
         # Validate query parameters
         for param in queryobj.parameter_names():
             pinfo = paramdict[param]
-            ptype = pinfo['type']
+            ptype = pinfo["type"]
             self.validate_query_parameter_metadata(param, pinfo)
             # Validate parameter information for this (param) language
-            if 'lang' not in pinfo:
+            if "lang" not in pinfo:
                 raise ValueError("Parameter %s must include 'lang' information" % param)
-            langs = pinfo['lang']
+            langs = pinfo["lang"]
             for lang in languages.keys():
                 if lang not in langs:
-                    raise ValueError("Language %s missing from parameter %s"  % param)
+                    raise ValueError("Language %s missing from parameter %s" % param)
             for lang in langs.keys():
                 if lang not in languages:
-                    raise ValueError("Language %s missing from query description %s"  % lang)
+                    raise ValueError("Language %s missing from query description %s" % lang)
             for eachlang in langs.keys():
                 thislang = langs[eachlang]
-                if 'short' not in thislang:
-                    raise ValueError("Parameter %s, language %s must include 'short' info"
-                    %       (param, eachlang))
-                if 'long' not in thislang:
-                    raise ValueError("Parameter %s, language %s must include 'long' info"
-                    %       (param, eachlang))
-                if ptype == 'enum' or (ptype == 'list' and pinfo['listtype']['type'] == 'enum'):
-                    if 'enumlist' not in thislang:
-                        raise ValueError("Parameter %s, language %s must include 'enumlist' info"
-                        %       (param, eachlang))
-                    enums = thislang['enumlist']
-                    elist = pinfo['enumlist'] if ptype == 'enum' else pinfo['listtype']['enumlist']
+                if "short" not in thislang:
+                    raise ValueError(
+                        "Parameter %s, language %s must include 'short' info" % (param, eachlang)
+                    )
+                if "long" not in thislang:
+                    raise ValueError(
+                        "Parameter %s, language %s must include 'long' info" % (param, eachlang)
+                    )
+                if ptype == "enum" or (ptype == "list" and pinfo["listtype"]["type"] == "enum"):
+                    if "enumlist" not in thislang:
+                        raise ValueError(
+                            "Parameter %s, language %s must include 'enumlist' info"
+                            % (param, eachlang)
+                        )
+                    enums = thislang["enumlist"]
+                    elist = pinfo["enumlist"] if ptype == "enum" else pinfo["listtype"]["enumlist"]
                     for e in elist:
                         if e not in enums:
-                            raise ValueError("Parameter %s, language %s missing enum value %s"
-                            %       (param, eachlang, e))
+                            raise ValueError(
+                                "Parameter %s, language %s missing enum value %s"
+                                % (param, eachlang, e)
+                            )
         return True
 
-
     def validate_query_parameter_metadata(self, param, pinfo):
-        'Validate the paramater metadata for this query'
-        if 'type' not in pinfo:
-            raise ValueError('Parameter %s missing type field' % param)
-        ptype = pinfo['type']
+        """Validate the paramater metadata for this query"""
+        if "type" not in pinfo:
+            raise ValueError("Parameter %s missing type field" % param)
+        ptype = pinfo["type"]
         if ptype not in ClientQuery._validationmethods:
-            raise ValueError('Parameter %s has invalid type %s'% (param, ptype))
-        if 'min' in pinfo and ptype != 'int' and ptype != 'float':
-            raise ValueError('Min only valid on numeric fields [%s]'% param )
-        if 'max' in pinfo and ptype != 'int' and ptype != 'float':
-            raise ValueError('Max only valid on numeric fields [%s]'% param )
-        if ptype == 'list':
-            if 'listtype' not in pinfo:
-                raise ValueError('List type [%s] requires listtype'% (param))
-            self.validate_query_parameter_metadata('list', pinfo['listtype'])
-        if ptype == 'enum':
-            if 'enumlist' not in pinfo:
-                raise ValueError('Enum type [%s] requires enumlist'% (param))
-            elist = pinfo['enumlist']
+            raise ValueError("Parameter %s has invalid type %s" % (param, ptype))
+        if "min" in pinfo and ptype != "int" and ptype != "float":
+            raise ValueError("Min only valid on numeric fields [%s]" % param)
+        if "max" in pinfo and ptype != "int" and ptype != "float":
+            raise ValueError("Max only valid on numeric fields [%s]" % param)
+        if ptype == "list":
+            if "listtype" not in pinfo:
+                raise ValueError("List type [%s] requires listtype" % param)
+            self.validate_query_parameter_metadata("list", pinfo["listtype"])
+        if ptype == "enum":
+            if "enumlist" not in pinfo:
+                raise ValueError("Enum type [%s] requires enumlist" % param)
+            elist = pinfo["enumlist"]
             for enum in elist:
-                if not isinstance(enum, str) and not isinstance(enum, unicode):
-                    raise ValueError('Enumlist values [%s] must be strings - not %s'
-                    %   (enum, type(enum)))
+                if not isinstance(enum, six.string_types):
+                    raise ValueError(
+                        "Enumlist values [%s] must be strings - not %s" % (enum, type(enum))
+                    )
 
     def validate_parameters(self, parameters):
         """
         parameters is a Dict-like object containing parameter names and values
         """
         # Let's see if all the parameters were supplied
-        paramdict = self._JSON_metadata['parameters']
+        paramdict = self._JSON_metadata["parameters"]
         queryobj = QueryExecutor.construct_query(self._store, self._JSON_metadata)
         for param in queryobj.parameter_names():
             if param not in parameters:
-                raise ValueError('Parameter %s not supplied' % param)
+                raise ValueError("Parameter %s not supplied" % param)
         # Let's see if any extraneous parameters were supplied
         for param in parameters.keys():
             if param not in paramdict:
-                raise ValueError('Invalid Parameter %s supplied' % param)
+                raise ValueError("Invalid Parameter %s supplied" % param)
         result = {}
         for param in parameters.keys():
             value = parameters[param]
@@ -348,209 +369,190 @@ class ClientQuery(GraphNode):
             result[param] = canonvalue
         return result
 
-
+    @staticmethod
+    def _validate_dnsname(_name, _paraminfo, value):
+        """Validate an DNS name value"""
+        value = str(value)
+        return value.lower()
 
     @staticmethod
-    def _validate_int(name, paraminfo, value):
-        'Validate an int value'
-        val = int(value)
-        if 'min' in paraminfo:
-            minval = paraminfo['min']
-            if val < minval:
-                raise ValueError('Value of %s [%s] smaller than mininum [%s]'
-                %   (name, val, minval))
-        if 'max' in paraminfo:
-            maxval = paraminfo['max']
-            if val > maxval:
-                raise ValueError('Value of %s [%s] larger than maximum [%s]'
-                %   (name, val, maxval))
-        return val
+    def _validate_hostname(name, paraminfo, value):
+        """Validate a hostname value"""
+        return ClientQuery._validate_dnsname(name, paraminfo, value)
 
     @staticmethod
-    def _validate_float(name, paraminfo, value):
-        'Validate an floating point value'
-        val = float(value)
-        if 'min' in paraminfo:
-            minval = paraminfo['min']
-            if val < minval:
-                raise ValueError('Value of %s[%s] smaller than mininum [%s]'
-                %   (name, val, minval))
-        if 'max' in paraminfo:
-            maxval = paraminfo['max']
-            if val > maxval:
-                raise ValueError('Value of %s [%s] larger than maximum [%s]'
-                %   (name, val, maxval))
-        return val
-
-    @staticmethod
-    def _validate_string(_name, _paraminfo, value):
-        'Validate a string value (FIXME: should this always be valid??)'
-        # FIXME: This should probably make sure no " or ' or [], ;'s - maybe others?
-        # Probably should allow ":"
+    def _validate_regex(name, _paraminfo, value):
+        """Validate a regular expression"""
+        try:
+            re.compile(value)
+        except re.error as e:
+            raise ValueError(
+                'Value of %s ("%s") is not a valid regular expression [%s]' % (name, value, str(e))
+            )
         return value
 
     @staticmethod
-    def _validate_macaddr(name, _paraminfo, value):
-        'Validate an MAC address value'
-        mac = pyNetAddr(value)
-        if mac is None:
-            raise ValueError('value of %s [%s] not a valid MAC address' % (name, value))
-        if mac.addrtype() != ADDR_FAMILY_802:
-            raise ValueError('Value of %s [%s] not a MAC address' % (name, value))
-        return str(mac)
+    def _validate_bool(name, _paraminfo, value):
+        """Validate an Boolean value"""
+        if not isinstance(value, bool):
+            raise ValueError("Value of %s [%s] not a boolean" % (name, value))
+        return value
 
     @staticmethod
     def _validate_ipaddr(name, _paraminfo, value):
-        'Validate an IP address value'
+        """Validate an IP address value"""
         ip = pyNetAddr(value)
         if ip is None:
-            raise ValueError('Value of %s [%s] not a valid IP address' % (name, value))
+            raise ValueError("Value of %s [%s] not a valid IP address" % (name, value))
         ip.setport(0)
         if ip.addrtype() == ADDR_FAMILY_IPV6:
             return str(ip)
         if ip.addrtype() == ADDR_FAMILY_IPV4:
             return str(ip.toIPv6())
-        raise ValueError('Value of %s [%s] not an IP address' % (name, value))
+        raise ValueError("Value of %s [%s] not an IP address" % (name, value))
 
     @staticmethod
-    def _validate_bool(name, _paraminfo, value):
-        'Validate an Boolean value'
-        if not isinstance(value, bool):
-            raise ValueError('Value of %s [%s] not a boolean' % (name, value))
+    def _validate_macaddr(name, _paraminfo, value):
+        """Validate an MAC address value"""
+        mac = pyNetAddr(value)
+        if mac is None:
+            raise ValueError("value of %s [%s] not a valid MAC address" % (name, value))
+        if mac.addrtype() != ADDR_FAMILY_802:
+            raise ValueError("Value of %s [%s] not a MAC address" % (name, value))
+        return str(mac)
+
+    @staticmethod
+    def _validate_string(_name, _paraminfo, value):
+        """Validate a string value (FIXME: should this always be valid??)"""
+        # FIXME: This should probably make sure no " or ' or [], ;'s - maybe others?
+        # Probably should allow ":"
         return value
 
     @staticmethod
-    def _validate_regex(name, _paraminfo, value):
-        'Validate a regular expression'
-        try:
-            re.compile(value)
-        except re.error as e:
-            raise ValueError('Value of %s ("%s") is not a valid regular expression [%s]' %
-                             (name, value, str(e)))
-        return value
+    def _validate_float(name, paraminfo, value):
+        """Validate an floating point value"""
+        val = float(value)
+        if "min" in paraminfo:
+            minval = paraminfo["min"]
+            if val < minval:
+                raise ValueError("Value of %s[%s] smaller than mininum [%s]" % (name, val, minval))
+        if "max" in paraminfo:
+            maxval = paraminfo["max"]
+            if val > maxval:
+                raise ValueError("Value of %s [%s] larger than maximum [%s]" % (name, val, maxval))
+        return val
 
     @staticmethod
-    def _validate_hostname(name, paraminfo, value):
-        'Validate a hostname value'
-        return ClientQuery._validate_dnsname(name, paraminfo, value)
-
-    @staticmethod
-    def _validate_dnsname(_name, _paraminfo, value):
-        'Validate an DNS name value'
-        value = str(value)
-        return value.lower()
+    def _validate_int(name, paraminfo, value):
+        """Validate an int value"""
+        val = int(value)
+        if "min" in paraminfo:
+            minval = paraminfo["min"]
+            if val < minval:
+                raise ValueError("Value of %s [%s] smaller than mininum [%s]" % (name, val, minval))
+        if "max" in paraminfo:
+            maxval = paraminfo["max"]
+            if val > maxval:
+                raise ValueError("Value of %s [%s] larger than maximum [%s]" % (name, val, maxval))
+        return val
 
     @staticmethod
     def _validate_enum(name, paraminfo, value):
-        'Validate an enumeration value'
-        if 'enumlist' not in paraminfo:
+        """Validate an enumeration value"""
+        if "enumlist" not in paraminfo:
             raise TypeError("No 'enumlist' for parameter" % name)
         value = value.tolower()
-        for val in paraminfo['enumlist']:
+        for val in paraminfo["enumlist"]:
             cmpval = val.lower()
             if cmpval == value:
                 return cmpval
-        raise ValueError('Value of %s [%s] not in enumlist' % (paraminfo['name'], value))
+        raise ValueError("Value of %s [%s] not in enumlist" % (paraminfo["name"], value))
 
     @staticmethod
     def _validate_list(name, paraminfo, listvalue):
-        'Validate a list value'
-        if isinstance(listvalue, (str, unicode)):
-            listvalue = listvalue.split(',')
+        """Validate a list value"""
+        if isinstance(listvalue, str):
+            listvalue = listvalue.split(",")
         result = []
-        listtype = paraminfo['listtype']
+        listtype = paraminfo["listtype"]
         for elem in listvalue:
             result.append(ClientQuery._validate_value(name, listtype, elem))
         return result
 
     @staticmethod
     def _get_nodetype(nodetype):
-        'Return the value of a node type - if valid'
+        """Return the value of a node type - if valid"""
         nodetypes = set()
         for attr in dir(CMAconsts):
-            if attr.startswith('NODE_') and isinstance(getattr(CMAconsts, attr), (str, unicode)):
+            if attr.startswith("NODE_") and isinstance(getattr(CMAconsts, attr), str):
                 nodetypes.add(attr[5:])
                 nodetypes.add(getattr(CMAconsts, attr))
         if nodetype not in nodetypes:
             return None
-        defname = 'NODE_' + nodetype
+        defname = "NODE_" + nodetype
         return getattr(CMAconsts, defname) if hasattr(CMAconsts, defname) else nodetype
-
 
     @staticmethod
     def _validate_nodetype(name, _paraminfo, value):
-        'validate a node type - ignoring case'
+        """validate a node type - ignoring case"""
         ret = ClientQuery._get_nodetype(value)
         if ret is not None:
             return ret
-        raise ValueError('Value of %s [%s] is not a known node type' % (name, value))
-
+        raise ValueError("Value of %s [%s] is not a known node type" % (name, value))
 
     @staticmethod
     def _get_reltype(reltype):
-        'Return the value of a relationship type - if valid'
+        """Return the value of a relationship type - if valid"""
         reltypes = set()
         for attr in dir(CMAconsts):
-            if attr.startswith('REL_') and isinstance(getattr(CMAconsts, attr), (str, unicode)):
+            if attr.startswith("REL_") and isinstance(getattr(CMAconsts, attr), (str, unicode)):
                 reltypes.add(attr[4:])
                 reltypes.add(getattr(CMAconsts, attr))
         if reltype not in reltypes:
             return None
-        defname = 'REL_' + reltype
+        defname = "REL_" + reltype
         return getattr(CMAconsts, defname) if hasattr(CMAconsts, defname) else reltype
 
     @staticmethod
     def _validate_reltype(name, _paraminfo, value):
-        'Validate a relationship type - ignoring case'
+        """Validate a relationship type - ignoring case"""
         ret = ClientQuery._get_reltype(value)
         if ret is not None:
             return ret
-        raise ValueError('Value of %s [%s] is not a known relationship type' % (name, value))
+        raise ValueError("Value of %s [%s] is not a known relationship type" % (name, value))
 
     _validationmethods = {}
 
     @staticmethod
     def _validate_value(name, paraminfo, value):
         """Validate the value given our metadata"""
-        valtype = paraminfo['type']
+        valtype = paraminfo["type"]
         return ClientQuery._validationmethods[valtype](name, paraminfo, value)
 
     @staticmethod
     def load_from_file(store, pathname, queryname=None):
-        'Load a query with metadata from a file'
-        fd = open(pathname, 'r')
+        """Load a query with metadata from a file"""
+        fd = open(pathname, "r")
         json = fd.read()
         fd.close()
         if pyConfigContext(json) is None:
-            raise ValueError ('ERROR: Contents of %s is not valid JSON.' % (pathname))
+            raise ValueError("ERROR: Contents of %s is not valid JSON." % pathname)
         if queryname is None:
             queryname = os.path.basename(pathname)
-        #print 'LOADING %s as %s' % (pathname, queryname)
+        # print 'LOADING %s as %s' % (pathname, queryname)
         ret = store.load_or_create(ClientQuery, queryname=queryname, JSON_metadata=json)
         ret.JSON_metadata = json
         ret.bind_store(store)
         if not ret.validate_json():
-            print >> sys.stderr, ('ERROR: Contents of %s is not a valid query.' % pathname)
+            print("ERROR: Contents of %s is not a valid query." % pathname, file=stderr)
 
         return ret
 
     @staticmethod
-    def load_directory(store, directoryname):
-        'Returns a generator that returns all the Queries in that directory'
-        files = os.listdir(directoryname)
-        files.sort()
-        for filename in files:
-            path = os.path.join(directoryname, filename)
-            try:
-                yield ClientQuery.load_from_file(store, path)
-            except ValueError as e:
-                print >> sys.stderr, 'File %s is invalid: %s' % (path, str(e))
-
-    @staticmethod
     def load_tree(store, rootdirname, followlinks=False):
-        'Returns a generator that will returns all the Queries in that directory structure'
+        """Returns a generator that will returns all the Queries in that directory structure"""
         tree = os.walk(rootdirname, topdown=True, onerror=None, followlinks=followlinks)
-        rootprefixlen = len(rootdirname)+1
+        rootprefixlen = len(rootdirname) + 1
         for walktuple in tree:
             (dirpath, dirnames, filenames) = walktuple
             dirnames.sort()
@@ -559,17 +561,29 @@ class ClientQuery(GraphNode):
             for filename in filenames:
                 queryname = prefix + filename
                 path = os.path.join(dirpath, filename)
-                if filename.startswith('.'):
+                if filename.startswith("."):
                     continue
                 try:
                     yield ClientQuery.load_from_file(store, path, queryname)
                 except ValueError as e:
-                    print >> sys.stderr, 'File %s is invalid: %s' % (path, str(e))
+                    print("%s is invalid: %s" % (path, str(e)), file=stderr)
+
+    @staticmethod
+    def load_directory(store, directoryname):
+        """Returns a generator that returns all the Queries in that directory"""
+        files = os.listdir(directoryname)
+        files.sort()
+        for filename in files:
+            path = os.path.join(directoryname, filename)
+            try:
+                yield ClientQuery.load_from_file(store, path)
+            except ValueError as e:
+                print("File %s is invalid: %s" % (path, str(e)), file=stderr)
 
 
 # [R0914:grab_category_scores] Too many local variables (19/15)
 # pylint: disable=R0914
-@inject.params(store='Store')
+@inject.params(store="Store")
 def grab_category_scores(categories=None, domains=None, debug=False, store=None):
     """Method to create and return some python Dicts with security scores and totals by category
     and totals by drone/category
@@ -580,16 +594,16 @@ def grab_category_scores(categories=None, domains=None, debug=False, store=None)
         cypher = """MATCH(drone:Class_Drone) RETURN drone"""
     else:
         domains = (domains,) if isinstance(domains, (str, unicode)) else list(domains)
-        cypher = ("MATCH( drone:Class_Drone) WHERE drone.domain IN %s RETURN drone"
-                  % str(list(domains)))
+        cypher = "MATCH( drone:Class_Drone) WHERE drone.domain IN %s RETURN drone" % str(
+            list(domains)
+        )
     if categories is not None:
-        categories = ((categories,) if isinstance(categories, (str, unicode))
-                      else list(categories))
+        categories = (categories,) if isinstance(categories, (str, unicode)) else list(categories)
 
     bpobj = BestPractices(CMAdb.config, CMAdb.io, debug=debug)
     dtype_totals = {}  # scores organized by (domain, category, discovery-type)
     drone_totals = {}  # scores organized by (domain, category, discovery-type, drone)
-    rule_totals = {}   # scores organized by (domain, category, discovery-type, rule)
+    rule_totals = {}  # scores organized by (domain, category, discovery-type, rule)
 
     for drone in store.load_cypher_nodes(cypher):
         domain = drone.domain
@@ -613,8 +627,7 @@ def grab_category_scores(categories=None, domains=None, debug=False, store=None)
                     # Accumulate scores by (domain, category, discovery_type, ruleid)
                     for ruleid in rulescores[category]:
                         setup_dict4(rule_totals, domain, category, dtype, ruleid)
-                        rule_totals[domain][category][dtype][ruleid] \
-                            += rulescores[category][ruleid]
+                        rule_totals[domain][category][dtype][ruleid] += rulescores[category][ruleid]
 
     return dtype_totals, drone_totals, rule_totals
 
@@ -623,7 +636,8 @@ class QueryExecutor(object):
     """An abstract class which knows which can perform a variety of types of queries
     At the moment that's "python" and "cypher".
     """
-    DEFAULT_EXECUTOR_METHOD = 'CypherExecutor'
+
+    DEFAULT_EXECUTOR_METHOD = "CypherExecutor"
     EXECUTOR_METHODS = {}
 
     def __init__(self, store, metadata):
@@ -636,18 +650,24 @@ class QueryExecutor(object):
         """Construct a query of the type requested.
         We return None if we can't construct a query from our metadata.
         """
-        querytype = (metadata['querytype'] if 'querytype' in metadata
-                     else QueryExecutor.DEFAULT_EXECUTOR_METHOD)
+        querytype = (
+            metadata["querytype"]
+            if "querytype" in metadata
+            else QueryExecutor.DEFAULT_EXECUTOR_METHOD
+        )
 
         if querytype not in QueryExecutor.EXECUTOR_METHODS:
-            raise ValueError('Querytype %s is not a valid query type' % querytype)
+            raise ValueError("Querytype %s is not a valid query type" % querytype)
         queryclass = QueryExecutor.EXECUTOR_METHODS[querytype]
-        return (queryclass.construct_query(store, metadata)
-                if querytype in QueryExecutor.EXECUTOR_METHODS else None)
+        return (
+            queryclass.construct_query(store, metadata)
+            if querytype in QueryExecutor.EXECUTOR_METHODS
+            else None
+        )
 
     @staticmethod
     def register(ourclass):
-        'Register this class as a QueryExecutor subclass'
+        """Register this class as a QueryExecutor subclass"""
         QueryExecutor.EXECUTOR_METHODS[ourclass.__name__] = ourclass
         return ourclass
 
@@ -655,59 +675,59 @@ class QueryExecutor(object):
         """We return a set of parameters that we expect.
         We return None if we are flexible (or don't know) about our expected parameters.
         """
-        raise NotImplementedError('QueryExecutor is an abstract class')
+        raise NotImplementedError("QueryExecutor is an abstract class")
 
     def result_iterator(self, params):
         """We return an iterator which will yield the results of performing
         this query with these parameters.
         """
-        raise NotImplementedError('QueryExecutor is an abstract class')
+        raise NotImplementedError("QueryExecutor is an abstract class")
 
 
 @QueryExecutor.register
 class CypherExecutor(QueryExecutor):
     """QueryExecutor subclass for Cypher queries"""
 
+    STATE_START = 1
+    STATE_BACKSLASH = 2
+    STATE_GOTDOLLAR = 3
+
     @staticmethod
     def construct_query(store, metadata):
-        'Call the CypherExecutor constructor'
+        """Call the CypherExecutor constructor"""
         return CypherExecutor(store, metadata)
 
     def __init__(self, store, metadata):
-        if 'cypher' not in metadata:
-            raise ValueError('cypher query missing from metadata: %s' % str(metadata))
+        if "cypher" not in metadata:
+            raise ValueError("cypher query missing from metadata: %s" % str(metadata))
         QueryExecutor.__init__(self, store, metadata)
-        self.query = metadata['cypher']
+        self.query = metadata["cypher"]
 
     def parameter_names(self):
         """We return a set of parameters that we expect.
         We return None if we are flexible (or don't know) about our expected parameters.
         Return the parameter names our cypher query uses"""
 
-        START       = 1
-        BACKSLASH   = 2
-        GOTDOLLAR   = 3
-
         results = []
-        paramname = ''
-        state = START
+        paramname = ""
+        state = self.STATE_START
 
-        for c in self.metadata['cypher']:
-            if state == START:
-                if c == '\\':
-                    state = BACKSLASH
-                if c == '$':
-                    state = GOTDOLLAR
-            elif state == BACKSLASH:
-                state = START
-            else:  # GOTDOLLAR
+        for c in self.metadata["cypher"]:
+            if state == self.STATE_START:
+                if c == "\\":
+                    state = self.STATE_BACKSLASH
+                if c == "$":
+                    state = self.STATE_GOTDOLLAR
+            elif state == self.STATE_BACKSLASH:
+                state = self.STATE_START
+            else:  # STATE_GOTDOLLAR
                 if c.isalnum():
                     paramname += c
                 else:
-                    if paramname != '':
+                    if paramname != "":
                         results.append(paramname)
-                        paramname = ''
-                    state = START
+                        paramname = ""
+                    state = self.STATE_START
         return results
 
     def result_iterator(self, params):
@@ -715,6 +735,7 @@ class CypherExecutor(QueryExecutor):
         this query with these parameters.
         """
         return self.store.load_cypher_query(self.query, params=params)
+
 
 @QueryExecutor.register
 class PythonExec(QueryExecutor):
@@ -738,22 +759,24 @@ class PythonExec(QueryExecutor):
         """We return an iterator which will yield the results of performing
         this query with these parameters.
         """
-        raise NotImplementedError('PythonExec is an abstract class')
+        raise NotImplementedError("PythonExec is an abstract class")
 
     @staticmethod
     def construct_query(store, metadata):
-        'Call the subclass constructor'
-        if 'subtype' not in metadata:
-            raise ValueError('subtype missing from PythonExec metadata')
-        subclassname = metadata['subtype']
+        """Call the subclass constructor"""
+        if "subtype" not in metadata:
+            raise ValueError("subtype missing from PythonExec metadata")
+        subclassname = metadata["subtype"]
         if subclassname not in PythonExec.EXECUTOR_METHODS:
-            raise ValueError('%s is not a valid PythonExec subtype' % subclassname)
+            raise ValueError("%s is not a valid PythonExec subtype" % subclassname)
         subclass = PythonExec.EXECUTOR_METHODS[subclassname]
         return subclass(store, metadata)
+
 
 @PythonExec.register
 class AllPythonRuleScores(PythonExec):
     """Return discovery type+rule scores for all discovery types"""
+
     PARAMETERS = []
 
     def result_iterator(self, _params):
@@ -768,28 +791,33 @@ class AllPythonRuleScores(PythonExec):
         # 4:  rule id
         # 5:  total score for this rule id
         sortkeys = operator.itemgetter(1, 3, 5, 2, 4, 0)
-        for tup in sorted(yield_rule_scores([], dtype_totals, rule_totals),
-                          key=sortkeys, reverse=True):
+        for tup in sorted(
+            yield_rule_scores([], dtype_totals, rule_totals), key=sortkeys, reverse=True
+        ):
             yield tup
+
 
 @PythonExec.register
 class PythonSecRuleScores(PythonExec):
     """query executor returning discovery type+rule scores for security scores"""
+
     PARAMETERS = []
+
     def result_iterator(self, _params):
         """We return an iterator which will yield the results of performing
         this query with these parameters.
         """
-        dtype_totals, _drone_totals, rule_totals = grab_category_scores(categories='security')
+        dtype_totals, _drone_totals, rule_totals = grab_category_scores(categories="security")
         # 0:  domain
         # 1:  category name
         # 2:  discovery-type
         # 3:  total score for this discovery type _across all rules
         # 4:  rule id
         # 5:  total score for this rule id
-        sortkeys = operator.itemgetter(1,3,5,2,4,0)
-        for tup in sorted(yield_rule_scores(['security'], dtype_totals, rule_totals),
-                          key=sortkeys, reverse=True):
+        sortkeys = operator.itemgetter(1, 3, 5, 2, 4, 0)
+        for tup in sorted(
+            yield_rule_scores(["security"], dtype_totals, rule_totals), key=sortkeys, reverse=True
+        ):
             yield tup
 
 
@@ -797,6 +825,7 @@ class PythonSecRuleScores(PythonExec):
 class PythonHostSecScores(PythonExec):
     """Return discovery type+host security scores
     """
+
     PARAMETERS = []
 
     def result_iterator(self, _params):
@@ -807,16 +836,19 @@ class PythonHostSecScores(PythonExec):
         # 3:  total score for this discovery type _across all drones
         # 4:  drone designation (name)
         # 5:  total score for this drone for this discovery type
-        sortkeys = operator.itemgetter(0,3,5,2,4,1)
-        for tup in sorted(yield_drone_scores([], drone_totals, dtype_totals),
-                          key=sortkeys, reverse=True):
+        sortkeys = operator.itemgetter(0, 3, 5, 2, 4, 1)
+        for tup in sorted(
+            yield_drone_scores([], drone_totals, dtype_totals), key=sortkeys, reverse=True
+        ):
             yield tup
 
 
 @PythonExec.register
 class AllPythonHostScores(PythonExec):
     """query executor returning discovery type+host scores for all score types"""
+
     PARAMETERS = []
+
     def result_iterator(self, _params):
         dtype_totals, drone_totals, _rule_totals = grab_category_scores()
         # 0:  domain
@@ -825,14 +857,19 @@ class AllPythonHostScores(PythonExec):
         # 3:  total score for this discovery type _across all drones
         # 4:  drone designation (name)
         # 5:  total score for this drone for this discovery type
-        sortkeys = operator.itemgetter(0,3,5,2,4,1)
-        for tup in sorted(yield_drone_scores([], drone_totals, dtype_totals),
-                          key=sortkeys, reverse=True):
+        sortkeys = operator.itemgetter(0, 3, 5, 2, 4, 1)
+        for tup in sorted(
+            yield_drone_scores([], drone_totals, dtype_totals), key=sortkeys, reverse=True
+        ):
             yield tup
+
+
 @PythonExec.register
 class AllPythonTotalScores(PythonExec):
     """query executor returning domain, score-category, total-score"""
+
     PARAMETERS = []
+
     def result_iterator(self, _params):
         dtype_totals, _drone_totals, _rule_totals = grab_category_scores()
         for tup in yield_total_scores(dtype_totals):
@@ -840,7 +877,7 @@ class AllPythonTotalScores(PythonExec):
 
 
 def setup_dict3(d, key1, key2, key3):
-    'Initialize the given subkey (3 layers down)to 0.0'
+    """Initialize the given subkey (3 layers down)to 0.0"""
     if key1 not in d:
         d[key1] = {}
     if key2 not in d[key1]:
@@ -850,7 +887,7 @@ def setup_dict3(d, key1, key2, key3):
 
 
 def setup_dict4(d, key1, key2, key3, key4):
-    'Initialize the given subkey (4 layers down)to 0.0'
+    """Initialize the given subkey (4 layers down)to 0.0"""
     if key1 not in d:
         d[key1] = {}
     if key2 not in d[key1]:
@@ -861,7 +898,6 @@ def setup_dict4(d, key1, key2, key3, key4):
         d[key1][key2][key3][key4] = 0.0
 
 
-
 def yield_total_scores(dtype_totals, categories=None):
     """Format the total scores by category as a named tuple.
     We output the following fields:
@@ -869,7 +905,7 @@ def yield_total_scores(dtype_totals, categories=None):
         1:  category name
         3:  total score for this category
     """
-    TotalScore = collections.namedtuple('TotalScore', ['domain', 'category', 'score'])
+    TotalScore = collections.namedtuple("TotalScore", ["domain", "category", "score"])
     for domain in sorted(dtype_totals):
         domain_scores = dtype_totals[domain]
         for category in sorted(domain_scores):
@@ -881,6 +917,7 @@ def yield_total_scores(dtype_totals, categories=None):
                 total += cat_scores[dtype]
             yield TotalScore(domain, category, total)
 
+
 def yield_drone_scores(categories, drone_totals, dtype_totals):
     """Format the drone_totals + dtype_totals as a named tuple
     We output the following fields:
@@ -891,8 +928,10 @@ def yield_drone_scores(categories, drone_totals, dtype_totals):
         4:  drone designation (name)
         5:  total score for this drone for this discovery type
     """
-    DroneScore = collections.namedtuple('DroneScore', ['domain', 'category', 'discovery_type',
-                                           'dtype_score', 'drone', 'drone_score'])
+    DroneScore = collections.namedtuple(
+        "DroneScore",
+        ["domain", "category", "discovery_type", "dtype_score", "drone", "drone_score"],
+    )
     for domain in drone_totals:
         for cat in drone_totals[domain]:
             if categories and cat not in categories:
@@ -901,8 +940,10 @@ def yield_drone_scores(categories, drone_totals, dtype_totals):
                 for drone in drone_totals[domain][cat][dtype]:
                     score = drone_totals[domain][cat][dtype][drone]
                     if score > 0:
-                        yield DroneScore(domain, cat, dtype, dtype_totals[domain][cat][dtype],
-                                         drone, score)
+                        yield DroneScore(
+                            domain, cat, dtype, dtype_totals[domain][cat][dtype], drone, score
+                        )
+
 
 def yield_rule_scores(categories, dtype_totals, rule_totals):
     """Format the rule totals + dtype_totals as a CSV-style output
@@ -916,9 +957,10 @@ def yield_rule_scores(categories, dtype_totals, rule_totals):
     """
     # rule_totals = # scores organized by (category, discovery-type, rule)
 
-    RuleScore = collections.namedtuple('RuleScore',
-                          ['domain', 'category', 'discovery_type', 'dtype_score',
-                           'ruleid', 'ruleid_score'])
+    RuleScore = collections.namedtuple(
+        "RuleScore",
+        ["domain", "category", "discovery_type", "dtype_score", "ruleid", "ruleid_score"],
+    )
     for domain in rule_totals:
         for cat in rule_totals[domain]:
             if categories and cat not in categories:
@@ -927,140 +969,281 @@ def yield_rule_scores(categories, dtype_totals, rule_totals):
                 for ruleid in rule_totals[domain][cat][dtype]:
                     score = rule_totals[domain][cat][dtype][ruleid]
                     if score > 0:
-                        yield RuleScore(domain, cat, dtype, dtype_totals[domain][cat][dtype],
-                                        ruleid, score)
-PackageTuple = collections.namedtuple('PackageTuple',
-                                      ['domain', 'drone', 'package', 'version', 'packagetype'])
+                        yield RuleScore(
+                            domain, cat, dtype, dtype_totals[domain][cat][dtype], ruleid, score
+                        )
+
+
 @PythonExec.register
-class PythonPackagePrefixQuery(PythonExec):
-    """query executor returning packages matching the given prefix"""
-    PARAMETERS = ['prefix']
+class PythonAllDronesSubgraphQuery(PythonExec):
+    """A class to return a subgraph centered around a Drone"""
+
+    PARAMETERS = ["nodetypes", "reltypes"]
+    basequery = """MATCH p = shortestPath( (start:Class_Drone)-[%s*]-(m) )
+        WHERE m.nodetype IN %s
+        UNWIND nodes(p) AS n
+        UNWIND rels(p) AS r
+        RETURN [x in COLLECT(DISTINCT n) WHERE x.nodetype in %s] AS nodes,
+        COLLECT(DISTINCT r) AS relationships"""
+
     def result_iterator(self, params):
-        prefix = params['prefix']
+        nodetypes = params["nodetypes"]
+        reltypes = params["reltypes"]
+        relstr = reltype_expr(reltypes)
+        nodestr = str(nodetypes)
+        query = PythonAllDronesSubgraphQuery.basequery % (relstr, nodestr, nodestr)
+        print("RUNNING THIS QUERY:", query, file=stderr)
+        for row in self.store.load_cypher_query(query):
+            yield row
+
+
+PackageTuple = collections.namedtuple(
+    "PackageTuple", ["domain", "drone", "package", "version", "packagetype"]
+)
+
+
+@PythonExec.register
+class PythonAllPackageQuery(PythonExec):
+    """
+    query executor returning all packages on all systems
+    It doesn't need explicitly query against the sqlite JSON data, since we want everything...
+    Instead we get it implictly through the '_init_packages' attribute.
+    """
+
+    PARAMETERS = []
+
+    def result_iterator(self, params):
+        # 0:  domain
+        # 1:  Drone
+        # 2:  Package name
+        # 3:  Package Version
+        cypher = """
+            MATCH (system:Class_Drone:Class_ChildSystem)
+            RETURN system ORDER BY system.domain, system.designation
+            """
+        # Note that Docker and Vagrant classes are subclasses of ChildSystem
+
+        print("CYPHER QUERY: %s" % cypher)
+        for system in self.store.load_cypher_query(cypher):
+            print("GOT SYSTEM", system)
+            jsondata = system["_init_packages"]["data"]
+            assert isinstance(jsondata, pyConfigContext)
+            for pkgtype in jsondata:
+                for package in jsondata[pkgtype]:
+                    yield PackageTuple(
+                        system.domain, system, package, jsondata[pkgtype][package], pkgtype
+                    )
+
+
+class PythonJSONtoNodeQuery(PythonExec):
+    """
+    A class for performing JSON queries that return results joined between Neo4j and SQLite
+    """
+
+    # A query to find things related to certain hash values...
+    cypher_json_query = """
+    MATCH (system:Class_Drone:Class_ChildSystem)-[rel:jsonattr]->(jsonmap:Class_JSONMapNode)
+    WHERE jsonmap.jhash in $hash_values
+    RETURN jsonmap.jhash AS hash, system
+    
+    """
+
+    def result_iterator(self, params):
+        """We return an iterator which will yield the results of performing
+        this query with these parameters.
+        """
+        raise NotImplementedError("PythonExec is an abstract class")
+
+    @inject.params(persistent_json="PersistentJSON")
+    def join_iterator(self, sql_query, params=None, chunk_size=1000, persistent_json=None):
+        """
+        Iterator returning the matched Neo4j object and its matched JSON query portion
+
+        :param sql_query: str: SQLite SQL query yielding wanted JSON nodes
+                               NOTE: first element of returned row must be the hash value.
+        :param params: [str]: List of SQL parameters - or None
+        :param chunk_size: int: How many JSON blobs to query about at a time...
+        :param persistent_json:
+        :return:
+        """
+        hash_table = {}
+        hash_count = 0
+        yield_count = 0
+        params = params if params else []
+
+        for row in persistent_json.sql_query(sql_query, params):
+            hash_table[row[0]] = row[1:]
+            hash_count += 1
+            if len(hash_table) < chunk_size:
+                continue
+
+            hash_values = hash_table.keys()
+            for hash_value, node in self.store.load_cypher_query(
+                self.cypher_json_query, hash_values=hash_values
+            ):
+                yield_count += 1
+                yield node, hash_table[hash_value]
+            hash_table = {}
+
+        hash_values = hash_table.keys()
+        if len(hash_values) > 0:
+            for hash_value, node in self.store.load_cypher_query(
+                self.cypher_json_query, hash_values=hash_values
+            ):
+                yield_count += 1
+                yield node, hash_table[hash_value]
+        if hash_count != yield_count:
+            print(
+                "WARNING: JSON join_iterator: hash_count is %d, yield_count is %d."
+                % (hash_count, yield_count),
+                file=stderr,
+            )
+
+
+#
+#   The format of package data is as follows:
+#   {
+#       boilerplate-stuff...
+#       "data": {
+#           "package-type":   $ rpm, deb, pip, gem, etc
+#           {
+#               "package_name": "version-string",
+#               "package_name2": "version-string2",
+#               # and so on...
+#           }
+#     }
+#   }
+#
+#   In effect, each package type has its own namespace (which makes sense)
+#   and each package has one version installed in this "system" (Drone or ChildSystem)
+#   See https://www.sqlite.org/json1.html#jeach for an explanation of the json_each and json_tree
+#   functions.
+#
+#   Json_tree is the most useful function for this JSON structure because it's not deep,
+#   and I can access (package-type, package-name, version) as (path, key, atom) when I constrain
+#   atom to be non-NULL. This is _exactly_ what I need...
+#
+
+
+@PythonExec.register
+class PythonPackagePrefixQuery(PythonJSONtoNodeQuery):
+    """
+    query executor returning packages matching the given prefix
+    """
+
+    PARAMETERS = ["prefix"]
+
+    def result_iterator(self, params):
+        prefix = params["prefix"]
         # 0:  domain
         # 1:  Drone
         # 2:  Package name
         # 3:  Package Version
         # 4:  Package type
-        cypher = (
-        """MATCH (system)-[rel:jsonattr]->(jsonmap)
-        WHERE system.nodetype in ['Drone', 'DockerSystem', 'VagrantSystem']
-            AND jsonmap.nodetype = 'JSONMapNode'
-            AND rel.jsonname =~ '^_init_packages.*' AND jsonmap.json CONTAINS '"%s'
-        RETURN system, jsonmap.json AS json ORDER BY system.domain, system.designation
-        """     %   prefix)
-        for (drone, json) in self.store.load_cypher_query(cypher):
-            jsonobj = pyConfigContext(json)
-            # pylint is confused here - jsonobj['data'] _is_ very much iterable...
-            # pylint: disable=E1133
-            jsondata = jsonobj['data']
-            for pkgtype in jsondata:
-                for package in jsondata[pkgtype]:
-                    if package.startswith(prefix):
-                        yield PackageTuple(drone.domain, drone, package,
-                                           jsondata[pkgtype][package], pkgtype)
+        sql = """
+        SELECT hash, path, key, atom FROM
+          ({table:s}
+            CROSS JOIN json_tree(json_extract(data, '$.data')
+          ) AS result
+        WHERE atom != NULL AND key LIKE '{prefix:s}%'
+        """.format(
+            table=SQLiteInstance.table_name("_packages"), prefix=prefix
+        )
+
+        params = (prefix,)
+        for node, row in self.join_iterator(sql, params=params):
+            print("NODE:", node, "row", row, file=stderr)
+            packagetype, package, version = row
+            if not package.startswith(prefix):
+                # This could happen f the prefix contains a "_"
+                # I could prevent it, but it's not likely to cause a mismatch...
+                # It's less code to just filter it out...
+                print("PACKAGE %s filtered out for prefix %s" % (package, prefix), file=stderr)
+                continue
+            yield PackageTuple(node.domain, node, package, version, packagetype)
 
 
 @PythonExec.register
-class PythonAllPackageQuery(PythonExec):
-    """query executor returning all packages on all systems"""
-    PARAMETERS = []
-    def result_iterator(self, params):
-        # 0:  domain
-        # 1:  Drone
-        # 2:  Package name
-        # 3:  Package Version
-        cypher = (
-        """MATCH (system)-[rel:jsonattr]->(jsonmap)
-        WHERE system.nodetype in ['Drone', 'DockerSystem', 'VagrantSystem']
-            AND rel.jsonname =~ '^_init_packages.*'
-        RETURN system, jsonmap.json AS json ORDER BY system.domain, system.designation
-        """)
-
-        for (drone, json) in self.store.load_cypher_query(cypher):
-            jsonobj = pyConfigContext(json)
-            # pylint is confused here - jsonobj['data'] _is_ very much iterable...
-            # pylint: disable=E1133
-            jsondata = jsonobj['data']
-            for pkgtype in jsondata:
-                for package in jsondata[pkgtype]:
-                    yield PackageTuple(drone.domain, drone, package,
-                                       jsondata[pkgtype][package], pkgtype)
-
-@PythonExec.register
-class PythonPackageRegexQuery(PythonExec):
+class PythonPackageRegexQuery(PythonJSONtoNodeQuery):
     """query executor returning packages matching the given regular expression"""
-    PARAMETERS = ['regex']
+
+    PARAMETERS = ["regex"]
+
     def result_iterator(self, params):
-        regex = params['regex']
+        regex = params["regex"]
         # 0:  domain
         # 1:  Drone
         # 2:  Package name
         # 3:  Package Version
-        cypher = (
-        """MATCH (drone:Class_Drone)-[rel:jsonattr]->(jsonmap)
-           WHERE rel.jsonname =~ '^_init_packages.*' AND jsonmap.json =~ '.*%s.*.*'
-           RETURN drone, jsonmap.json AS json ORDER BY system.domain, system.designation
-        """ % regex)
+        # 4:  Package type
+        sql = """
+        SELECT hash, path, key, atom FROM
+          ({table:s}
+            CROSS JOIN json_tree(json_extract(data, '$.data')
+          ) AS result
+        WHERE atom != NULL and key REGEXP ?'
+        """.format(
+            table=SQLiteInstance.table_name("_packages")
+        )
 
-        regexobj = re.compile('.*' + regex)
-        for (drone, json) in self.store.load_cypher_query(cypher):
-            jsonobj = pyConfigContext(json)
-            # pylint is confused here - jsonobj['data'] _is_ very much iterable...
-            # pylint: disable=E1133
-            jsondata = jsonobj['data']
-            for pkgtype in jsondata:
-                for package in jsondata[pkgtype]:
-                    if regexobj.match(package):
-                        yield PackageTuple(drone.domain, drone, package,
-                                           jsondata[pkgtype][package], pkgtype)
+        params = (regex,)
+        for node, row in self.join_iterator(sql, params=params):
+            print("NODE:", node, "row:", row, file=stderr)
+            packagetype, package, version = row
+            yield PackageTuple(node.domain, node, package, version, packagetype)
 
 
 @PythonExec.register
-class PythonPackageQuery(PythonExec):
-    """query executor returning packages of the given name"""
-    PARAMETERS = ['packagename']
+class PythonPackageQuery(PythonJSONtoNodeQuery):
+    """
+    query executor returning installed packages of the given name
+    Note that we're looking for an exact match in the relation.
+    That means we have to look for {package-name}::{package-architecture}"
+    """
+
+    PARAMETERS = ["packagename"]
+
     def result_iterator(self, params):
-        packagename = params['packagename']
-        if packagename.find('::') < 0:
-            packagename += '::'
+        packagename = params["packagename"]
         # 0:  domain
         # 1:  Drone
         # 2:  Package name
         # 3:  Package Version
-        cypher = (
-        """MATCH (drone:Class_Drone)-[rel:jsonattr]->(jsonmap)
-        WHERE rel.jsonname = '_init_packages' AND jsonmap.json CONTAINS '"%s'
-        return drone, jsonmap.json as json
-        """     %   packagename)
-        for (drone, json) in self.store.load_cypher_query(cypher):
-            jsonobj = pyConfigContext(json)
-            # pylint is confused here - jsonobj['data'] _is_ very much iterable...
-            # pylint: disable=E1133
-            jsondata = jsonobj['data']
-            for pkgtype in jsondata:
-                for package in jsondata[pkgtype]:
-                    if package.startswith(packagename):
-                        yield PackageTuple(drone.domain, drone, package,
-                                           jsondata[pkgtype][package], pkgtype)
+        # 4:  Package type
+        sql = """
+        SELECT hash, path, key, atom FROM
+          ({table:s}
+            CROSS JOIN json_tree(json_extract(data, '$.data')
+          ) AS result
+        WHERE atom != NULL and key == ?'
+        """.format(
+            table=SQLiteInstance.table_name("_packages")
+        )
+        params = (packagename,)
+        for node, row in self.join_iterator(sql, params=params):
+            print("NODE:", node, "row:", row, file=stderr)
+            packagetype, package, version = row
+            yield PackageTuple(node.domain, node, package, version, packagetype)
+
 
 def reltype_expr(reltypes):
-    'Create a Cypher query expression for (multiple) relationship types'
+    """Create a Cypher query expression for (multiple) relationship types"""
     if isinstance(reltypes, (str, unicode)):
         reltypes = (reltypes,)
-    relationship_expression = ''
-    delim=''
+    relationship_expression = ""
+    delim = ""
     for reltype in reltypes:
-        relationship_expression  += '%s:%s' % (delim, reltype)
-        delim = '|'
+        relationship_expression += "%s:%s" % (delim, reltype)
+        delim = "|"
     return relationship_expression
+
 
 @PythonExec.register
 class PythonDroneSubgraphQuery(PythonExec):
-    'A class to return a subgraph centered around one or more Drones'
-    PARAMETERS = ['nodetypes', 'reltypes', 'hostname']
-    basequery = \
-        """MATCH (start:Class_Drone)
+    """A class to return a subgraph centered around one or more Drones"""
+
+    PARAMETERS = ["nodetypes", "reltypes", "hostname"]
+    basequery = """MATCH (start:Class_Drone)
         WHERE start.nodetype = 'Drone' AND start.designation in '%s'
         MATCH p = shortestPath( (start)-[%s*]-(m) )
         WHERE m.nodetype IN %s
@@ -1070,38 +1253,16 @@ class PythonDroneSubgraphQuery(PythonExec):
         COLLECT(DISTINCT r) AS relationships"""
 
     def result_iterator(self, params):
-        nodetypes = params['nodetypes']
-        reltypes  = params['reltypes']
-        designation = params['hostname']
+        nodetypes = params["nodetypes"]
+        reltypes = params["reltypes"]
+        designation = params["hostname"]
         if isinstance(designation, (str, unicode)):
             designation = [designation]
         designation_s = str(designation)
         relstr = reltype_expr(reltypes)
         nodestr = str(nodetypes)
         query = PythonDroneSubgraphQuery.basequery % (designation_s, relstr, nodestr, nodestr)
-        #print >> sys.stderr, 'RUNNING THIS QUERY:', query
-        for row in self.store.load_cypher_query(query):
-            yield row
-
-@PythonExec.register
-class PythonAllDronesSubgraphQuery(PythonExec):
-    'A class to return a subgraph centered around a Drone'
-    PARAMETERS = ['nodetypes', 'reltypes']
-    basequery = \
-        """MATCH p = shortestPath( (start:Class_Drone)-[%s*]-(m) )
-        WHERE m.nodetype IN %s
-        UNWIND nodes(p) AS n
-        UNWIND rels(p) AS r
-        RETURN [x in COLLECT(DISTINCT n) WHERE x.nodetype in %s] AS nodes,
-        COLLECT(DISTINCT r) AS relationships"""
-
-    def result_iterator(self, params):
-        nodetypes = params['nodetypes']
-        reltypes = params['reltypes']
-        relstr = reltype_expr(reltypes)
-        nodestr = str(nodetypes)
-        query = PythonAllDronesSubgraphQuery.basequery % (relstr, nodestr, nodestr)
-        print >> sys.stderr, 'RUNNING THIS QUERY:', query
+        # print('RUNNING THIS QUERY:', query, file=stderr)
         for row in self.store.load_cypher_query(query):
             yield row
 
@@ -1109,172 +1270,170 @@ class PythonAllDronesSubgraphQuery(PythonExec):
 # message W0212: access to protected member of client class
 # pylint: disable=W0212
 ClientQuery._validationmethods = {
-    'int':      ClientQuery._validate_int,
-    'float':    ClientQuery._validate_float,
-    'bool':     ClientQuery._validate_bool,
-    'string':   ClientQuery._validate_string,
-    'enum':     ClientQuery._validate_enum,
-    'ipaddr':   ClientQuery._validate_ipaddr,
-    'list':     ClientQuery._validate_list,
-    'macaddr':  ClientQuery._validate_macaddr,
-    'hostname': ClientQuery._validate_hostname,
-    'dnsname':  ClientQuery._validate_dnsname,
-    'regex':    ClientQuery._validate_regex,
-    'nodetype': ClientQuery._validate_nodetype,
-    'reltype':  ClientQuery._validate_reltype,
+    "int": ClientQuery._validate_int,
+    "float": ClientQuery._validate_float,
+    "bool": ClientQuery._validate_bool,
+    "string": ClientQuery._validate_string,
+    "enum": ClientQuery._validate_enum,
+    "ipaddr": ClientQuery._validate_ipaddr,
+    "list": ClientQuery._validate_list,
+    "macaddr": ClientQuery._validate_macaddr,
+    "hostname": ClientQuery._validate_hostname,
+    "dnsname": ClientQuery._validate_dnsname,
+    "regex": ClientQuery._validate_regex,
+    "nodetype": ClientQuery._validate_nodetype,
+    "reltype": ClientQuery._validate_reltype,
 }
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # pylint: disable=C0413,C0411
     import inject
     from cmainit import CMAInjectables
+
     inject.configure_once(CMAInjectables.test_config_injection)
 
-    @inject.params(qstore='Store')
+    @inject.params(qstore="Store")
     def testcode(qstore=None):
         """
 
         :param qstore: Store
         :return: None
         """
-        metadata1 = \
-        """
-        {   "cypher": "MATCH(n:Class_ClientQuery) RETURN n",
-            "parameters": {},
-            "descriptions": {
-                "en": {
-                    "short":    "list all queries",
-                    "long":     "return a list of all available queries"
-                }
-            }
-        }
-        """
-
-        metadata2 = \
-        """
-        {   "cypher":   "MATCH(n:Class_ClientQuery) WHERE n.queryname = $queryname RETURN n",
-            "parameters": {
-                "queryname": {
-                    "type": "string",
-                    "lang": {
-                        "en": {
-                            "short":    "query name",
-                            "long":     "Name of query to retrieve"
-                        }
-                    }
-                }
-            },
-            "descriptions": {
-                "en": {
-                    "short":    "Retrieve a query",
-                    "long":     "Retrieve all the information about a query"
-                }
-            }
-        }
-        """
-
-        metadata3 = \
-        """
-        {
-            "cypher": "MATCH (ip:Class_IPaddr)<-[:ipowner]-()<-[:nicowner]-(system)
-                       WHERE ip.ipaddr = $ipaddr
-                       RETURN system",
-
-            "descriptions": {
-                "en": {
-                    "short":    "get system from IP",
-                    "long":     "retrieve the system owning the requested IP"
-                }
-            },
-            "parameters": {
-                "ipaddr": {
-                    "type": "ipaddr",
-                    "lang": {
-                        "en": {
-                            "short":    "IP address",
-                            "long":     "IP (IPv4 or IPv6) address of system of interest"
-                        }
+        metadata1 = """
+            {   "cypher": "MATCH(n:Class_ClientQuery) RETURN n",
+                "parameters": {},
+                "descriptions": {
+                    "en": {
+                        "short":    "list all queries",
+                        "long":     "return a list of all available queries"
                     }
                 }
             }
-        }
-        """
-        metadata4 =  \
-        r""" {
-            "cypher":  "MATCH (start:Class_Drone)
-                        WHERE start.designation = $host
-                        MATCH p = shortestPath( (start)-[*]-(m) )
-                        WHERE m.nodetype IN $nodetypes
-                        UNWIND nodes(p) as n
-                        UNWIND rels(p) as r
-                        RETURN [x in collect(distinct n) WHERE x.nodetype in $nodetypes]] as nodes,
-                       collect(distinct r) as relationships",
-            "copyright": "Copyright(C) 2014 Assimilation Systems Limited",
-            "descriptions": {
-                "en": {
-                    "short":    "return entire graph",
-                    "long":     "retrieve all nodes and all relationships"
-                }
-            },
-            "parameters": {
-                "host": {
-                    "type": "hostname",
-                    "lang": {
-                        "en": {
-                            "short":    "starting host name",
-                            "long":     "name of host to start the query at"
+            """
+
+        metadata2 = """
+            {   "cypher":   "MATCH(n:Class_ClientQuery) WHERE n.queryname = $queryname RETURN n",
+                "parameters": {
+                    "queryname": {
+                        "type": "string",
+                        "lang": {
+                            "en": {
+                                "short":    "query name",
+                                "long":     "Name of query to retrieve"
+                            }
                         }
                     }
                 },
-                "nodetypes": {
-                    "type": "list",
-                    "listtype": {
-                        "type": "nodetype"
-                    },
-                    "lang": {
-                        "en": {
-                            "short":    "node types",
-                            "long":     "set of node types to include in query result",
-                         }
+                "descriptions": {
+                    "en": {
+                        "short":    "Retrieve a query",
+                        "long":     "Retrieve all the information about a query"
                     }
                 }
-            },
-            "cmdline": {
-                "en":	  "{\"nodes\":${nodes}, \"relationships\": ${relationships}}",
-                "script": "{\"nodes\":${nodes}, \"relationships\": ${relationships}}"
-            },
-        }"""
-        q1 = ClientQuery('allqueries', metadata1)
+            }
+            """
+
+        metadata3 = """
+            {
+                "cypher": "MATCH (ip:Class_IPaddr)<-[:ipowner]-()<-[:nicowner]-(system)
+                           WHERE ip.ipaddr = $ipaddr
+                           RETURN system",
+    
+                "descriptions": {
+                    "en": {
+                        "short":    "get system from IP",
+                        "long":     "retrieve the system owning the requested IP"
+                    }
+                },
+                "parameters": {
+                    "ipaddr": {
+                        "type": "ipaddr",
+                        "lang": {
+                            "en": {
+                                "short":    "IP address",
+                                "long":     "IP (IPv4 or IPv6) address of system of interest"
+                            }
+                        }
+                    }
+                }
+            }
+            """
+        metadata4 = r""" {
+                "cypher":  "MATCH (start:Class_Drone)
+                            WHERE start.designation = $host
+                            MATCH p = shortestPath( (start)-[*]-(m) )
+                            WHERE m.nodetype IN $nodetypes
+                            UNWIND nodes(p) as n
+                            UNWIND rels(p) as r
+                            RETURN [x in collect(distinct n) WHERE x.nodetype in $nodetypes]] as 
+                            nodes,
+                           collect(distinct r) as relationships",
+                "copyright": "Copyright(C) 2014 Assimilation Systems Limited",
+                "descriptions": {
+                    "en": {
+                        "short":    "return entire graph",
+                        "long":     "retrieve all nodes and all relationships"
+                    }
+                },
+                "parameters": {
+                    "host": {
+                        "type": "hostname",
+                        "lang": {
+                            "en": {
+                                "short":    "starting host name",
+                                "long":     "name of host to start the query at"
+                            }
+                        }
+                    },
+                    "nodetypes": {
+                        "type": "list",
+                        "listtype": {
+                            "type": "nodetype"
+                        },
+                        "lang": {
+                            "en": {
+                                "short":    "node types",
+                                "long":     "set of node types to include in query result",
+                             }
+                        }
+                    }
+                },
+                "cmdline": {
+                    "en":	  "{\"nodes\":${nodes}, \"relationships\": ${relationships}}",
+                    "script": "{\"nodes\":${nodes}, \"relationships\": ${relationships}}"
+                },
+            }"""
+        q1 = ClientQuery("allqueries", metadata1)
         q1.validate_json()
-        q2 = ClientQuery('allqueries', metadata2)
+        q2 = ClientQuery("allqueries", metadata2)
         q2.validate_json()
-        q3 = ClientQuery('ipowners', metadata3)
+        q3 = ClientQuery("ipowners", metadata3)
         q3.validate_json()
-        q4 = ClientQuery('subgraph', metadata4)
+        q4 = ClientQuery("subgraph", metadata4)
         q4.validate_json()
 
-
-        print "LOADING TREE!"
+        print("LOADING TREE!")
 
         dirname = os.path.dirname(sys.argv[0])
-        dirname = '.' if dirname == '' else dirname
+        dirname = "." if dirname == "" else dirname
         queries = ClientQuery.load_tree(qstore, "%s/../queries" % dirname)
         qstore.db_transaction = qstore.db.begin(autocommit=False)
         qlist = [q for q in queries]
         qstore.commit()
-        print "%d node TREE LOADED!" % len(qlist)
+        print("%d node TREE LOADED!" % len(qlist))
         qstore.db_transaction = qstore.db.begin(autocommit=False)
-        qe2 = qstore.load_or_create(ClientQuery, queryname='list')
+        qe2 = qstore.load_or_create(ClientQuery, queryname="list")
         qe2.bind_store(qstore)
-        testresult = ''
-        for s in qe2.execute(None, idsonly=False, expandJSON=True):
+        testresult = ""
+        for s in qe2.execute(None, idsonly=False, expandjson=True):
             testresult += s
-        print 'RESULT', testresult
+        print("RESULT", testresult)
         # Test out a command line query
         for s in qe2.cmdline_exec(None):
-            if re.match(s, '[	 ]unknown$'):
-                raise RuntimeError('Search result contains unknown: %s' % s)
-            print s
+            if re.match(s, "[	 ]unknown$"):
+                raise RuntimeError("Search result contains unknown: %s" % s)
+            print(s)
 
-        print "All done!"
+        print("All done!")
+
     testcode()

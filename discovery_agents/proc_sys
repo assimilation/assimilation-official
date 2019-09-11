@@ -156,9 +156,11 @@ skip_proc_name() {
         fs/binfmt_misc/status)              return 1;;
         fs/*-nr)                            return 0;;
         fs/*-state)                         return 0;;
-        kernel/random/uuid)                 return 0;;
-        kernel/random/entropy_avail)        return 0;;
         kernel/ns_last_pid)                 return 0;;
+        kernel/perf_event_max_sample_rate)  return 0;;
+        kernel/pty/nr)                      return 0;;
+        kernel/random/*)                    return 0;;
+        kernel/sched_domain/*)              return 0;;
         net/netfilter/nf_conntrack_count)   return 0;;
         */register)                         return 0;;
         #"kernel.random.boot_id": "8092c001-d45c-4893-b336-ab4aad473286",

@@ -23,49 +23,68 @@
 # along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
 #
 #
-'''
+"""
 This file provides wrapper functions for some glib mainloop-related classes that we need to know
 about.  It is somewhat compatible with the GObject introspection libraries for the same code.
 The advantage we have is that we don't need that code which can be complicated to get in a
 particular environment - since it involved both Python code and C code.
 This is easy for us to do since we are using ctypes and ctypesgen anyway.
-'''
+"""
 
+from __future__ import print_function, absolute_import
 from ctypes import py_object, POINTER, CFUNCTYPE
-from AssimCtypes import \
-    G_IO_IN, G_IO_PRI, G_IO_ERR, G_IO_OUT, G_IO_HUP,                            \
-    g_main_loop_new, g_main_loop_run, g_main_loop_quit, g_main_context_default, \
-    assim_set_io_watch, g_source_remove, g_timeout_add,                         \
-    guint, gboolean, GIOChannel, GIOCondition, GIOFunc, GSourceFunc, UNCHECKED, g_main_loop_unref
+from AssimCtypes import (
+    G_IO_IN,
+    G_IO_PRI,
+    G_IO_ERR,
+    G_IO_OUT,
+    G_IO_HUP,
+    g_main_loop_new,
+    g_main_loop_run,
+    g_main_loop_quit,
+    g_main_context_default,
+    assim_set_io_watch,
+    g_source_remove,
+    g_timeout_add,
+    guint,
+    gboolean,
+    GIOChannel,
+    GIOCondition,
+    UNCHECKED,
+    g_main_loop_unref,
+)
 
-IO_IN   =   G_IO_IN
-IO_PRI  =   G_IO_PRI
-IO_ERR  =   G_IO_ERR
-IO_OUT  =   G_IO_OUT
-IO_HUP  =   G_IO_HUP
+IO_IN = G_IO_IN
+IO_PRI = G_IO_PRI
+IO_ERR = G_IO_ERR
+IO_OUT = G_IO_OUT
+IO_HUP = G_IO_HUP
 
 
 class MainLoop(object):
-    '''
+    """
     This class encapsulates the glib mainloop paradigm.
-    '''
+    """
+
     default = None
+
     def __init__(self):
-        'Create a default mainloop object'
+        """Create a default mainloop object"""
         self.mainloop = g_main_loop_new(g_main_context_default(), True)
         MainLoop.default = self
 
     def run(self):
-        'Run this mainloop until quit is called on it'
+        """Run this mainloop until quit is called on it"""
         g_main_loop_run(self.mainloop)
 
     def quit(self):
-        'Stop this mainloop - causing run() call to return'
+        """Stop this mainloop - causing run() call to return"""
         g_main_loop_quit(self.mainloop)
 
     def __del__(self):
         self.quit()
         g_main_loop_unref(self.mainloop)
+
 
 # Ctypesgen gets these wrong from our perspective...
 # For our purposes, the last argument needs to be py_object instead of gpointer
@@ -73,17 +92,18 @@ GIOFunc = CFUNCTYPE(UNCHECKED(gboolean), POINTER(GIOChannel), guint, py_object)
 GSourceFunc = CFUNCTYPE(UNCHECKED(gboolean), py_object)
 
 assim_set_io_watch.argtypes = [guint, GIOCondition, GIOFunc, py_object]
-g_timeout_add.argtypes      = [guint, GSourceFunc,  py_object]
-
+g_timeout_add.argtypes = [guint, GSourceFunc, py_object]
 
 
 # We don't need any additional public methods (pylint complaint)
 # pylint: disable=R0903
 class IOWatch(object):
-    'This class encapsulates an I/O source based on the Glib g_io_add_watch'
+    """This class encapsulates an I/O source based on the Glib g_io_add_watch"""
+
     save_callbacks = []
+
     def __init__(self, fileno, conditions, callback, otherobj=None):
-        '''
+        """
         fileno is the UNIX file descriptor
         Conditions is a bitwise-OR of at least one of {IO_IN, IO_PRI, IO_ERR, IO_OUT, IO_HUP}
         The callback function receives three parameters:
@@ -96,13 +116,13 @@ class IOWatch(object):
 
         Note that you must keep a reference around to the return result or the callback may crash
         if the elements of this object get garbage collected.
-        '''
+        """
         self.callback = GIOFunc(callback)
         IOWatch.save_callbacks.append(self.callback)
         self.sourceid = assim_set_io_watch(fileno, conditions, self.callback, otherobj)
-        #print >> sys.stderr, ('io_add_watch: (src=%s/%s, obj=%s/%s)' % \
+        # print >> sys.stderr, ('io_add_watch: (src=%s/%s, obj=%s/%s)' % \
         #        (callback, cb, otherobj, obj))
-        #print >> sys.stderr, ('io_add_watch: Returning %s' % str(retval))
+        # print >> sys.stderr, ('io_add_watch: Returning %s' % str(retval))
 
     def __del__(self):
         g_source_remove(self.sourceid)
@@ -111,12 +131,14 @@ class IOWatch(object):
 # We don't need any additional public methods (pylint complaint)
 # pylint: disable=R0903
 class GMainTimeout(object):
-    'This class encapsulates an timeout source based on the Glib g_timeout_add'
+    """This class encapsulates an timeout source based on the Glib g_timeout_add"""
+
     save_callbacks = []
-    def __init__ (self, interval, callback, otherobj=None):
-        '''
+
+    def __init__(self, interval, callback, otherobj=None):
+        """
         Call a callback function at the (repeating) interval given
-        '''
+        """
         self.callback = GSourceFunc(callback)
         self.sourceid = g_timeout_add(interval, self.callback, otherobj)
         GMainTimeout.save_callbacks.append(self.callback)

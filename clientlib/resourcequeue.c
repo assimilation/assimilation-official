@@ -211,8 +211,10 @@ _resource_queue_cancelall(ResourceQueue* self)
 	while(g_hash_table_iter_next(&iter, &pkey, &pvalue)) {
 		GQueue*	q = (GQueue*) pvalue;
 		GList*	l;
-		for (l=q->head; NULL != l; l=l->next) {
+		GList*	next_l = NULL;
+		for (l=q->head; NULL != l; l=next_l) {
 			RscQElem*	qe = CASTTOCLASS(RscQElem, l->data);
+			next_l = l->next;
 			_resource_queue_cancel(self, qe->cmd->request);
 		}
 	}

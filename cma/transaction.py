@@ -47,8 +47,15 @@ transactions - it does not worry about how they ought to be persisted.
 """
 import sys
 from datetime import datetime, timedelta
-from AssimCclasses import pyNetAddr, pyConfigContext, pyFrameSet, pyIntFrame, pyCstringFrame, \
-        pyIpPortFrame, pyCryptFrame
+from AssimCclasses import (
+    pyNetAddr,
+    pyConfigContext,
+    pyFrameSet,
+    pyIntFrame,
+    pyCstringFrame,
+    pyIpPortFrame,
+    pyCryptFrame,
+)
 from frameinfo import FrameSetTypes, FrameTypes
 from assimjson import JSONtree
 
@@ -70,7 +77,7 @@ class NetTransaction(object):
     """
 
     def __init__(self, io, encryption_required=False):
-        'Constructor for a combined database/network transaction.'
+        "Constructor for a combined database/network transaction."
         self.encryption_required = encryption_required
         self._io = io
         self.tree = None
@@ -81,10 +88,10 @@ class NetTransaction(object):
         Context method to support "with" statements
         :return: None
         """
-        self.tree = {'packets': []}  # 'tree' cannot be pyConfigContext: we append to its array
+        self.tree = {"packets": []}  # 'tree' cannot be pyConfigContext: we append to its array
         self.created = []
         self.sequence = None
-        self.stats = {'lastcommit': timedelta(0), 'totaltime': timedelta(0)}
+        self.stats = {"lastcommit": timedelta(0), "totaltime": timedelta(0)}
         self.post_transaction_packets = []
         return self
 
@@ -111,14 +118,14 @@ class NetTransaction(object):
         """
         return str(JSONtree(self.tree))
 
-###################################################################################################
-#
-#   This collection of member functions accumulate work to be done for our NetTransaction
-#
-###################################################################################################
+    ################################################################################################
+    #
+    #   This collection of member functions accumulate work to be done for our NetTransaction
+    #
+    ################################################################################################
 
     def add_packet(self, destaddr, action, frames, frametype=None):
-        '''Append a packet to the ConfigContext object for this transaction.
+        """Append a packet to the ConfigContext object for this transaction.
         In effect, this queues the packet for sending when this transaction is committed.
 
         Parameters
@@ -131,16 +138,18 @@ class NetTransaction(object):
             A list of frames or (optionally) frame values
         frametype: [int], optional
             If present, it is the frame type for all the frame <i>values</i> in the 'frames' array
-        '''
+        """
 
         # Note that we don't do this as a ConfigContext - it doesn't support modifying arrays.
         # On the other hand, our JSON converts nicely into a ConfigContext - because it converts
         # arrays correctly from JSON
-        #print >> sys.stderr, 'ADDING THESE FRAMES: %s' % str(frames)
+        # print('ADDING THESE FRAMES: %s' % str(frames), file=sys.stderr)
 
         if self.encryption_required and pyCryptFrame.get_dest_identity(destaddr) is None:
-            raise ValueError('Destaddr %s has no identity: key id is %s'
-            %   (destaddr, pyCryptFrame.get_dest_key_id(destaddr)))
+            raise ValueError(
+                "Destaddr %s has no identity: key id is %s"
+                % (destaddr, pyCryptFrame.get_dest_key_id(destaddr))
+            )
 
         # Allow 'frames' to be a single frame
         if not isinstance(frames, list) and not isinstance(frames, tuple):
@@ -150,19 +159,18 @@ class NetTransaction(object):
             newframes = []
             for thing in frames:
                 if thing is not None:
-                    newframes.append({'frametype': frametype, 'framevalue': thing})
+                    newframes.append({"frametype": frametype, "framevalue": thing})
             frames = newframes
-        self.tree['packets'].append({'action': int(action), 'destaddr': destaddr, 'frames': frames})
+        self.tree["packets"].append({"action": int(action), "destaddr": destaddr, "frames": frames})
 
-
-###################################################################################################
-#
-#   Code from here to the end has to do with committing our transactions...
-#
-###################################################################################################
+    ################################################################################################
+    #
+    #   Code from here to the end has to do with committing our transactions...
+    #
+    ################################################################################################
 
     def _commit_network_trans(self, io):
-        '''
+        """
         Commit the network portion of our transaction - that is, send the packets!
         One interesting thing - we should probably not consider this transaction fully
         completed until we decide each destination is dead, or until its packets are all ACKed.
@@ -172,32 +180,36 @@ class NetTransaction(object):
         This argues for doing the network portion of the transaction first - presuming we do the
         db and network portions sequentially --  Of course, no transaction can start until
         the previous one is finished.
-        '''
-        #print >> sys.stderr, "PACKET JSON IS >>>%s<<<" % self.tree['packets']
-        #print >> sys.stderr, 'COMMITTING THESE FRAMES: %s' % str(self.tree['packets'])
+        """
+        # print("PACKET JSON IS >>>%s<<<" % self.tree['packets'], file=sys.stderr)
+        # print('COMMITTING THESE FRAMES: %s' % str(self.tree['packets']), file=sys.stderr)
         # pylint is confused here - self.tree['packets'] _is_ very much iterable...
         # pylint: disable=E1133
-        for packet in self.tree['packets']:
-            dest = packet['destaddr']
-            fs = pyFrameSet(packet['action'])
-            if packet['action'] == FrameSetTypes.STARTUP:
-                raise ValueError('Packet is a STARTUP packet %s to %s' % (str(packet), dest))
-            #from cmadb import CMAdb
-            #CMAdb.log.info('SENDING PACKET: %s' % str(packet))
-            for frame in packet['frames']:
-                ftype = frame['frametype']
-                fvalue = frame['framevalue']
+        for packet in self.tree["packets"]:
+            dest = packet["destaddr"]
+            fs = pyFrameSet(packet["action"])
+            if packet["action"] == FrameSetTypes.STARTUP:
+                raise ValueError("Packet is a STARTUP packet %s to %s" % (str(packet), dest))
+            # from cmadb import CMAdb
+            # CMAdb.log.info('SENDING PACKET: %s' % str(packet))
+            for frame in packet["frames"]:
+                ftype = frame["frametype"]
+                fvalue = frame["framevalue"]
                 # The number of cases below will have to grow over time.
                 # but this code is pretty simple so far...
 
                 if ftype == FrameTypes.IPPORT:
-                    if isinstance(fvalue, str) or isinstance(fvalue, unicode):
+                    if isinstance(fvalue, str):
                         fvalue = pyNetAddr(fvalue)
                     aframe = pyIpPortFrame(ftype, fvalue)
                     fs.append(aframe)
 
-                elif ftype == FrameTypes.DISCNAME or ftype == FrameTypes.DISCJSON \
-                        or ftype == FrameTypes.CONFIGJSON or ftype == FrameTypes.RSCJSON:
+                elif (
+                    ftype == FrameTypes.DISCNAME
+                    or ftype == FrameTypes.DISCJSON
+                    or ftype == FrameTypes.CONFIGJSON
+                    or ftype == FrameTypes.RSCJSON
+                ):
                     sframe = pyCstringFrame(ftype)
                     sframe.setvalue(str(fvalue))
                     fs.append(sframe)
@@ -206,66 +218,69 @@ class NetTransaction(object):
                     nframe = pyIntFrame(ftype, intbytes=4, initval=int(fvalue))
                     fs.append(nframe)
                 else:
-                    raise ValueError('Unrecognized frame type [%s]: %s' % (ftype, frame))
+                    raise ValueError("Unrecognized frame type [%s]: %s" % (ftype, frame))
             # In theory we could optimize multiple FrameSets in a row being sent to the
             # same address, but we can always do that later...
-            io.sendreliablefs(dest, (fs, ))
+            io.sendreliablefs(dest, (fs,))
 
     def commit_trans(self):
-        'Commit our transaction'
+        "Commit our transaction"
         # This is just to test that our tree serializes successfully - before we
         # persist it on disk later.  Once we're doing that, this will be
         # unnecessary...
-        #print >> sys.stderr, "HERE IS OUR TREE:"
-        #print >> sys.stderr, str(self)
-        #print >> sys.stderr, "CONVERTING BACK TO TREE"
+        # print("HERE IS OUR TREE:", file=sys.stderr)
+        # print(str(self), file=sys.stderr)
+        # print("CONVERTING BACK TO TREE", file=sys.stderr)
         self.tree = pyConfigContext(str(self))
-        if len(self.tree['packets']) > 0:
+        if len(self.tree["packets"]) > 0:
             start = datetime.now()
             self._commit_network_trans(self._io)
             end = datetime.now()
             diff = end - start
-            self.stats['lastcommit'] = diff
-            self.stats['totaltime'] += diff
+            self.stats["lastcommit"] = diff
+            self.stats["totaltime"] += diff
         else:
-            self.stats['lastcommit'] = timedelta(0)
+            self.stats["lastcommit"] = timedelta(0)
         self.abort_trans()
 
     def abort_trans(self):
-        'Forget everything about this transaction.'
-        self.tree = {'packets': []}
+        "Forget everything about this transaction."
+        self.tree = {"packets": []}
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
     def testme():
-        'This is a string'
+        "This is a string"
         import inject
         from AssimCtypes import CONFIGNAME_OUTSIG
         from AssimCclasses import pyReliableUDP, pyPacketDecoder, pySignFrame
         from cmainit import CMAInjectables
+
         inject.configure_once(CMAInjectables.test_config_injection)
 
         config = pyConfigContext(init={CONFIGNAME_OUTSIG: pySignFrame(1)})
         io = pyReliableUDP(config, pyPacketDecoder())
         trans = NetTransaction(io, encryption_required=False)
-        destaddr = pyNetAddr('10.10.10.1:1984')
-        addresses = (pyNetAddr('10.10.10.5:1984'), pyNetAddr('10.10.10.6:1984'))
+        destaddr = pyNetAddr("10.10.10.1:1984")
+        addresses = (pyNetAddr("10.10.10.5:1984"), pyNetAddr("10.10.10.6:1984"))
 
-        trans.add_packet(destaddr, FrameSetTypes.SENDEXPECTHB,
-                         addresses,
-                         frametype=FrameTypes.IPPORT)
-        assert len(trans.tree['packets']) == 1
+        trans.add_packet(
+            destaddr, FrameSetTypes.SENDEXPECTHB, addresses, frametype=FrameTypes.IPPORT
+        )
+        assert len(trans.tree["packets"]) == 1
 
-        trans.add_packet(pyNetAddr('10.10.10.1:1984'),
-                         FrameSetTypes.SENDEXPECTHB,
-                         (pyNetAddr('10.10.10.5:1984'),
-                          pyNetAddr('10.10.10.6:1984')),
-                         frametype=FrameTypes.IPPORT)
-        assert len(trans.tree['packets']) == 2
+        trans.add_packet(
+            pyNetAddr("10.10.10.1:1984"),
+            FrameSetTypes.SENDEXPECTHB,
+            (pyNetAddr("10.10.10.5:1984"), pyNetAddr("10.10.10.6:1984")),
+            frametype=FrameTypes.IPPORT,
+        )
+        assert len(trans.tree["packets"]) == 2
 
-        print >> sys.stderr, 'JSON: %s\n' % str(trans)
-        print >> sys.stderr, 'JSON: %s\n' % str(pyConfigContext(str(trans)))
+        print("JSON: %s\n" % str(trans), file=sys.stderr)
+        print("JSON: %s\n" % str(pyConfigContext(str(trans))), file=sys.stderr)
         trans.commit_trans()
-        assert len(trans.tree['packets']) == 0
+        assert len(trans.tree["packets"]) == 0
+
     testme()

@@ -23,172 +23,218 @@
 # along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
 #
 #
-'''
+"""
 This is the main program for our Assimilation System Test module.
-'''
+"""
 import os, sys, random, datetime, optparse, struct
-sys.path.append('..')
+
+sys.path.append("..")
 from logwatcher import LogWatcher
 from testcases import AssimSysTest
 
+
 def logit(msg):
-    'log things to the system log and to stdout'
-    os.system("logger '%s'" %   (msg))
-    print ("%s: %s" % (datetime.datetime.now(), msg))
+    "log things to the system log and to stdout"
+    os.system("logger '%s'" % (msg))
+    print("%s: %s" % (datetime.datetime.now(), msg))
+
 
 def perform_tests(testset, sysenv, store, itermax, logname, debug=False):
-    'Actually perform the given set of tests the given number of times, etc'
-    badregexes=(r' (ERROR:|CRIT:|CRITICAL:|nanoprobe\[[0-9]*]: segfault at|'
-            #r'Peer at address .* is dead|'
-            r'OUTALLDONE .* while in state NONE'
-            r')',)
-    itercount=1
+    "Actually perform the given set of tests the given number of times, etc"
+    badregexes = (
+        r" (ERROR:|CRIT:|CRITICAL:|nanoprobe\[[0-9]*]: segfault at|"
+        # r'Peer at address .* is dead|'
+        r"OUTALLDONE .* while in state NONE"
+        r")",
+    )
+    itercount = 1
     while True:
         test = random.choice(testset)
         badwatch = LogWatcher(logname, badregexes, timeout=1, debug=0)
-        logit("STARTING test %d - %s" %   (itercount, test.__name__))
+        logit("STARTING test %d - %s" % (itercount, test.__name__))
         os.system('logger -s "Load Avg: $(cat /proc/loadavg)"')
         os.system('logger -s "$(grep MemFree: /proc/meminfo)"')
         badwatch.setwatch()
-        if test.__name__ == 'DiscoverService':
-            testobj = test(store, logname, sysenv, debug=debug
-            ,       service='ssh', monitorname='check_ssh')
+        if test.__name__ == "DiscoverService":
+            testobj = test(
+                store, logname, sysenv, debug=debug, service="ssh", monitorname="check_ssh"
+            )
         else:
             testobj = test(store, logname, sysenv, debug=debug)
         ret = testobj.run()
         match = badwatch.look()
         if match is not None:
-            logit('BAD MESSAGE from Test %d %s: %s' % (itercount, test.__name__, match))
+            logit("BAD MESSAGE from Test %d %s: %s" % (itercount, test.__name__, match))
             testobj.replace_result(AssimSysTest.FAIL)
             ret = AssimSysTest.FAIL
         if ret == AssimSysTest.SUCCESS:
-            logit('Test %d %s succeeded!' % (itercount, test.__name__))
+            logit("Test %d %s succeeded!" % (itercount, test.__name__))
             itercount += 1
         elif ret == AssimSysTest.FAIL:
-            logit('Test %d %s FAILED :-(' % (itercount, test.__name__))
+            logit("Test %d %s FAILED :-(" % (itercount, test.__name__))
             itercount += 1
         elif ret == AssimSysTest.SKIPPED:
-            logit('Test %d %s skipped' % (itercount, test.__name__))
+            logit("Test %d %s skipped" % (itercount, test.__name__))
         else:
-            logit('Test %d %s RETURNED SOMETHING REALLY WEIRD [%s]'
-            %   (itercount, test.__name__, str(ret)))
+            logit(
+                "Test %d %s RETURNED SOMETHING REALLY WEIRD [%s]"
+                % (itercount, test.__name__, str(ret))
+            )
             testobj.replace_result(AssimSysTest.FAIL)
-        print ''
+        print("")
         if itercount > itermax:
             break
     return summarize_tests()
 
+
 def summarize_tests():
-    '''Summarize the results of the tests - to syslog and stderr
+    """Summarize the results of the tests - to syslog and stderr
     We return the number of failures.
-    '''
+    """
     testnames = AssimSysTest.testnames.keys()
     testnames.sort()
     maxlen = max([len(name) for name in testnames])
-    totals = {AssimSysTest.SUCCESS:0, AssimSysTest.FAIL:0, AssimSysTest.SKIPPED:0}
-    logit('%*s %7s %7s %7s' % (maxlen, 'TEST NAME', 'SUCCESS', 'FAIL', 'SKIPPED'))
+    totals = {AssimSysTest.SUCCESS: 0, AssimSysTest.FAIL: 0, AssimSysTest.SKIPPED: 0}
+    logit("%*s %7s %7s %7s" % (maxlen, "TEST NAME", "SUCCESS", "FAIL", "SKIPPED"))
     for name in testnames:
-        logit('%*s %7d %7d %7d' % (maxlen, name
-        ,   AssimSysTest.stats[name][AssimSysTest.SUCCESS]
-        ,   AssimSysTest.stats[name][AssimSysTest.FAIL]
-        ,   AssimSysTest.stats[name][AssimSysTest.SKIPPED]))
-        totals[AssimSysTest.SUCCESS]    += AssimSysTest.stats[name][AssimSysTest.SUCCESS]
-        totals[AssimSysTest.FAIL]       += AssimSysTest.stats[name][AssimSysTest.FAIL]
-        totals[AssimSysTest.SKIPPED]    += AssimSysTest.stats[name][AssimSysTest.SKIPPED]
-    logit('%*s %7s %7s %7s' % (maxlen, '_' * maxlen, '_____', '_____', '_____'))
-    logit('%*s %7d %7d %7d' % (maxlen, 'TOTALS'
-    ,   totals[AssimSysTest.SUCCESS]
-    ,   totals[AssimSysTest.FAIL]
-    ,   totals[AssimSysTest.SKIPPED]))
+        logit(
+            "%*s %7d %7d %7d"
+            % (
+                maxlen,
+                name,
+                AssimSysTest.stats[name][AssimSysTest.SUCCESS],
+                AssimSysTest.stats[name][AssimSysTest.FAIL],
+                AssimSysTest.stats[name][AssimSysTest.SKIPPED],
+            )
+        )
+        totals[AssimSysTest.SUCCESS] += AssimSysTest.stats[name][AssimSysTest.SUCCESS]
+        totals[AssimSysTest.FAIL] += AssimSysTest.stats[name][AssimSysTest.FAIL]
+        totals[AssimSysTest.SKIPPED] += AssimSysTest.stats[name][AssimSysTest.SKIPPED]
+    logit("%*s %7s %7s %7s" % (maxlen, "_" * maxlen, "_____", "_____", "_____"))
+    logit(
+        "%*s %7d %7d %7d"
+        % (
+            maxlen,
+            "TOTALS",
+            totals[AssimSysTest.SUCCESS],
+            totals[AssimSysTest.FAIL],
+            totals[AssimSysTest.SKIPPED],
+        )
+    )
     if totals[AssimSysTest.FAIL] == 0:
-        logit('%*s' % (maxlen, 'ALL TESTS SUCCEEDED!'))
+        logit("%*s" % (maxlen, "ALL TESTS SUCCEEDED!"))
     else:
-        logit('%*s' % (maxlen, ('%d TESTS FAILED :-(' % totals[AssimSysTest.FAIL])))
+        logit("%*s" % (maxlen, ("%d TESTS FAILED :-(" % totals[AssimSysTest.FAIL])))
     return totals[AssimSysTest.FAIL]
 
+
 def testmain(logname):
-    'This is the actual main program for the assimilation tests'
-    maxdrones=10
-    itercount=30
+    "This is the actual main program for the assimilation tests"
+    maxdrones = 10
+    itercount = 30
     testset = []
 
-    parser = optparse.OptionParser(prog='assimtest'
-            ,   description='System Test utility for the Assimilation software.'
-            ,   usage=
-    '''assimtest.py [options] iteration-count [number-of-systems-in-test-environment]
+    parser = optparse.OptionParser(
+        prog="assimtest",
+        description="System Test utility for the Assimilation software.",
+        usage="""assimtest.py [options] iteration-count [number-of-systems-in-test-environment]
     The number of systems defaults to iteration-count/4.
     The minimum number of nanoprobe-only systems will always be >= 2.
-    You must run this as root and have docker.io installed.''')
-    parser.add_option('-t', '--testcases'
-    ,   action='append'
-    ,   default=[]
-    ,   dest='testcases'
-    ,   choices=AssimSysTest.testnames.keys()
-    ,   help='specific test cases to use')
+    You must run this as root and have docker.io installed.""",
+    )
+    parser.add_option(
+        "-t",
+        "--testcases",
+        action="append",
+        default=[],
+        dest="testcases",
+        choices=AssimSysTest.testnames.keys(),
+        help="specific test cases to use",
+    )
 
-    parser.add_option('-c', '--cmadebug'
-    ,   action='store'
-    ,   default=0
-    ,   dest='cmadebug'
-    ,   choices=('0', '1', '2', '3', '4', '5')
-    ,   help='CMA debug level [0-5]')
+    parser.add_option(
+        "-c",
+        "--cmadebug",
+        action="store",
+        default=0,
+        dest="cmadebug",
+        choices=("0", "1", "2", "3", "4", "5"),
+        help="CMA debug level [0-5]",
+    )
 
-    parser.add_option('-n', '--nanodebug'
-    ,   action='store'
-    ,   default=0
-    ,   dest='nanodebug'
-    ,   choices=('0', '1', '2', '3', '4', '5')
-    ,   help='Nanoprobe debug level [0-5]')
+    parser.add_option(
+        "-n",
+        "--nanodebug",
+        action="store",
+        default=0,
+        dest="nanodebug",
+        choices=("0", "1", "2", "3", "4", "5"),
+        help="Nanoprobe debug level [0-5]",
+    )
 
-    parser.add_option('-s', '--seed'
-    ,   action='store'
-    ,   default=None
-    ,   dest='seed'
-    ,   help
-    =   'Random seed - a comma-separated list of 8 integers between 0 and 255 - from previous run')
+    parser.add_option(
+        "-s",
+        "--seed",
+        action="store",
+        default=None,
+        dest="seed",
+        help="Random seed - a comma-separated list of 8 integers between 0 and 255 - from previous run",
+    )
 
-    parser.add_option('-l', '--logname'
-    ,   action='store'
-    ,   default=logname
-    ,   dest='logname'
-    ,   help
-    =   'Log file where syslog sends messages')
+    parser.add_option(
+        "-l",
+        "--logname",
+        action="store",
+        default=logname,
+        dest="logname",
+        help="Log file where syslog sends messages",
+    )
 
-    parser.add_option('-m', '--mgmtsystem'
-    ,   action='store'
-    ,   default="docker"
-    ,   dest='mgmtsystem'
-    ,   help
-    =   'Management system to use for VMs/containers (docker or vagrant)')
+    parser.add_option(
+        "-m",
+        "--mgmtsystem",
+        action="store",
+        default="docker",
+        dest="mgmtsystem",
+        help="Management system to use for VMs/containers (docker or vagrant)",
+    )
 
-    parser.add_option('-C', '--cmaimage'
-    ,   action='store'
-    ,   default="assimilation/build-stretch"
-    ,   dest='cmaimage'
-    ,   help
-    =   'VM/container image to use for cma')
+    parser.add_option(
+        "-C",
+        "--cmaimage",
+        action="store",
+        default="assimilation/build-stretch",
+        dest="cmaimage",
+        help="VM/container image to use for cma",
+    )
 
-    parser.add_option('-N', '--nanoimages'
-    ,   action='store'
-    ,   default="assimilation/build-stretch"
-    ,   dest='nanoimages'
-    ,   help
-    =   'VM/container images to use for nanoprobes (use space as a separator)')
+    parser.add_option(
+        "-N",
+        "--nanoimages",
+        action="store",
+        default="assimilation/build-stretch",
+        dest="nanoimages",
+        help="VM/container images to use for nanoprobes (use space as a separator)",
+    )
 
-    parser.add_option('-D', '--vagrantdir'
-    ,   action='store'
-    ,   default="vagrant"
-    ,   dest='vagrantdir'
-    ,   help
-    =   'The vagrant directory (only valid with -m vagrant)')
+    parser.add_option(
+        "-D",
+        "--vagrantdir",
+        action="store",
+        default="vagrant",
+        dest="vagrantdir",
+        help="The vagrant directory (only valid with -m vagrant)",
+    )
 
-    parser.add_option('-1', '--onedrone'
-    ,   action='store_true'
-    ,   default=False
-    ,   dest='onedrone'
-    ,   help
-    =   '''Run tests with just one drone and without
-        nanoprobe on the CMA system.''')
+    parser.add_option(
+        "-1",
+        "--onedrone",
+        action="store_true",
+        default=False,
+        dest="onedrone",
+        help="""Run tests with just one drone and without
+        nanoprobe on the CMA system.""",
+    )
 
     (opts, args) = parser.parse_args()
     opts.cmadebug = int(opts.cmadebug)
@@ -196,12 +242,12 @@ def testmain(logname):
 
     if len(args) == 1:
         itercount = int(args[0])
-        maxdrones = max(int((itercount+2) / 4), 2)
+        maxdrones = max(int((itercount + 2) / 4), 2)
     elif len(args) == 2:
         itercount = int(args[0])
         maxdrones = int(args[1])
     else:
-        parser.parse_args(['--help'])
+        parser.parse_args(["--help"])
         return 1
 
     if opts.onedrone:
@@ -210,18 +256,18 @@ def testmain(logname):
     if opts.seed is None:
         # Prepare Random number generator
         f = open("/dev/urandom", "r")
-        seed=struct.unpack("BBBBBBBB", f.read(8))
+        seed = struct.unpack("BBBBBBBB", f.read(8))
         f.close()
     else:
-        seed = tuple([int(elem) for elem in opts.seed.split(',')])
+        seed = tuple([int(elem) for elem in opts.seed.split(",")])
         assert len(seed) == 8
-    random.Random().seed(seed) # The hash of those 8 bytes is used as the seed
+    random.Random().seed(seed)  # The hash of those 8 bytes is used as the seed
 
-    print '\n'
-    logit('Iteration count: %d / Number of client systems: %d' % (itercount, maxdrones))
+    print("\n")
+    logit("Iteration count: %d / Number of client systems: %d" % (itercount, maxdrones))
     logit("Random Seed:     %s" % str(seed))
 
-    print '\n'
+    print("\n")
 
     # Set up specific test cases -- if requested
     if len(opts.testcases) > 0:
@@ -233,9 +279,9 @@ def testmain(logname):
     # (this doesn't work because nanoimages is always set to the
     # default)
     if len(opts.nanoimages) > 0:
-        nanoimages=opts.nanoimages.split()
+        nanoimages = opts.nanoimages.split()
     else:
-        nanoimages=[opts.cmaimage]
+        nanoimages = [opts.cmaimage]
 
     # Add vagrant directory to mgmtsystem (if vagrant)
     mgmtsystem = opts.mgmtsystem
@@ -243,22 +289,25 @@ def testmain(logname):
         mgmtsystem = "%s:%s" % (opts.mgmtsystem, opts.vagrantdir)
 
     # Set up the test environment as requested
-    env, store = AssimSysTest.initenviron(opts.logname, maxdrones
-    ,   mgmtsystem
-    ,   (opts.cmadebug > 0 or opts.nanodebug > 0)
-    ,   cmaimage=opts.cmaimage
-    ,   nanoimages=nanoimages
-    ,   cmadebug=opts.cmadebug, nanodebug=opts.nanodebug)
+    env, store = AssimSysTest.initenviron(
+        opts.logname,
+        maxdrones,
+        mgmtsystem,
+        (opts.cmadebug > 0 or opts.nanodebug > 0),
+        cmaimage=opts.cmaimage,
+        nanoimages=nanoimages,
+        cmadebug=opts.cmadebug,
+        nanodebug=opts.nanodebug,
+    )
 
-    logit('CMA:  %s %15s %6d %s' % (env.cma.hostname, env.cma.ipaddr, env.cma.pid, env.cma.name))
+    logit("CMA:  %s %15s %6d %s" % (env.cma.hostname, env.cma.ipaddr, env.cma.pid, env.cma.name))
     for nano in env.nanoprobes:
-        logit('nano: %s %15s %6d %s' % (nano.hostname, nano.ipaddr, nano.pid, nano.name))
+        logit("nano: %s %15s %6d %s" % (nano.hostname, nano.ipaddr, nano.pid, nano.name))
 
-    print '\n'
-    logit('STARTING %d tests on %d nanoprobes + CMA' % (itercount, maxdrones))
+    print("\n")
+    logit("STARTING %d tests on %d nanoprobes + CMA" % (itercount, maxdrones))
     return perform_tests(testset, env, store, itercount, opts.logname)
 
 
-sys.stdout = sys.stderr # Get rid of that nasty buffering...
-sys.exit(testmain('/var/log/syslog'))
-
+sys.stdout = sys.stderr  # Get rid of that nasty buffering...
+sys.exit(testmain("/var/log/syslog"))

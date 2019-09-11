@@ -43,6 +43,7 @@ class AssimSecret(object):
     These things include credentials for Neo4j, and other credentials the software might need to
     do its work.
     """
+
     secret_subclasses = {}
     _secret_info_map = {}
 
@@ -77,15 +78,15 @@ class AssimSecret(object):
         """
 
         secret_info = AssimSecret._secret_info_map[secret_name]
-        secret_type = secret_info.get('type', 'file').lower()
+        secret_type = secret_info.get("type", "file").lower()
         if secret_type not in AssimSecret.secret_subclasses:
-            secret_type += 'secret'
+            secret_type += "secret"
         return AssimSecret.secret_subclasses[secret_type](secret_name, secret_info, **keywords)
 
     def get(self):
         """
         Retrieve the value of our secret
-        :return: Union(str, unicode, bytes)
+        :return: Union(str, bytes)
         """
         raise NotImplementedError("%s.get() is an abstract method" % self.__class__.__name__)
 
@@ -131,15 +132,17 @@ class AssimSecret(object):
         """
         for secret_name in info_map:
             parameters = info_map[secret_name]
-            if 'type' not in parameters:
+            if "type" not in parameters:
                 raise ValueError(
-                    'Secret %s has no secret type in secret information map.' % secret_name)
-            if parameters['type'].lower() not in AssimSecret.secret_subclasses:
-                secret_type = parameters['type'].lower() + 'secret'
+                    "Secret %s has no secret type in secret information map." % secret_name
+                )
+            if parameters["type"].lower() not in AssimSecret.secret_subclasses:
+                secret_type = parameters["type"].lower() + "secret"
                 if secret_type not in AssimSecret.secret_subclasses:
                     raise ValueError(
-                        'Secret %s has an invalid secret type [%s] in secret information map.'
-                        % (secret_name, parameters['type']))
+                        "Secret %s has an invalid secret type [%s] in secret information map."
+                        % (secret_name, parameters["type"])
+                    )
         # Must be OK - or at least no egregious errors ;-)
         AssimSecret._secret_info_map = info_map
 
@@ -159,6 +162,7 @@ class FileSecret(AssimSecret):
     """
     A subclass for storing secrets in files
     """
+
     DEFAULT_SECRET_DIR = CRYPTKEYDIR
     uids = set()
     gids = set()
@@ -169,7 +173,7 @@ class FileSecret(AssimSecret):
         :param secret_parameters: parameters for this secret
         """
         AssimSecret.__init__(self, secret_name, secret_parameters)
-        self._temp_ok = secret_parameters.get('temp_ok', False)
+        self._temp_ok = secret_parameters.get("temp_ok", False)
 
     @staticmethod
     def set_uids_and_gids(uids=None, gids=None):
@@ -182,7 +186,7 @@ class FileSecret(AssimSecret):
         """
         FileSecret.uids = FileSecret.make_uids(uids) if uids else set()
         FileSecret.gids = FileSecret.make_gids(gids) if gids else set()
-        print('UIDS: %s' % FileSecret.uids)
+        print("UIDS: %s" % FileSecret.uids)
 
     @staticmethod
     def _check_full_path_permissions(file_name, file_read_only=True, temp_ok=False):
@@ -198,7 +202,7 @@ class FileSecret(AssimSecret):
             FileSecret._check_path_perms(file_name, read_only=read_only)
             read_only = False
             parent = os.path.dirname(file_name)
-            if parent == '' or parent == file_name:
+            if parent == "" or parent == file_name:
                 break
             file_name = parent
 
@@ -221,14 +225,14 @@ class FileSecret(AssimSecret):
         mode = stat_buffer.st_mode
         if stat.S_ISLNK(mode):
             link_path = os.readlink(path_name)
-            if not link_path.startswith('/'):
+            if not link_path.startswith("/"):
                 link_directory = os.path.dirname(path_name)
                 link_path = os.path.join(link_directory, link_path)
             FileSecret._check_full_path_permissions(file_name=link_path)
             return
         if not (stat.S_ISDIR(mode) or stat.S_ISREG(mode)):
             raise OSError('"%s" is not a file, directory or link' % path_name)
-        if not (temp_ok and path_name == '/tmp' or path_name == '/var/tmp' and mode & stat.S_ISVTX):
+        if not (temp_ok and path_name == "/tmp" or path_name == "/var/tmp" and mode & stat.S_ISVTX):
             # That combination looks to see if it's under a temp dir which is marked sticky...
             # this is useful for testing...
             if mode & (stat.S_IWOTH | stat.S_IWGRP):
@@ -237,11 +241,15 @@ class FileSecret(AssimSecret):
                 if mode & (stat.S_IROTH | stat.S_IRGRP):
                     raise OSError('"%s" is readable by other or group' % path_name)
         if FileSecret.uids and stat_buffer.st_uid not in FileSecret.uids:
-            raise OSError('user id %s is not a permissible owner for "%s". %s'
-                          % (stat_buffer.st_uid, path_name, str(list(FileSecret.uids))))
+            raise OSError(
+                'user id %s is not a permissible owner for "%s". %s'
+                % (stat_buffer.st_uid, path_name, str(list(FileSecret.uids)))
+            )
         if FileSecret.gids and stat_buffer.st_uid not in FileSecret.gids:
-            raise OSError('group id %s is not a permissible owner for "%s". %s'
-                          % (stat_buffer.st_uid, path_name, str(list(FileSecret.gids))))
+            raise OSError(
+                'group id %s is not a permissible owner for "%s". %s'
+                % (stat_buffer.st_uid, path_name, str(list(FileSecret.gids)))
+            )
             # Well, if we got this far, it must be OK :-)
 
     @staticmethod
@@ -287,8 +295,8 @@ class FileSecret(AssimSecret):
         :return: str: value of secret [or other appropriate value ;-)]
         :raises OSError: For a variety of reasons.
         """
-        file_name = self._secret_parameters.get('filename', self.secret_name)
-        if not file_name.startswith('/'):
+        file_name = self._secret_parameters.get("filename", self.secret_name)
+        if not file_name.startswith("/"):
             file_name = os.path.join(self.DEFAULT_SECRET_DIR, file_name)
         try:
             self._check_full_path_permissions(file_name)
@@ -303,17 +311,18 @@ class FileSecret(AssimSecret):
         :param new_value:
         :return: None
         """
-        file_name = self._secret_parameters.get('filename', self.secret_name)
-        if not file_name.startswith('/'):
+        file_name = self._secret_parameters.get("filename", self.secret_name)
+        if not file_name.startswith("/"):
             file_name = os.path.join(self.DEFAULT_SECRET_DIR, file_name)
         try:
             self._check_full_path_permissions(file_name)
-            with open(file_name, 'w') as secret_fd:
+            with open(file_name, "w") as secret_fd:
                 if self._perform_external_update():
                     return secret_fd.write(new_value)
                 else:
-                    raise RuntimeError('External secret update failed. Secret "%s" unchanged'
-                                       % self.secret_name)
+                    raise RuntimeError(
+                        'External secret update failed. Secret "%s" unchanged' % self.secret_name
+                    )
         except OSError as error:
             raise OSError('FileSecret("%s"): %s.' % (self.secret_name, str(error)))
 
@@ -328,8 +337,8 @@ class Neo4jSecret(FileSecret):
 
         if secret_parameters is None:
             secret_parameters = {}
-        if 'filename' not in secret_parameters:
-            secret_parameters['filename'] = 'neo4j.creds'
+        if "filename" not in secret_parameters:
+            secret_parameters["filename"] = "neo4j.creds"
         FileSecret.__init__(self, secret_name, secret_parameters)
         self.add_update_function(Neo4jSecret._update_neo4j)
 
@@ -359,44 +368,46 @@ class Neo4jSecret(FileSecret):
 
         :return: [str, str] : [login-string, password-string]
         """
-        return [line for line in FileSecret.get(self).split('\n') if line]
+        return [line for line in FileSecret.get(self).split("\n") if line]
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     print("doing stuff")
     AssimSecret.set_secret_info_map(
-        {'secret': {'type': 'file', 'filename': '/home/alanr/secret/secret'},
-         'not_secret': {'type': 'file', 'filename': '/home/alanr/secret/not_secret'},
-
-         'foobar': {'type': 'file', 'filename': '/home/alanr/secret/foobar'}})
-    uid_list = ['alanr', 'root', 'sys', 'bin', 'adm']
+        {
+            "secret": {"type": "file", "filename": "/home/alanr/secret/secret"},
+            "not_secret": {"type": "file", "filename": "/home/alanr/secret/not_secret"},
+            "foobar": {"type": "file", "filename": "/home/alanr/secret/foobar"},
+        }
+    )
+    uid_list = ["alanr", "root", "sys", "bin", "adm"]
     FileSecret.set_uids_and_gids(uid_list)
-    secret = AssimSecret.factory('secret')
+    secret = AssimSecret.factory("secret")
     print("GET: %s" % secret.get())
-    secret = AssimSecret.factory('not_secret')
+    secret = AssimSecret.factory("not_secret")
     try:
         print("GET: %s" % secret.get())
     except OSError as os_err:
-        if 'is readable by' not in str(os_err):
+        if "is readable by" not in str(os_err):
             print("Wrong error raised (%s)" % (str(os_err)))
     else:
         print("No error raised for not_secret file")
-    secret = AssimSecret.factory('foobar')
+    secret = AssimSecret.factory("foobar")
     try:
         print("GET: %s" % secret.get())
     except OSError as os_err:
-        if 'No such file or directory' not in str(os_err):
+        if "No such file or directory" not in str(os_err):
             print("Wrong error raised (%s)" % (str(os_err)))
     else:
         print("No error raised for foobar file")
 
-    FileSecret.set_uids_and_gids(uids=('root', 'bin', 'adm'))
+    FileSecret.set_uids_and_gids(uids=("root", "bin", "adm"))
     print("UIDS: %s" % FileSecret.uids)
-    secret = AssimSecret.factory('secret')
+    secret = AssimSecret.factory("secret")
     try:
         print("GET: %s" % secret.get())
     except OSError as os_err:
-        if 'not a permissible owner' not in str(os_err):
+        if "not a permissible owner" not in str(os_err):
             print("Wrong error raised (%s)" % (str(os_err)))
     else:
         print("No owner error raised for secret file")

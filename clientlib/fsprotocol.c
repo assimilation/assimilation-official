@@ -1,11 +1,24 @@
 /**
  * @file
  * @brief FrameSet queueing class
- * @details This includes code to implement FrameSet queueing for reliable communication
+ * @details This includes code to implement the our reliable protocol over UDP. It relies heavily on glib lists
+ *           and queues, and also on the fsqueue.c functions.
+ *           If you don't understand idioms for using the glib lists and queues, it will slow down your
+ *           understanding this code. In particular g_list, g_slist, g_queue, and g_hash_table functions are all used.
+ *           In addition, it uses a finite state automaton (_fsprotocol_fsa) to manage connection establishment and
+ *           termination.
+ *
+ * g_list - doubly linked lists
+ * g_slist - singly linked lists
+ * g_queue - double-ended queue - can push or pop from either end
+ * g_hash_table - hash tables
+ *
+ * You'll notice that the first half of the code is all about basics and infrastructure for the last half.
+ * The real work gets done by functions like _fsprotocol_xmitifwecan and _fsprotocol_receive.
  *
  * This file is part of the Assimilation Project.
  *
- * @author Copyright &copy; 2012 - Alan Robertson <alanr@unix.sh>
+ * @author Alan Robertson <alanr@unix.sh> - Copyright &copy; 2012-2018 Assimilation Systems Limited
  * @n
  *  The Assimilation software is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -522,7 +535,6 @@ _fsprotocol_flush_pending_connshut(FsProtoElem* fspe)
 #define		TRYXMIT(fspe)	{AUDITFSPE(fspe); _fsprotocol_xmitifwecan(fspe);}
 
 
-
 /// Audit a FsProtoElem object for consistency */
 FSTATIC void
 _fsprotocol_auditfspe(const FsProtoElem* self, const char * function, int lineno)
@@ -645,8 +657,9 @@ _fsprotocol_findbypkt(FsProtocol* self		///< The FsProtocol object we're operati
 }
 
 
-/// Add and return a FsProtoElem connection to our collection of connections...
+/// Construct and add a FsProtoElem connection to our collection of connections...
 /// Note that if it's already there, the existing connection will be returned.
+/// An FsProtoElem object represents a connection between us and our peer on the other end of the link
 FSTATIC FsProtoElem*
 _fsprotocol_addconn(FsProtocol*self	///< typical FsProtocol 'self' object
 ,		    guint16 qid		///< Queue id for the connection
@@ -742,6 +755,7 @@ _fsprotocol_canclose_immediately(gpointer v_fspe, gpointer unused, gpointer unus
 }
 
 
+/// Return the number of currently active connections
 FSTATIC int
 _fsprotocol_activeconncount(FsProtocol* self)
 {
@@ -772,6 +786,7 @@ _fsprotocol_activeconncount(FsProtocol* self)
 	return count;
 }
 
+/// Return the connection state for the given connection
 FSTATIC FsProtoState
 _fsprotocol_connstate(FsProtocol*self, guint16 qid, const NetAddr* destaddr)
 {
@@ -790,7 +805,9 @@ _fsprotocol_fspe_reinit(FsProtoElem* self)
 	if (!g_queue_is_empty(self->outq->_q)) {
 		DUMP3("REINIT OF OUTQ", &self->outq->baseclass, __FUNCTION__);
 		self->outq->flush(self->outq);
-		reset_pending(self);
+
+		// No longer waiting on any ACKs - takes us off the unACKed list...
+    reset_pending(self)
 		self->outq->isready = FALSE;
 	}
 	// See the code in _fsqueue_enq and also in seqnoframe_new_init for how all these pieces
@@ -839,8 +856,9 @@ _fsprotocol_fspe_closeconn(FsProtoElem* self)
 }
 
 
-
-/// Construct an FsProtocol object
+/// Construct an FsProtocol object - it implements our protocol across all our connections (fspes)
+/// There is usually only one of these in an application.
+/// It is a collection place for all the connection structures (FSPEs)
 WINEXPORT FsProtocol*
 fsprotocol_new(guint objsize		///< Size of object to be constructed
 ,	      NetIO* io			///< Pointer to NetIO for us to reference
@@ -883,7 +901,7 @@ fsprotocol_new(guint objsize		///< Size of object to be constructed
 	self->endpoints = g_hash_table_new_full(_fsprotocol_protoelem_hash,_fsprotocol_protoelem_equal
         ,		_fsprotocol_protoelem_destroy, NULL);
 	self->unacked = NULL;
-	self->ipend = g_queue_new();
+	self->ipend = g_queue_new();	// An ordered queue of connections that have data to read
 	self->window_size = FSPROTO_WINDOWSIZE;
 	self->rexmit_interval = FSPROTO_REXMITINTERVAL;
 	self->acktimeout = FSPROTO_ACKTIMEOUTINT;
@@ -927,7 +945,6 @@ _fsprotocol_finalize(AssimObj* aself)	///< FsProtocol object to finalize
 	// Free up the input pending list
 	g_queue_free(self->ipend);		// No additional 'ref's were taken for this list either
 	self->ipend = NULL;
-
 
 	// Lastly free our base storage
 	FREECLASSOBJ(self);
@@ -1000,7 +1017,7 @@ _fsprotocol_outputpending(FsProtocol* self)	///< Our object
 
 /// Read the next available FrameSet from any of our sources
 FSTATIC FrameSet*
-_fsprotocol_read(FsProtocol* self	///< Our object - our very self!
+_fsprotocol_read(FsProtocol* self	///< Our object - our very FsProtocol self!
 ,		 NetAddr** fromaddr)	///< The IP address our result came from
 {
 	GList*	list;	// List of all our FsQueues which have input
@@ -1053,6 +1070,7 @@ _fsprotocol_read(FsProtocol* self	///< Our object - our very self!
 					del_link = TRUE;
 				}
 			}
+			// We try and enforce a little fairness here - see note below...
 			g_queue_remove(self->ipend, fspe);
 			if (del_link) {
 				fspe->inq->isready = FALSE;
@@ -1105,7 +1123,7 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 	// come from that identity.
 	maybecrypt = g_slist_nth_data(fs->framelist, 1);
 	if (maybecrypt && OBJ_IS_A(maybecrypt, "CryptFrame")) {
-		 keyid = CASTTOCLASS(CryptFrame, maybecrypt)->sender_key_id;
+		keyid = CASTTOCLASS(CryptFrame, maybecrypt)->sender_key_id;
 	}
 	if (keyid) {
 		sender_id = cryptframe_whois_key_id(keyid);
@@ -1154,6 +1172,7 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 				DUMP3("Received bad ACK from", &fspe->endpoint->baseclass, NULL);
 				DUMP3(__FUNCTION__, &fs->baseclass, " was ACK received.");
 			}else if (is_outq_empty(fspe)) {
+				// Remove this connection from the list of connections with unacknowledged packets
 				reset_pending(fspe);
 				fspe->nextrexmit = 0;
 				TRYXMIT(fspe);
@@ -1211,6 +1230,7 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 		// 
 		// On the other hand, we cannot re-send an ACK that the application hasn't given us yet...
 		// We could wind up here if the app is slow to ACK packets we gave it
+		// Since these are client-level ACKs meaning transaction complete, they might be slow
 		if (seq && fspe->lastacksent) {
 			if (seq->_sessionid == fspe->lastacksent->_sessionid
 			&&	seq->compare(seq, fspe->lastacksent) <= 0) {
@@ -1227,8 +1247,9 @@ _fsprotocol_receive(FsProtocol* self			///< Self pointer
 	// If this queue wasn't shown as ready before - see if it is ready for reading now...
 	if (!fspe->inq->isready) {
 		if (seq == NULL || seq->_reqid == fspe->inq->_nextseqno) {
-			// Now ready to read - put our fspe on the list of fspes with input pending
-			g_queue_push_head(self->ipend, fspe);
+			// Now ready to read - put this channel on the end of the queue of ready-to-read channels
+			// We put it at the end for fairness.
+			g_queue_push_tail(self->ipend, fspe);
 			fspe->inq->isready = TRUE;
 			AUDITIREADY(self);
 		}
@@ -1278,8 +1299,10 @@ _fsprotocol_send1(FsProtocol* self	///< Our object
 		guint64 now = g_get_monotonic_time();
 		///@todo: This might be slow if we send a lot of packets to an endpoint
 		/// before getting a response, but that's not very likely.
+    // Add this channel to the list of channels that need ACKs
 		set_pending(fspe);
 		update_nextxmit_time(fspe);
+
 		fspe->acktimeout = now + self->acktimeout;
 	}
 	DEBUGMSG4("%s.%d: calling fspe->outq->enq()", __FUNCTION__, __LINE__);
@@ -1383,6 +1406,7 @@ _fsprotocol_ackseqno(FsProtocol* self, NetAddr* destaddr, SeqnoFrame* seq)
 }
 
 /// Our role in life is to send any packets that need sending.
+/// This is a key role to the output side of the protocol.
 ///
 ///	Find every packet which is eligible to be sent and send it out
 ///
@@ -1446,6 +1470,7 @@ _fsprotocol_xmitifwecan(FsProtoElem* fspe)	///< The FrameSet protocol element to
 			lastseq = fspe->lastseqsent = seq;
 			REF2(lastseq);
 			if (outq_len(fspe) >= parent->window_size) {
+				// Can't send any more on this channel until we get some ACKs.
 				break;
 			}
 		}

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# vim: smartindent tabstop=4 shiftwidth=4 expandtab number
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab number fileencoding=utf-8
 #
 # This file is part of the Assimilation Project.
 #
@@ -23,34 +23,36 @@
 # along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
 #
 #
-'''
+"""
 This module implements classes associated with Events in the Assimilation Project.
-'''
+"""
+
 
 class AssimEvent(object):
-    '''This class is all about highlighting events which others might want to know about.
+    """This class is all about highlighting events which others might want to know about.
     Other objects can register to be notified about the creation of new events.
     Or at least they will be able to when that code is written ;-).
     All of this happens without any concern by the event objects themselves.
     It is handled by static methods and a tiny bit of code in our constructor.
-    '''
+    """
+
     # Legal event types
-    CREATEOBJ = 0   # Object was newly created
-    OBJUP = 1       # Object status is now up
-    OBJDOWN = 2     # Object status is now down
-    OBJWARN = 3     # Object status is now in a warning state
-    OBJUNWARN = 4   # Object status has exited a warning state
-    OBJUPDATE = 5   # Object was updated
-    OBJDELETE = 6   # Object is about to be deleted
+    CREATEOBJ = 0  # Object was newly created
+    OBJUP = 1  # Object status is now up
+    OBJDOWN = 2  # Object status is now down
+    OBJWARN = 3  # Object status is now in a warning state
+    OBJUNWARN = 4  # Object status has exited a warning state
+    OBJUPDATE = 5  # Object was updated
+    OBJDELETE = 6  # Object is about to be deleted
 
     eventtypenames = {
-        CREATEOBJ:  'create',
-        OBJUP:      'up',
-        OBJDOWN:    'down',
-        OBJWARN:    'warn',
-        OBJUNWARN:  'unwarn',
-        OBJUPDATE:  'update',
-        OBJDELETE:  'delete'
+        CREATEOBJ: "create",
+        OBJUP: "up",
+        OBJDOWN: "down",
+        OBJWARN: "warn",
+        OBJUNWARN: "unwarn",
+        OBJUPDATE: "update",
+        OBJDELETE: "delete",
     }
 
     event_observation_enabled = True
@@ -58,7 +60,7 @@ class AssimEvent(object):
     observers = []
 
     def __init__(self, associatedobject, eventtype, extrainfo=None):
-        '''Initializer for AssimEvent class.
+        """Initializer for AssimEvent class.
         We save our parameters then notify our registered observers.
 
         Parameters:
@@ -68,9 +70,9 @@ class AssimEvent(object):
         eventtype: int
             one of AssimEvent.CREATEOBJ, AssimEvent.OBJUP, AssimEvent.OBJDOWN,
             AssimEvent.OBJWARN, AssimEvent.OBJUPDATE or AssimEvent.OBJDELETE
-        '''
+        """
         if eventtype not in AssimEvent.eventtypenames:
-            raise ValueError('Event type [%s] is not a legal event type' % eventtype)
+            raise ValueError("Event type [%s] is not a legal event type" % eventtype)
 
         self.associatedobject = associatedobject
         self.eventtype = eventtype
@@ -80,36 +82,36 @@ class AssimEvent(object):
 
     @staticmethod
     def disable_all_observers():
-        "Useful when testing and we don't want to trigger external event observers..."
+        """Useful when testing and we don't want to trigger external event observers..."""
         AssimEvent.event_observation_enabled = False
 
     @staticmethod
     def enable_all_observers():
-        "Useful when testing and we want to undo the operation above..."
+        """Useful when testing and we want to undo the operation above..."""
         AssimEvent.event_observation_enabled = True
 
     @staticmethod
     def is_registered(observer):
-        '''Return True if the given observer is registered with us.
-        '''
+        """Return True if the given observer is registered with us.
+        """
         return observer in AssimEvent.observers
 
     @staticmethod
     def registerobserver(observer):
-        '''Static method for registering an observer with the AssimEvent class.
+        """Static method for registering an observer with the AssimEvent class.
         The given observer object must implement a 'notifynewevent' method
         -- because we will surely call it :-D.
-        '''
-        if not hasattr(observer, 'notifynewevent'):
-            raise(AttributeError('observer must have a notifynewevent method'))
+        """
+        if not hasattr(observer, "notifynewevent"):
+            raise AttributeError("observer must have a notifynewevent method")
         if observer not in AssimEvent.observers:
             AssimEvent.observers.append(observer)
 
     @staticmethod
     def unregisterobserver(observer):
-        '''Static method for unregistering an observer with the AssimEvent class.
+        """Static method for unregistering an observer with the AssimEvent class.
         We return True if the given observer was registered with us, False otherwise.
-        '''
+        """
         for j in range(0, len(AssimEvent.observers)):
             if AssimEvent.observers[j] is observer:
                 del AssimEvent.observers[j]
@@ -117,9 +119,9 @@ class AssimEvent(object):
         return False
 
     def notifynewevent(self):
-        '''method for notifying all our observers that a new event
+        """method for notifying all our observers that a new event
         has been created.
         We call the 'notifynewevent' method in each registered observer object.
-        '''
+        """
         for observer in AssimEvent.observers:
             observer.notifynewevent(self)

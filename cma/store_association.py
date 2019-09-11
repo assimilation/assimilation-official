@@ -29,6 +29,7 @@ store_association module - associations between objects, py2neo.Nodes and Stores
 """
 from __future__ import print_function
 from sys import stderr
+import six
 import py2neo
 from AssimCclasses import pyNetAddr
 
@@ -48,14 +49,15 @@ class StoreAssociation(object):
     transaction to the next would this be true. This shouldn't happen often - if at all.
 
     """
-    VARIABLE_NAME_PATTERN = '%s%d'
-    RELATIONSHIP_PATTERN = 'r%d'
+
+    VARIABLE_NAME_PATTERN = "%s%d"
+    RELATIONSHIP_PATTERN = "r%d"
     last_variable_id = 0
     last_relationship_id = 0
 
-    FORWARD = 'forward'
-    REVERSE = 'reverse'
-    BOTH = 'bidirectional'
+    FORWARD = "forward"
+    REVERSE = "reverse"
+    BOTH = "bidirectional"
 
     def __init__(self, obj, store=None, node_id=None):
         """
@@ -77,8 +79,9 @@ class StoreAssociation(object):
             for attr in self.key_attributes:
                 # print ("ATTRIBUTE: %s" % attr, file=stderr)
                 if not hasattr(obj, attr):
-                    raise ValueError("Key attribute %s not present in object type %s"
-                                     % (attr, type(obj)))
+                    raise ValueError(
+                        "Key attribute %s not present in object type %s" % (attr, type(obj))
+                    )
 
     def _new_variable_name(self):
         """
@@ -86,8 +89,10 @@ class StoreAssociation(object):
         :return: str: unique, legal Cypher variable name
         """
         StoreAssociation.last_variable_id += 1
-        return (StoreAssociation.VARIABLE_NAME_PATTERN
-                % (self.obj.__class__.__name__, self.last_variable_id))
+        return StoreAssociation.VARIABLE_NAME_PATTERN % (
+            self.obj.__class__.__name__,
+            self.last_variable_id,
+        )
 
     def new_relationship_name(self):
         """
@@ -123,7 +128,7 @@ class StoreAssociation(object):
         :param cypher_string: str: string to provide a Cypher representation of
         :return: str: fully escaped representation suitable for Cypher
         """
-        return "'%s'" % cypher_string.replace('\\', '\\\\').replace("'", "\\'")
+        return "'%s'" % cypher_string.replace("\\", "\\\\").replace("'", "\\'")
 
     def cypher_scalar_repr(self, scalar):
         """
@@ -132,17 +137,16 @@ class StoreAssociation(object):
         :param scalar: object: scalar object to use as input
         :return: str: representation of this scalar suitable for Cypher
         """
-        if isinstance(scalar, (str, unicode, pyNetAddr)):
+        if isinstance(scalar, (six.string_types, pyNetAddr)):
             if isinstance(scalar, pyNetAddr):
                 scalar = str(scalar)
             scalar_str = self.cypher_str_repr(scalar)
-        elif isinstance(scalar, (bool, int, float, long)):
+        elif isinstance(scalar, (bool, int, float)):
             scalar_str = str(scalar)
         elif scalar is None:
-            scalar_str = 'null'
+            scalar_str = "null"
         else:
-            raise ValueError('Inappropriate Neo4j value: "%s" (type %s)'
-                             % (scalar, type(scalar)))
+            raise ValueError('Inappropriate Neo4j value: "%s" (type %s)' % (scalar, type(scalar)))
         return scalar_str
 
     def cypher_array_repr(self, array):
@@ -153,12 +157,12 @@ class StoreAssociation(object):
         :param array: [object]: array of scalar items
         :return: str: Cypher representation
         """
-        result = ''
-        delimiter = ''
+        result = ""
+        delimiter = ""
         for element in array:
-            result += '%s%s' % (delimiter, self.cypher_scalar_repr(element))
-            delimiter = ', '
-        return '[%s]' % result
+            result += "%s%s" % (delimiter, self.cypher_scalar_repr(element))
+            delimiter = ", "
+        return "[%s]" % result
 
     def cypher_repr(self, thing):
         """
@@ -179,15 +183,15 @@ class StoreAssociation(object):
         :return: str: Cypher attributes
         """
         if not attributes:
-            return ''
-        result = ' {'
-        delimiter = ''
-        for key, item in attributes.viewitems():
-            if key.startswith('_') or key == 'association':
+            return ""
+        result = " {"
+        delimiter = ""
+        for key, item in attributes.items():
+            if key.startswith("_") or key == "association":
                 continue
-            result += '%s%s: %s' % (delimiter, key, self.cypher_repr(item))
-            delimiter = ', '
-        return result + '}'
+            result += "%s%s: %s" % (delimiter, key, self.cypher_repr(item))
+            delimiter = ", "
+        return result + "}"
 
     @staticmethod
     def find_store_association(obj):
@@ -209,12 +213,15 @@ class StoreAssociation(object):
         """
         var_name = self.variable_name
         if self.node_id is not None:
-            return 'ID(%s) = %d' % (var_name, self.node_id)
+            return "ID(%s) = %d" % (var_name, self.node_id)
         else:
-            result = '%s.nodetype = %s' % (var_name, self.cypher_repr(self.obj.nodetype))
+            result = "%s.nodetype = %s" % (var_name, self.cypher_repr(self.obj.nodetype))
             for attr in self.key_attributes:
-                result += (' AND %s.%s = %s' % (var_name, attr,
-                                                self.cypher_repr(getattr(self.obj, attr))))
+                result += " AND %s.%s = %s" % (
+                    var_name,
+                    attr,
+                    self.cypher_repr(getattr(self.obj, attr)),
+                )
         return result
 
     def cypher_delete_node_query(self):
@@ -223,8 +230,10 @@ class StoreAssociation(object):
 
         :return: str: Cypher delete query
         """
-        return self.cypher_find_match_clause() + ' WITH %s DETACH DELETE %s\n'\
-                                                 % (self.variable_name, self.variable_name)
+        return self.cypher_find_match_clause() + " WITH %s DETACH DELETE %s\n" % (
+            self.variable_name,
+            self.variable_name,
+        )
 
     def cypher_find_match_clause(self):
         """
@@ -238,11 +247,11 @@ class StoreAssociation(object):
         var_name = self.variable_name
         where_clause = self.cypher_find_where_clause()
         if self.node_id is not None:
-            return 'MATCH (%s) WHERE %s' % (var_name, where_clause)
+            return "MATCH (%s) WHERE %s" % (var_name, where_clause)
         else:
-            label = 'Class_%s' % self.obj.nodetype
-            result = 'MATCH (%s:%s) WHERE %s' % (var_name, label, where_clause)
-        return result + '\n'
+            label = "Class_%s" % self.obj.nodetype
+            result = "MATCH (%s:%s) WHERE %s" % (var_name, label, where_clause)
+        return result + "\n"
 
     @staticmethod
     def _cypher_match_var(var):
@@ -251,10 +260,10 @@ class StoreAssociation(object):
         :param var:
         :return:
         """
-        if hasattr(var, 'variable_name'):
-            return '(%s:%s)' % (var.variable_name, 'Class_' + var.obj.nodetype)
+        if hasattr(var, "variable_name"):
+            return "(%s:%s)" % (var.variable_name, "Class_" + var.obj.nodetype)
         else:
-            return '(%s)' % var
+            return "(%s)" % var
 
     def cypher_find_match2_clause(self, others):
         """
@@ -263,16 +272,16 @@ class StoreAssociation(object):
         :param others:
         :return:
         """
-        cypher = 'MATCH %s' % self._cypher_match_var(self)
-        if isinstance(others, str) or not hasattr(others, '__iter__'):
-            others=(others,)
+        cypher = "MATCH %s" % self._cypher_match_var(self)
+        if isinstance(others, str) or not hasattr(others, "__iter__"):
+            others = (others,)
         for other in others:
-            cypher += ', ' + self._cypher_match_var(other)
+            cypher += ", " + self._cypher_match_var(other)
 
-        cypher += '\nWHERE ' + self.cypher_find_where_clause()
+        cypher += "\nWHERE " + self.cypher_find_where_clause()
         for other in others:
             if other is not self and not isinstance(other, str):
-                cypher += ' AND ' + other.cypher_find_where_clause()
+                cypher += " AND " + other.cypher_find_where_clause()
         return cypher
 
     def cypher_find_query(self):
@@ -282,7 +291,7 @@ class StoreAssociation(object):
         :return: str: Cypher query as described above...
         """
         result = self.cypher_find_match_clause()
-        result += 'RETURN %s' % self.variable_name
+        result += "RETURN %s" % self.variable_name
         return result
 
     def cypher_update_clause(self, attributes=None):
@@ -294,13 +303,17 @@ class StoreAssociation(object):
         if attributes is None:
             attributes = self.dirty_attrs
         result = self.cypher_find_match_clause()
-        result += ' SET '
-        delimiter = ''
+        result += " SET "
+        delimiter = ""
         for attr in attributes:
-            result += ('%s%s.%s = %s' % (delimiter, self.variable_name, attr,
-                                         self.cypher_repr(getattr(self.obj, attr))))
-            delimiter = ', '
-        return result + '\n'
+            result += "%s%s.%s = %s" % (
+                delimiter,
+                self.variable_name,
+                attr,
+                self.cypher_repr(getattr(self.obj, attr)),
+            )
+            delimiter = ", "
+        return result + "\n"
 
     def cypher_create_node_query(self):
         """
@@ -311,12 +324,13 @@ class StoreAssociation(object):
         :return:str: Cypher query string to create this node
         """
         # assert self.is_abstract
-        words = ['CREATE (%s' % self.variable_name]
+        words = ["CREATE (%s" % self.variable_name]
         words.extend(self.default_labels)
-        return ':'.join(words) + self.attribute_string(self.obj.__dict__) + ')\n'
+        return ":".join(words) + self.attribute_string(self.obj.__dict__) + ")\n"
 
-    def cypher_relate_node(self, relationship_type, to_association,
-                           direction='forward', attrs=None):
+    def cypher_relate_node(
+        self, relationship_type, to_association, direction="forward", attrs=None
+    ):
         """
         Relate the current node to the 'to_obj' with the arrow pointing from self->to_obj
 
@@ -331,26 +345,35 @@ class StoreAssociation(object):
         :return: str: Cypher query string
         """
         if direction == self.BOTH:
-            return (self.cypher_relate_node(relationship_type=relationship_type,
-                                            to_association=to_association,
-                                            direction=self.FORWARD,
-                                            attrs=attrs)
-                    + self.cypher_relate_node(relationship_type=relationship_type,
-                                              to_association=to_association,
-                                              direction=self.REVERSE,
-                                              attrs=attrs))
+            return self.cypher_relate_node(
+                relationship_type=relationship_type,
+                to_association=to_association,
+                direction=self.FORWARD,
+                attrs=attrs,
+            ) + self.cypher_relate_node(
+                relationship_type=relationship_type,
+                to_association=to_association,
+                direction=self.REVERSE,
+                attrs=attrs,
+            )
         reverse = direction == self.REVERSE
-        return ('CREATE (%s)%s[:%s %s]%s(%s)\n'
-                % (self.variable_name,
-                   '<-' if reverse else '-',
-                   relationship_type,
-                   self.attribute_string(attrs),
-                   '-' if reverse else '->',
-                   to_association.variable_name))
+        return "CREATE (%s)%s[:%s %s]%s(%s)\n" % (
+            self.variable_name,
+            "<-" if reverse else "-",
+            relationship_type,
+            self.attribute_string(attrs),
+            "-" if reverse else "->",
+            to_association.variable_name,
+        )
 
-    def cypher_relationship_match_phrase(self, relationship_type, to_association=None,
-                                         direction='forward', attrs=None,
-                                         relationship_variable=True):
+    def cypher_relationship_match_phrase(
+        self,
+        relationship_type,
+        to_association=None,
+        direction="forward",
+        attrs=None,
+        relationship_variable=True,
+    ):
         """
         Create a match phrase to match things directly related to this node (if any)
         that has the specified type and attributes. We generate a relationship variable
@@ -364,32 +387,34 @@ class StoreAssociation(object):
         :param relationship_variable: True if we provide a relationship variable
         :return: (str, str): (relationship_variable, match phrase)
         """
-        relationship_name = self.new_relationship_name() if relationship_variable else ''
+        relationship_name = self.new_relationship_name() if relationship_variable else ""
         if to_association:
             # print('TO_ASSOCIATION: type: %s value:%s' % (type(to_association), to_association),
             #       file=stderr)
-            if hasattr(to_association, 'variable_name'):
+            if hasattr(to_association, "variable_name"):
                 to_name = to_association.variable_name
-            elif hasattr(to_association, 'association'):
+            elif hasattr(to_association, "association"):
                 to_name = to_association.association.variable_name
             else:
                 to_name = to_association
         else:
-            to_name = ''
-        lhs_arrow = '<-' if direction == self.REVERSE else '-'
-        rhs_arrow = '->' if direction == self.FORWARD else '-'
-        result = ('(%s)%s[%s%s%s]%s(%s)'
-                  % (self.variable_name,
-                     lhs_arrow,
-                     relationship_name,
-                     (':' + relationship_type) if relationship_type is not None else '',
-                     self.attribute_string(attrs),
-                     rhs_arrow,
-                     to_name))
+            to_name = ""
+        lhs_arrow = "<-" if direction == self.REVERSE else "-"
+        rhs_arrow = "->" if direction == self.FORWARD else "-"
+        result = "(%s)%s[%s%s%s]%s(%s)" % (
+            self.variable_name,
+            lhs_arrow,
+            relationship_name,
+            (":" + relationship_type) if relationship_type is not None else "",
+            self.attribute_string(attrs),
+            rhs_arrow,
+            to_name,
+        )
         return relationship_name, result
 
-    def cypher_unrelate_node(self, relationship_type, to_association=None,
-                             direction='forward', attrs=None):
+    def cypher_unrelate_node(
+        self, relationship_type, to_association=None, direction="forward", attrs=None
+    ):
         """
         Remove any relationships between self and to_association that are of the given type
         and have the given attributes - if any are given. If none are given, then
@@ -404,17 +429,19 @@ class StoreAssociation(object):
         :param attrs: dict: attributes of this relationship
         :return: str: Cypher query string
         """
-        (relationship_name, cypher_string) = \
-            self.cypher_relationship_match_phrase(relationship_type,
-                                                  to_association=to_association,
-                                                  direction=direction,
-                                                  attrs=attrs)
-        result = 'MATCH %s\nWITH %s DELETE %s\n'\
-                 % (cypher_string, relationship_name, relationship_name)
+        (relationship_name, cypher_string) = self.cypher_relationship_match_phrase(
+            relationship_type, to_association=to_association, direction=direction, attrs=attrs
+        )
+        result = "MATCH %s\nWITH %s DELETE %s\n" % (
+            cypher_string,
+            relationship_name,
+            relationship_name,
+        )
         return result
 
-    def cypher_return_related_nodes(self, relationship_type, other_node='other',
-                                    direction='forward', attrs=None):
+    def cypher_return_related_nodes(
+        self, relationship_type, other_node="other", direction="forward", attrs=None
+    ):
         """
         Complete Cypher query to Return nodes related to the current one
         Parameters mean the same as in cypher_relationship_match_phrase()
@@ -426,23 +453,25 @@ class StoreAssociation(object):
         :return: str: Cypher statement to return related nodes
         """
         if other_node is None:
-            other_node = 'other'
+            other_node = "other"
 
-        _, match_phrase = self.cypher_relationship_match_phrase(relationship_type,
-                                                                       to_association=other_node,
-                                                                       direction=direction,
-                                                                       attrs=attrs,
-                                                                       relationship_variable=False)
+        _, match_phrase = self.cypher_relationship_match_phrase(
+            relationship_type,
+            to_association=other_node,
+            direction=direction,
+            attrs=attrs,
+            relationship_variable=False,
+        )
         if isinstance(other_node, str):
             other_name = other_node
         else:
             # print('RELATED: OTHER_NODE = %s:%s' % (type(other_node), other_node), file=stderr)
-            if hasattr(other_node, 'variable_name'):
-                other_name = getattr(other_node, 'variable_name')
+            if hasattr(other_node, "variable_name"):
+                other_name = getattr(other_node, "variable_name")
             else:
-                other_name = getattr(other_node, 'association').variable_name
-        cypher = self.cypher_find_match2_clause(other_node) + ' AND '
-        cypher += '%s\nRETURN %s' % (match_phrase, other_name)
+                other_name = getattr(other_node, "association").variable_name
+        cypher = self.cypher_find_match2_clause(other_node) + " AND "
+        cypher += "%s\nRETURN %s" % (match_phrase, other_name)
         return cypher
 
     def cypher_add_labels_clause(self, labels):
@@ -454,8 +483,8 @@ class StoreAssociation(object):
         :return: str: Cypher string to delete labels from this node
         """
         if labels:
-            return "SET %s:%s" % (self.variable_name, ':'.join(labels))
-        return ''
+            return "SET %s:%s" % (self.variable_name, ":".join(labels))
+        return ""
 
     def cypher_delete_labels_clause(self, labels):
         """
@@ -466,8 +495,8 @@ class StoreAssociation(object):
         :return: str: Cypher string to delete labels from this node
         """
         if labels:
-            return "REMOVE %s:%s" % (self.variable_name, ':'.join(labels))
-        return ''
+            return "REMOVE %s:%s" % (self.variable_name, ":".join(labels))
+        return ""
 
     def cypher_delete_attributes_clause(self, attributes):
         """
@@ -477,21 +506,23 @@ class StoreAssociation(object):
         :param attributes: list(str): attributes to delete
         :return: str: Cypher string to delete labels from this node
         """
-        result = ''
+        result = ""
         if attributes:
-            result += 'REMOVE '
-            delimiter = ''
+            result += "REMOVE "
+            delimiter = ""
             for attribute in attributes:
                 result += "%s%s.%s" % (delimiter, self.variable_name, attribute)
-                delimiter = ', '
+                delimiter = ", "
         return result
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
+
     class BaseGraph(object):
         """
         Base class for all graph things...
         """
+
         @staticmethod
         def meta_labels():
             """
@@ -509,11 +540,11 @@ if __name__ == '__main__':
         def __init__(self):
             self.nodetype = self.__class__.__name__
 
-
     class Humanoid(BaseGraph):
         """
         Humanoid...
         """
+
         def __init__(self, name):
             BaseGraph.__init__(self)
             self.name = name
@@ -523,19 +554,20 @@ if __name__ == '__main__':
             """
             :return:
             """
-            return ['Class_Humanoid']
+            return ["Class_Humanoid"]
 
         @staticmethod
         def meta_key_attributes():
             """
             :return:
             """
-            return ['name']
+            return ["name"]
 
     class Hobbit(Humanoid):
         """
         Hobbit...
         """
+
         def __init__(self, name, hobbithole):
             """
             :param name:
@@ -544,27 +576,28 @@ if __name__ == '__main__':
             Humanoid.__init__(self, name)
             self.hobbithole = hobbithole
             self.forty_two = 42
-            self.nodetype = 'Hobbit'
+            self.nodetype = "Hobbit"
 
         @staticmethod
         def meta_labels():
             """
             :return:
             """
-            return ['Class_Humanoid', 'Class_Hobbit']
+            return ["Class_Humanoid", "Class_Hobbit"]
 
         @staticmethod
         def meta_key_attributes():
             """
             :return:
             """
-            return ['name', 'hobbithole']
+            return ["name", "hobbithole"]
 
     # pylint: disable=R0903
     class Store(object):
         """
         Store pass...
         """
+
         @staticmethod
         def register(*_):
             """
@@ -580,71 +613,76 @@ if __name__ == '__main__':
         """
         saved_output = {}
         expected_output = {
-            'cypher_find_match_clauseFrodo': 'MATCH (Hobbit1:Class_Hobbit) WHERE Hobbit1.nodetype '
-                                             '= \'Hobbit\' AND Hobbit1.name = \'Frodo\' AND '
-                                             'Hobbit1.hobbithole = \'Shire\'\n',
-            'update:name:hobbitholeSamwise': 'MATCH (Hobbit2:Class_Hobbit) WHERE Hobbit2.nodetype '
-                                             '= \'Hobbit\' AND Hobbit2.name = \'Samwise\' AND '
-                                             'Hobbit2.hobbithole = \'Shire-too\'\nSET Hobbit2.name '
-                                             '= \'Samwise\', Hobbit2.hobbithole = \'Shire-too\'\n',
-            'cypher_create_node_queryFrodo': "CREATE (Hobbit1:Class_Humanoid:Class_Hobbit {"
-                                             "hobbithole: 'Shire', forty_two: 42, nodetype: "
-                                             "'Hobbit', name: 'Frodo'})\n",
-            'cypher_find_match_clauseSamwise': 'MATCH (Hobbit2:Class_Hobbit) WHERE '
-                                               'Hobbit2.nodetype = \'Hobbit\' AND Hobbit2.name = '
-                                               '\'Samwise\' AND Hobbit2.hobbithole = '
-                                               '\'Shire-too\'\n',
-            'update:name:hobbithole:42Samwise': 'MATCH (Hobbit2:Class_Hobbit) WHERE '
-                                                'Hobbit2.nodetype = \'Hobbit\' AND Hobbit2.name = '
-                                                '\'Samwise\' AND Hobbit2.hobbithole = '
-                                                '\'Shire-too\'\nSET Hobbit2.name = \'Samwise\', '
-                                                'Hobbit2.hobbithole = \'Shire-too\', '
-                                                'Hobbit2.forty_two = 42\n',
-            'update:name:hobbitholeFrodo': 'MATCH (Hobbit1:Class_Hobbit) WHERE Hobbit1.nodetype = '
-                                           '\'Hobbit\' AND Hobbit1.name = \'Frodo\' AND '
-                                           'Hobbit1.hobbithole = \'Shire\'\nSET Hobbit1.name = '
-                                           '\'Frodo\', Hobbit1.hobbithole = \'Shire\'\n',
-            'cypher_create_node_querySamwise': "CREATE (Hobbit2:Class_Humanoid:Class_Hobbit {"
-                                               "hobbithole: 'Shire-too', forty_two: 42, nodetype:"
-                                               " 'Hobbit', name: 'Samwise'})\n",
-            'cypher_find_querySamwise': 'MATCH (Hobbit2:Class_Hobbit) WHERE Hobbit2.nodetype = '
-                                        '\'Hobbit\' AND Hobbit2.name = \'Samwise\' AND '
-                                        'Hobbit2.hobbithole = \'Shire-too\'\nRETURN ID(Hobbit2), '
-                                        'Hobbit2',
-            'update:nameFrodo': 'MATCH (Hobbit1:Class_Hobbit) WHERE Hobbit1.nodetype = \'Hobbit\' '
-                                'AND Hobbit1.name = \'Frodo\' AND Hobbit1.hobbithole = \'Shire\'\n'
-                                'SET Hobbit1.name = \'Frodo\'\n',
-            'update:name:hobbithole:42Frodo': 'MATCH (Hobbit1:Class_Hobbit) WHERE '
-                                              'Hobbit1.nodetype = \'Hobbit\' AND Hobbit1.name = '
-                                              '\'Frodo\' AND Hobbit1.hobbithole = \'Shire\'\nSET '
-                                              'Hobbit1.name = \'Frodo\', Hobbit1.hobbithole = '
-                                              '\'Shire\', Hobbit1.forty_two = 42\n',
-            'update:nameSamwise': 'MATCH (Hobbit2:Class_Hobbit) WHERE Hobbit2.nodetype = '
-                                  '\'Hobbit\' AND Hobbit2.name = \'Samwise\' AND '
-                                  'Hobbit2.hobbithole = '
-                                  '\'Shire-too\'\nSET Hobbit2.name = \'Samwise\'\n',
-            'cypher_find_queryFrodo': 'MATCH (Hobbit1:Class_Hobbit) WHERE Hobbit1.nodetype = '
-                                      '\'Hobbit\' AND Hobbit1.name = \'Frodo\' AND '
-                                      'Hobbit1.hobbithole = \'Shire\'\nRETURN ID(Hobbit1), Hobbit1'
+            "cypher_find_match_clauseFrodo": "MATCH (Hobbit1:Class_Hobbit) WHERE Hobbit1.nodetype "
+            "= 'Hobbit' AND Hobbit1.name = 'Frodo' AND "
+            "Hobbit1.hobbithole = 'Shire'\n",
+            "update:name:hobbitholeSamwise": "MATCH (Hobbit2:Class_Hobbit) WHERE Hobbit2.nodetype "
+            "= 'Hobbit' AND Hobbit2.name = 'Samwise' AND "
+            "Hobbit2.hobbithole = 'Shire-too'\nSET Hobbit2.name "
+            "= 'Samwise', Hobbit2.hobbithole = 'Shire-too'\n",
+            "cypher_create_node_queryFrodo": "CREATE (Hobbit1:Class_Humanoid:Class_Hobbit {"
+            "hobbithole: 'Shire', forty_two: 42, nodetype: "
+            "'Hobbit', name: 'Frodo'})\n",
+            "cypher_find_match_clauseSamwise": "MATCH (Hobbit2:Class_Hobbit) WHERE "
+            "Hobbit2.nodetype = 'Hobbit' AND Hobbit2.name = "
+            "'Samwise' AND Hobbit2.hobbithole = "
+            "'Shire-too'\n",
+            "update:name:hobbithole:42Samwise": "MATCH (Hobbit2:Class_Hobbit) WHERE "
+            "Hobbit2.nodetype = 'Hobbit' AND Hobbit2.name = "
+            "'Samwise' AND Hobbit2.hobbithole = "
+            "'Shire-too'\nSET Hobbit2.name = 'Samwise', "
+            "Hobbit2.hobbithole = 'Shire-too', "
+            "Hobbit2.forty_two = 42\n",
+            "update:name:hobbitholeFrodo": "MATCH (Hobbit1:Class_Hobbit) WHERE Hobbit1.nodetype = "
+            "'Hobbit' AND Hobbit1.name = 'Frodo' AND "
+            "Hobbit1.hobbithole = 'Shire'\nSET Hobbit1.name = "
+            "'Frodo', Hobbit1.hobbithole = 'Shire'\n",
+            "cypher_create_node_querySamwise": "CREATE (Hobbit2:Class_Humanoid:Class_Hobbit {"
+            "hobbithole: 'Shire-too', forty_two: 42, nodetype:"
+            " 'Hobbit', name: 'Samwise'})\n",
+            "cypher_find_querySamwise": "MATCH (Hobbit2:Class_Hobbit) WHERE Hobbit2.nodetype = "
+            "'Hobbit' AND Hobbit2.name = 'Samwise' AND "
+            "Hobbit2.hobbithole = 'Shire-too'\nRETURN ID(Hobbit2), "
+            "Hobbit2",
+            "update:nameFrodo": "MATCH (Hobbit1:Class_Hobbit) WHERE Hobbit1.nodetype = 'Hobbit' "
+            "AND Hobbit1.name = 'Frodo' AND Hobbit1.hobbithole = 'Shire'\n"
+            "SET Hobbit1.name = 'Frodo'\n",
+            "update:name:hobbithole:42Frodo": "MATCH (Hobbit1:Class_Hobbit) WHERE "
+            "Hobbit1.nodetype = 'Hobbit' AND Hobbit1.name = "
+            "'Frodo' AND Hobbit1.hobbithole = 'Shire'\nSET "
+            "Hobbit1.name = 'Frodo', Hobbit1.hobbithole = "
+            "'Shire', Hobbit1.forty_two = 42\n",
+            "update:nameSamwise": "MATCH (Hobbit2:Class_Hobbit) WHERE Hobbit2.nodetype = "
+            "'Hobbit' AND Hobbit2.name = 'Samwise' AND "
+            "Hobbit2.hobbithole = "
+            "'Shire-too'\nSET Hobbit2.name = 'Samwise'\n",
+            "cypher_find_queryFrodo": "MATCH (Hobbit1:Class_Hobbit) WHERE Hobbit1.nodetype = "
+            "'Hobbit' AND Hobbit1.name = 'Frodo' AND "
+            "Hobbit1.hobbithole = 'Shire'\nRETURN ID(Hobbit1), Hobbit1",
         }
 
         store = Store()
-        frodo = Hobbit('Frodo', 'Shire')
+        frodo = Hobbit("Frodo", "Shire")
         frodo_association = StoreAssociation(frodo, store=store)
-        samwise = Hobbit('Samwise', 'Shire-too')
+        samwise = Hobbit("Samwise", "Shire-too")
         sam_association = StoreAssociation(samwise, store=store)
         for association in (frodo_association, sam_association):
-            for fun in ('cypher_create_node_query',
-                        'cypher_find_match_clause',
-                        'cypher_find_query'):
+            for fun in (
+                "cypher_create_node_query",
+                "cypher_find_match_clause",
+                "cypher_find_query",
+            ):
                 saved_output[(fun + association.obj.name)] = getattr(association, fun)()
 
-            saved_output['update:name' + association.obj.name] = \
-                association.cypher_update_clause(['name'])
-            saved_output['update:name:hobbithole' + association.obj.name] = \
-                association.cypher_update_clause(['name', 'hobbithole'])
-            saved_output['update:name:hobbithole:42' + association.obj.name] = \
-                association.cypher_update_clause(['name', 'hobbithole', 'forty_two'])
+            saved_output["update:name" + association.obj.name] = association.cypher_update_clause(
+                ["name"]
+            )
+            saved_output[
+                "update:name:hobbithole" + association.obj.name
+            ] = association.cypher_update_clause(["name", "hobbithole"])
+            saved_output[
+                "update:name:hobbithole:42" + association.obj.name
+            ] = association.cypher_update_clause(["name", "hobbithole", "forty_two"])
 
         fail_count = 0
         test_count = 0
@@ -663,38 +701,51 @@ if __name__ == '__main__':
                 print(saved_output[key])
 
         for to_node in (sam_association, None):
-            for direction in ('forward', 'reverse', 'bidirectional'):
-                for attrs in ({'since': 'years_ago'}, None):
-                    print('%s: %s' %
-                          (direction,
-                           frodo_association.cypher_unrelate_node('FriendsWith',
-                                                                  to_node,
-                                                                  direction=direction,
-                                                                  attrs=attrs)))
+            for direction in ("forward", "reverse", "bidirectional"):
+                for attrs in ({"since": "years_ago"}, None):
+                    print(
+                        "%s: %s"
+                        % (
+                            direction,
+                            frodo_association.cypher_unrelate_node(
+                                "FriendsWith", to_node, direction=direction, attrs=attrs
+                            ),
+                        )
+                    )
                     if to_node is None:
                         continue
-                    print('%s: %s' %
-                          (direction,
-                           frodo_association.cypher_relate_node('FriendsWith',
-                                                                to_node,
-                                                                direction=direction,
-                                                                attrs=attrs)))
+                    print(
+                        "%s: %s"
+                        % (
+                            direction,
+                            frodo_association.cypher_relate_node(
+                                "FriendsWith", to_node, direction=direction, attrs=attrs
+                            ),
+                        )
+                    )
                     node = to_node if to_node is not None else frodo_association
-                    print('%s: %s' %
-                          (direction, node.cypher_return_related_nodes('FriendsWith',
-                                                                       direction=direction,
-                                                                       attrs=attrs)))
+                    print(
+                        "%s: %s"
+                        % (
+                            direction,
+                            node.cypher_return_related_nodes(
+                                "FriendsWith", direction=direction, attrs=attrs
+                            ),
+                        )
+                    )
         # print(saved_output)
 
         cypher = frodo_association.cypher_create_node_query()
         cypher += sam_association.cypher_create_node_query()
-        cypher += frodo_association.cypher_relate_node('FriendsWith',
-                                                       sam_association,
-                                                       direction=StoreAssociation.BOTH,
-                                                       attrs={'since': 'years_ago'})
+        cypher += frodo_association.cypher_relate_node(
+            "FriendsWith",
+            sam_association,
+            direction=StoreAssociation.BOTH,
+            attrs={"since": "years_ago"},
+        )
         cypher += "RETURN Hobbit1, Hobbit2"
         print(cypher, file=stderr)
-        graph = py2neo.Graph(password='PASSWORD')
+        graph = py2neo.Graph(password="PASSWORD")
         data = graph.data(cypher)[0]
         print(type(data))
         print(data)
@@ -702,4 +753,5 @@ if __name__ == '__main__':
         # sam_association.node = data['Hobbit2']
         print(frodo_association.node_id)
         print(sam_association.node_id)
+
     test_main()

@@ -1,0 +1,11 @@
+Index: ctypesgencore/parser/pplexer.py
+===================================================================
+--- ctypesgencore/parser/pplexer.py	(revision 71189)
++++ ctypesgencore/parser/pplexer.py	(working copy)
+@@ -198,6 +198,6 @@
+ 
+     return t
+ 
+-INT_LITERAL = sub(r"(?P<p1>(?:0x{H}+)|(?:{D}+))(?P<suf>{IS})")
++INT_LITERAL = sub(r"(?P<p1>(?:0x{H}+)|(?:0[0-7]+)|(?:[1-9]{D}+))(?P<suf>{IS})")
+ @TOKEN(INT_LITERAL)

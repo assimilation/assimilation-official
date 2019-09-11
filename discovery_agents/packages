@@ -25,7 +25,7 @@
 set -e
 DIR=$(dirname "$0")
 . $DIR/assim_common.sh
-PACKAGETYPES="alpine_pkgs deb_pkgs gem_pkgs npm_pkgs php_pkgs pip_pkgs rpm_pkgs"
+PACKAGETYPES="alpine_pkgs deb_pkgs gem_pkgs npm_pkgs php_pkgs pip_pkgs rpm_pkgs snap_pkgs"
 PATH=/bin:/usr/bin:/sbin:/usr/sbin:/usr/local/bin:/usr/local/sbin
 export PATH
 ENVIRONMENT=''
@@ -88,6 +88,30 @@ deb_pkgs() {
 
     printf '%s"deb":{' "$globalcomma"
     sort -u < $TMPFILE |
+    while
+        read line
+    do
+        printf '%s' "${comma}${line}"
+        comma=',
+'
+    done
+    printf '}'
+    return 0
+}
+
+# Snap Packages
+snap_pkgs() {
+    comma='
+'
+    assim_run_in_context snap list > $TMPFILE 2>/dev/null 
+
+    check_tmpfile || return 1
+
+
+    printf '%s"snap":{' "$globalcomma"
+    sort -u < $TMPFILE |
+    cut -c1-36 $TMPFILE | grep -v '^Name.*Version.*Rev' |
+    sed -e 's%^%"%' -e 's%  *%":"%' -e 's%  *%-%' -e 's% *$%"%' -e 's%:%: %' | sort -u |
     while
         read line
     do

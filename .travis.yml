@@ -1,36 +1,47 @@
-sudo: required
-language: c
+language: minimal
+
 env:
   global:
-    - BROKENDNS=1
-services:
-  - docker
-install:
-  - sudo apt-get update -qq
-  - sudo apt-get install -y python-flask doxygen valgrind libpcap-dev python-pip cmake build-essential pkg-config libglib2.0-dev resource-agents python-netaddr python-demjson openjdk-7-jre
-  - sudo -H pip install --upgrade pip
-  - sudo -H pip install ctypesgen flask getent py2neo==3.1.2 pytest inject
-  - sudo mkdir -p /usr/share/neo4j/lib
-before_script:
-  - docker run -d --publish=7474:7474 --publish=7687:7687 --volume=$HOME/neo4j/data:/data neo4j:3.3.3
-  - sudo $TRAVIS_BUILD_DIR/buildtools/ci/install_libsodium
-    # - sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6' # should not need this any more...
+    - VERSION=0.1.0
+
+stages:
+  - name: lint
+    if: branch = remove_to_enable
+  - name: tests
+    if: branch = remove_to_enable
+  - name: "create packages"
+  - name: "test packages"
+    if: branch = remove_to_enable
+
+jobs:
+  include:
+
+    - stage: lint
+      name: lint
+      script:
+        - echo "run some linter"
+
+    - stage: tests
+      name: tests
+      after_success:
+        - echo "do some tests"
+
+    - stage: "create packages"
+      name: "create packages"
+      after_success:
+        - docker build --build-arg VERSION -f ci/Dockerfiles/ubuntu1804_fpm.dockerfile -t ubuntu_fpm /tmp
+        - docker run -v /tmp/output:/output ubuntu_fpm bash -c "cp /workdir/*.deb /output"
+        - ls -al /tmp/output/*.deb
+        - echo "upload packages to artifactory"
+
+    - stage: "test packages"
+      name: "test packages"
+      script:
+        - echo "download packages"
+        - echo "test them out"
+
 script:
-  - neoauth neo4j neo4j neo4j 2>&1 || true
-  - "$TRAVIS_BUILD_DIR/discovery_agents/netconfig"
-  - cd $TRAVIS_BUILD_DIR
-  - pwd
-  - cd ..
-  - mkdir root_of_binary_tree
-  - cd root_of_binary_tree
-  - pwd
-  - cmake $TRAVIS_BUILD_DIR
-  - sudo make install
-  - sudo ldconfig /usr/lib/x86_64-linux-gnu/assimilation
-  - sudo cpack
-  - sudo dpkg -i *.deb
-  - sudo /etc/init.d/nanoprobe stop
-  - sudo /etc/init.d/cma stop
-  - sudo assimcli genkeys
-  - make tests # contains sudo commands
-  - cd $TRAVIS_BUILD_DIR
+  - echo "build binaries"
+    # create dummy nanoprobe binary
+  - echo "echo \"nanoprobe binary\"" > /tmp/nanoprobe
+  - chmod a+x /tmp/nanoprobe

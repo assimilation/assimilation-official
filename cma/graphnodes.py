@@ -45,7 +45,7 @@ def nodeconstructor(**properties):
     It's a form of "factory" for our database classes
     """
     # print('Calling nodeconstructor with properties: %s' % (str(properties)), file=stderr)
-    realcls = GraphNode.classmap[str(properties['nodetype'])]
+    realcls = GraphNode.classmap[str(properties["nodetype"])]
     # callconstructor is kinda cool - it figures out how to correctly call the constructor
     # with the values in 'properties' as arguments
     return Store.callconstructor(realcls, properties)
@@ -65,7 +65,8 @@ class GraphNode(object):
     """
     GraphNode is the base class for all our 'normal' graph nodes.
     """
-    REESC = re.compile(r'\\')
+
+    REESC = re.compile(r"\\")
     REQUOTE = re.compile(r'"')
     classmap = {}
 
@@ -101,7 +102,17 @@ class GraphNode(object):
         """
         return GraphNode.classmap[str(class_name)]
 
-    @inject.params(store='Store', log='logging.Logger')
+    @staticmethod
+    def node_to_class(neo_node):
+        """
+        Return the class that corresponds to this Py2neo Neo4j Node object
+
+        :param neo_node: py2neo.Neo4j.node
+        :return:
+        """
+        return GraphNode.str_to_class(str(neo_node["nodetype"]))
+
+    @inject.params(store="Store", log="logging.Logger")
     def __init__(self, domain, time_create_ms=None, time_create_iso8601=None, store=None, log=None):
         """Abstract Graph node base class"""
         self.domain = domain
@@ -112,12 +123,13 @@ class GraphNode(object):
         if time_create_ms is None:
             time_create_ms = int(round(time.time() * 1000))
         if time_create_iso8601 is None:
-            time_create_iso8601 = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
+            time_create_iso8601 = time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
         self.time_create_iso8601 = time_create_iso8601
         self.time_create_ms = time_create_ms
         association = StoreAssociation(self, store=store)
         association.dirty_attrs = set()
         self._association = association
+        store._audit_weaknodes_clients()
 
     @property
     def association(self):
@@ -139,12 +151,12 @@ class GraphNode(object):
         :return:
         """
 
-        if not hasattr(self, '_association') or self._association is None:
+        if not hasattr(self, "_association") or self._association is None:
             object.__setattr__(self, name, value)
             return
-        if name in ('node_id', 'dirty_attrs'):
-            raise (ValueError('Bad attribute name: %s' % name))
-        if not name.startswith('_') and name != 'association':
+        if name in ("node_id", "dirty_attrs"):
+            raise (ValueError("Bad attribute name: %s" % name))
+        if not name.startswith("_") and name != "association":
             try:
                 if getattr(self, name) == value:
                     # print('Value of %s already set to %s' % (name, value), file=stderr)
@@ -152,11 +164,12 @@ class GraphNode(object):
             except AttributeError:
                 pass
             if self.association.store.readonly:
-                print('Caught Read-Only %s being set to %s!' % (name, value), file=stderr)
-                raise RuntimeError('Attempt to set attribute %s using a read-only store' % name)
-            if hasattr(value, '__iter__') and len(value) == 0:
+                print("Caught Read-Only %s being set to %s!" % (name, value), file=stderr)
+                raise RuntimeError("Attempt to set attribute %s using a read-only store" % name)
+            if not isinstance(value, str) and hasattr(value, "__iter__") and len(value) == 0:
                 raise ValueError(
-                    'Attempt to set attribute %s to empty array (Neo4j limitation)' % name)
+                    "Attempt to set attribute %s to empty array (Neo4j limitation)" % name
+                )
             self.association.dirty_attrs.add(name)
         # print('SETTING %s to %s' % (name, value), file=stderr)
         object.__setattr__(self, name, value)
@@ -164,8 +177,9 @@ class GraphNode(object):
     @classmethod
     def meta_key_attributes(cls):
         """Return our key attributes in order of significance"""
-        raise NotImplementedError('Abstract base class method meta_key_attributes for %s'
-                                  % cls.__name__)
+        raise NotImplementedError(
+            "Abstract base class method meta_key_attributes for %s" % cls.__name__
+        )
 
     @classmethod
     def meta_labels(cls):
@@ -175,9 +189,9 @@ class GraphNode(object):
         labels = []
         for c in classes:
             name = c.__name__
-            if name == 'GraphNode':
+            if name == "GraphNode":
                 break
-            labels.append('Class_' + name)
+            labels.append("Class_" + name)
         return labels
 
     @staticmethod
@@ -189,14 +203,14 @@ class GraphNode(object):
 
         :return:str: Cypher commands to create indexes
         """
-        result = ''
-        for classname, cls in GraphNode.classmap.viewitems():
-            class_label = 'Class_' + classname
+        result = ""
+        for classname, cls in GraphNode.classmap.items():
+            class_label = "Class_" + classname
             key_attrs = cls.meta_key_attributes()
             for attr in key_attrs:
-                result += 'CREATE INDEX ON :%s(%s)\n' % (class_label, attr)
+                result += "CREATE INDEX ON :%s(%s)\n" % (class_label, attr)
             if len(key_attrs) > 1:
-                result += ('CREATE INDEX ON :%s(%s)\n' % (key_attrs, ':'.join(key_attrs)))
+                result += "CREATE INDEX ON :%s(%s)\n" % (key_attrs, ":".join(key_attrs))
         return result
 
     @staticmethod
@@ -210,20 +224,26 @@ class GraphNode(object):
         :param use_enterprise_features: bool: True if we want to use enterprise features
         :return: str: Cypher commands to create constraints (or "")
         """
-        result = ''
-        for classname, cls in GraphNode.classmap.viewitems():
-            class_label = 'Class_' + classname
+        result = ""
+        for classname, cls in GraphNode.classmap.items():
+            class_label = "Class_" + classname
             key_attrs = cls.meta_key_attributes()
             if use_enterprise_features:
                 for attr in key_attrs:
-                    result += ('CREATE CONSTRAINT ON (n:%s) ASSERT EXISTS(n.%s)\n'
-                               % (class_label, attr))
+                    result += "CREATE CONSTRAINT ON (n:%s) ASSERT EXISTS(n.%s)\n" % (
+                        class_label,
+                        attr,
+                    )
             if len(key_attrs) == 1:
-                result += ('CREATE CONSTRAINT ON (n:%s) ASSERT (n.%s) IS UNIQUE\n'
-                           % (class_label, key_attrs[0]))
+                result += "CREATE CONSTRAINT ON (n:%s) ASSERT (n.%s) IS UNIQUE\n" % (
+                    class_label,
+                    key_attrs[0],
+                )
             elif use_enterprise_features:
-                result += ('CREATE CONSTRAINT ON (n.%s) ASSERT (n.%s) IS NODE KEY\n'
-                           % (class_label, ', n.'.join(key_attrs)))
+                result += "CREATE CONSTRAINT ON (n.%s) ASSERT (n.%s) IS NODE KEY\n" % (
+                    class_label,
+                    ", n.".join(key_attrs),
+                )
         return result
 
     def post_db_init(self):
@@ -235,8 +255,10 @@ class GraphNode(object):
     def update_attributes(self, other):
         """Update our attributes from another node of the same type"""
         if other.nodetype != self.nodetype:
-            raise ValueError('Cannot update attributes from incompatible nodes (%s vs %s)'
-                             % (self.nodetype, other.nodetype))
+            raise ValueError(
+                "Cannot update attributes from incompatible nodes (%s vs %s)"
+                % (self.nodetype, other.nodetype)
+            )
         for attr in other.__dict__.keys():
             if not hasattr(self, attr) or getattr(self, attr) != getattr(other, attr):
                 setattr(self, attr, getattr(other, attr))
@@ -244,14 +266,14 @@ class GraphNode(object):
 
     def __str__(self):
         """Default routine for printing GraphNodes"""
-        result = '%s({' % self.__class__.__name__
-        comma = ''
+        result = "%s({" % self.__class__.__name__
+        comma = ""
         for attr in Store.safe_attrs(self):
-            result += '%s%s = %s' % (comma, attr, str(getattr(self, attr)))
+            result += "%s%s = %s" % (comma, attr, str(getattr(self, attr)))
             comma = ",\n    "
         result += '%sobject.__str__ =  "%s"' % (comma, object.__str__(self))
-        node_id = self.association.node_id if self.association is not None else 'None(0)'
-        result += comma + 'HasNode:%s' % node_id
+        node_id = self.association.node_id if self.association is not None else "None(0)"
+        result += comma + "HasNode:%s" % node_id
 
         result += "\n})"
         return result
@@ -261,20 +283,20 @@ class GraphNode(object):
     def get(self, attrstring, valueifnotfound=None):
         """Implement potentially deep attribute value lookups through JSON strings"""
         try:
-            (prefix, suffix) = attrstring.split('.', 1)
+            (prefix, suffix) = attrstring.split(".", 1)
         except ValueError:
             suffix = None
             prefix = attrstring
         if not hasattr(self, prefix):
-            if not prefix.endswith(']'):
+            if not prefix.endswith("]"):
                 return valueifnotfound
             else:
                 # Probably an array index
                 # Note that very similar code exists in AssimCclasses for pyConfigContext
                 #   deepget member function
-                allbutrbracket = prefix[0:len(prefix) - 1]
+                allbutrbracket = prefix[0 : len(prefix) - 1]
                 try:
-                    (preprefix, idx) = allbutrbracket.split('[', 1)
+                    (preprefix, idx) = allbutrbracket.split("[", 1)
                 except ValueError:
                     return valueifnotfound
                 if not hasattr(self, preprefix):
@@ -313,51 +335,51 @@ class GraphNode(object):
             if excludemap is not None and attr in excludemap:
                 continue
             attrstodump.append(attr)
-        ret = '{'
-        comma = ''
+        ret = "{"
+        comma = ""
         attrstodump.sort()
         for attr in attrstodump:
             ret += '%s"%s": %s' % (comma, attr, GraphNode._json_elem(getattr(self, attr)))
-            comma = ','
-        ret += '}'
+            comma = ","
+        ret += "}"
         return ret
 
     @staticmethod
     def _json_elem(value):
         """Return the value of an element suitable for JSON output"""
-        if isinstance(value, str) or isinstance(value, unicode):
+        if isinstance(value, six.string_types):
             return '"%s"' % GraphNode._json_escape(value)
         if isinstance(value, bool):
             if value:
-                return 'true'
-            return 'false'
+                return "true"
+            return "false"
         if isinstance(value, list) or isinstance(value, tuple):
-            ret = '['
-            comma = ''
+            ret = "["
+            comma = ""
             for elem in value:
-                ret += '%s%s' % (comma, GraphNode._json_elem(elem))
-                comma = ','
-            ret += ']'
+                ret += "%s%s" % (comma, GraphNode._json_elem(elem))
+                comma = ","
+            ret += "]"
             return ret
         return str(value)
 
     @staticmethod
     def _json_escape(stringthing):
         """Escape this string according to JSON string escaping rules"""
-        stringthing = GraphNode.REESC.sub(r'\\\\', stringthing)
-        stringthing = GraphNode.REQUOTE.sub(r'\"', stringthing)
+        stringthing = GraphNode.REESC.sub(r"\\\\", stringthing)
+        stringthing = GraphNode.REQUOTE.sub(r"\"", stringthing)
         return stringthing
 
 
 def add_an_array_item(currarray, itemtoadd):
     """Function to add an item to an array of strings (like for roles)"""
-    if currarray is not None and len(currarray) == 1 and currarray[0] == '':
+    if currarray is not None and len(currarray) == 1 and currarray[0] == "":
         currarray = []
     if isinstance(itemtoadd, (tuple, list)):
         for item in itemtoadd:
             currarray = add_an_array_item(currarray, item)
         return currarray
-    assert isinstance(itemtoadd, (str, unicode))
+    assert isinstance(itemtoadd, str)
     if currarray is None:
         currarray = [itemtoadd]
     elif currarray not in currarray:
@@ -371,11 +393,11 @@ def delete_an_array_item(currarray, itemtodel):
         for item in itemtodel:
             currarray = delete_an_array_item(currarray, item)
         return currarray
-    assert isinstance(itemtodel, (str, unicode))
+    assert isinstance(itemtodel, str)
     if itemtodel is not None and itemtodel in currarray:
         currarray = currarray.remove(itemtodel)
     if len(currarray) == 0:
-        currarray = ['']  # Limitation of Neo4j
+        currarray = [""]  # Limitation of Neo4j
     return currarray
 
 
@@ -384,7 +406,7 @@ class BPRules(GraphNode):
     """Class defining best practice rules"""
 
     def __init__(self, bp_class, json, rulesetname):
-        GraphNode.__init__(self, domain='metadata')
+        GraphNode.__init__(self, domain="metadata")
         self.bp_class = bp_class
         self.rulesetname = rulesetname
         self.json = json
@@ -397,7 +419,7 @@ class BPRules(GraphNode):
     @classmethod
     def meta_key_attributes(cls):
         """Return our key attributes in order of significance"""
-        return ['bp_class', 'rulesetname']
+        return ["bp_class", "rulesetname"]
 
 
 @registergraphclass
@@ -405,19 +427,19 @@ class BPRuleSet(GraphNode):
     """Class defining best practice rule sets"""
 
     def __init__(self, rulesetname, basisrules=None):
-        GraphNode.__init__(self, domain='metadata')
+        GraphNode.__init__(self, domain="metadata")
         self.rulesetname = rulesetname
         self.basisrules = basisrules
         if self.basisrules is None:
             return
         query = CMAconsts.QUERY_RULESET_RULES
-        parent = CMAdb.store.load_cypher_node(query, BPRuleSet, params={'name': basisrules})
+        parent = CMAdb.store.load_cypher_node(query, BPRuleSet, params={"name": basisrules})
         CMAdb.store.relate_new(self, CMAconsts.REL_basedon, parent)
 
     @classmethod
     def meta_key_attributes(cls):
         """Return our key attributes in order of significance"""
-        return ['rulesetname']
+        return ["rulesetname"]
 
 
 @registergraphclass
@@ -549,18 +571,25 @@ class NICNode(GraphNode):
         GraphNode.__init__(self, domain=domain)
         mac = pyNetAddr(macaddr)
         if mac is None or mac.addrtype() != ADDR_FAMILY_802:
-            raise ValueError('Not a legal MAC address [%s]' % macaddr)
+            raise ValueError("Not a legal MAC address [%s]" % macaddr)
         self.macaddr = str(mac)
         self.ifname = ifname  # If it's none it doesn't go into the database...
         if json is not None:
             self.json = json
             self._json = pyConfigContext(json)
-            for attr in ('carrier', 'duplex', 'MTU', 'operstate', 'speed', 'virtual', 'type'
-                                                                                      'bridge_id',
-                         'brport_bridge'):
+            for attr in (
+                "carrier",
+                "duplex",
+                "MTU",
+                "operstate",
+                "speed",
+                "virtual",
+                "type" "bridge_id",
+                "brport_bridge",
+            ):
                 if attr in self._json:
                     setattr(self, attr, self._json[attr])
-        if not hasattr(self, 'OUI'):
+        if not hasattr(self, "OUI"):
             oui = self.mac_to_oui(self.macaddr)
             if oui is not None:
                 self.OUI = oui
@@ -589,21 +618,21 @@ class NICNode(GraphNode):
         :return: NICNode or None
         """
         if system is None:
-            query = 'MATCH(nic:Class_NicNode) WHERE nic.domain = $domain and nic.macaddr = $macaddr'
+            query = "MATCH(nic:Class_NicNode) WHERE nic.domain = $domain and nic.macaddr = $macaddr"
         else:
             query = """
             MATCH(nic:Class_NicNode)-[:nicowner]->(system:Class_SystemNode)
             WHERE nic.domain = $domain and nic.macaddr = $macaddr AND ID(system) = $system_id
             """
         if net_segment is not None:
-            query += ' AND nic.net_segment = $net_segment'
+            query += " AND nic.net_segment = $net_segment"
         parameters = {
-            'domain': domain,
-            'macaddr': macaddr,
-            'net_segment': net_segment,
-            'system_id': system.association.node_id if system is not None else None,
+            "domain": domain,
+            "macaddr": str(macaddr),
+            "net_segment": str(net_segment),
+            "system_id": system.association.node_id if system is not None else None,
         }
-        query += ' RETURN nic'
+        query += " RETURN nic"
         mac = store.load_cypher_node(query, parameters)
         if mac or system is None:  # Can't improve our answer...
             return mac
@@ -612,8 +641,8 @@ class NICNode(GraphNode):
         WHERE nic.domain = $domain and nic.macaddr = $macaddr AND NOT (nic)-[:nicowner]->()
         """
         if net_segment is not None:
-            query += ' AND nic.net_segment = $net_segment'
-        query += ' RETURN nic'
+            query += " AND nic.net_segment = $net_segment"
+        query += " RETURN nic"
         return store.load_cypher_node(query, parameters)
 
     @staticmethod
@@ -625,7 +654,7 @@ class NICNode(GraphNode):
             return str(netaddr.EUI(macaddr).oui.registration().org)
         except netaddr.NotRegisteredError:
             prefix = str(macaddr)[0:8]
-            return CMAdb.config['OUI'][prefix] if prefix in CMAdb.config['OUI'] else None
+            return CMAdb.config["OUI"][prefix] if prefix in CMAdb.config["OUI"] else None
 
     @classmethod
     def meta_key_attributes(cls):
@@ -633,7 +662,7 @@ class NICNode(GraphNode):
         Return our key attributes in decreasing order of significance
         :return:  [str]
         """
-        return ['macaddr', 'scope', 'domain']
+        return ["macaddr", "scope", "domain"]
 
     def post_db_init(self):
         """Set up the labels on the graph"""
@@ -646,6 +675,7 @@ class IPaddrNode(GraphNode):
     IP address. They are always represented in the database in ipv6 format.
     It is must be unique within the 'subnet' passed as a parameter
     """
+
     StoreHostNames = True
 
     def __init__(self, ipaddr, domain, subnet):
@@ -656,7 +686,7 @@ class IPaddrNode(GraphNode):
         :param subnet: Subnet: The subnet this IP address is on...
         """
         GraphNode.__init__(self, domain=domain)
-        if isinstance(ipaddr, str) or isinstance(ipaddr, unicode):
+        if isinstance(ipaddr, str):
             ipaddrout = pyNetAddr(str(ipaddr))
         else:
             ipaddrout = ipaddr
@@ -665,24 +695,27 @@ class IPaddrNode(GraphNode):
             if addrtype == ADDR_FAMILY_IPV4:
                 ipaddrout = ipaddrout.toIPv6()
             elif addrtype != ADDR_FAMILY_IPV6:
-                raise ValueError('Invalid network address type for IPaddrNode constructor: %s'
-                                 % str(ipaddrout))
+                raise ValueError(
+                    "Invalid network address type for IPaddrNode constructor: %s" % str(ipaddrout)
+                )
             ipaddrout.setport(0)
         else:
-            raise ValueError('Invalid address type for IPaddrNode constructor: %s type(%s)'
-                             % (str(ipaddr), type(ipaddr)))
-        # self.ipaddr = unicode(str(ipaddrout))
+            raise ValueError(
+                "Invalid address type for IPaddrNode constructor: %s type(%s)"
+                % (str(ipaddr), type(ipaddr))
+            )
         self.ipaddr = str(ipaddrout)
         self._ipaddr = ipaddrout
         if subnet is not None:
-            if not isinstance(subnet, (str, unicode)):
+            if not isinstance(subnet, str):
                 if not subnet.belongs_on_this_subnet(ipaddrout):
-                    raise ValueError('IP address %s does not belong on subnet %s'
-                                     % (ipaddrout, subnet))
+                    raise ValueError(
+                        "IP address %s does not belong on subnet %s" % (ipaddrout, subnet)
+                    )
                 subnet = subnet.name
         self.subnet = subnet
 
-        if IPaddrNode.StoreHostNames and not hasattr(self, 'hostname'):
+        if IPaddrNode.StoreHostNames and not hasattr(self, "hostname"):
             ip = repr(pyNetAddr(ipaddr))
             try:
                 self.hostname = socket.gethostbyaddr(ip)[0]
@@ -696,7 +729,7 @@ class IPaddrNode(GraphNode):
         Not sure what it means to have an optional value listed as a potential key value
         :return: [str]
         """
-        return ['ipaddr', 'subnet', 'domain']
+        return ["ipaddr", "subnet", "domain"]
 
     def post_db_init(self):
         """Set up the labels on the graph"""
@@ -705,7 +738,7 @@ class IPaddrNode(GraphNode):
         self.association.store.add_labels(self, (Subnet.name_to_label(self.subnet),))
 
 
-SUBNET_GLOBAL = '_GLOBAL_'
+SUBNET_GLOBAL = "_GLOBAL_"
 
 
 @registergraphclass
@@ -752,11 +785,11 @@ class Subnet(GraphNode):
         self.net_segment = net_segment
         self.name = str(self)
         if self.cidrmask > 128:
-            raise ValueError('Illigal CIDR mask')
-        print('Subnet(domain=%s, ipaddr=%s, cidrmask=%s, context=%s, net_segment=%s) => %s'
-              % (domain, ipaddr, cidrmask, context, net_segment, str(self)), file=stderr)
-        assert context is None or isinstance(context, (str, unicode))
-        assert not str(self).startswith('::/')
+            raise ValueError("Illigal CIDR mask")
+        # print('Subnet(domain=%s, ipaddr=%s, cidrmask=%s, context=%s, net_segment=%s) => %s'
+        #       % (domain, ipaddr, cidrmask, context, net_segment, str(self)), file=stderr)
+        assert context is None or isinstance(context, str)
+        assert not str(self).startswith("::/")
 
     @staticmethod
     def str_to_ip_cidr(ipaddr, cidrmask):
@@ -766,8 +799,8 @@ class Subnet(GraphNode):
         :param cidrmask:
         :return:
         """
-        if isinstance(ipaddr, str) and '/' in ipaddr:
-            ipaddr, cidrmask = ipaddr.split('/', 1)
+        if isinstance(ipaddr, str) and "/" in ipaddr:
+            ipaddr, cidrmask = ipaddr.split("/", 1)
         ipaddr = pyNetAddr(str(ipaddr))
         ipaddr.setport(0)
         try:
@@ -800,19 +833,19 @@ class Subnet(GraphNode):
         """
         powers = {255: 8, 254: 7, 252: 6, 248: 5, 240: 4, 224: 3, 192: 2, 128: 1, 0: 0}
         bit_count = 0
-        elems = [elem for elem in mask.split('.')]
+        elems = [elem for elem in mask.split(".")]
         if len(elems) != 4:
-            raise ValueError('Invalid old-style netmask [%s]' % mask)
+            raise ValueError("Invalid old-style netmask [%s]" % mask)
         elem = None
         try:
             for elem in elems:
                 bit_count += powers[int(elem)]
         except (KeyError, ValueError):
-            raise ValueError('Invalid element [%s] in old-style netmask [%s]' % (elem, mask))
+            raise ValueError("Invalid element [%s] in old-style netmask [%s]" % (elem, mask))
         return bit_count
 
     def __str__(self):
-        return '%s/%d_%s_%s' % (self.ipaddr, self.cidrmask, self.domain, self.context)
+        return "%s/%d_%s_%s" % (self.ipaddr, self.cidrmask, self.domain, self.context)
 
     @property
     def subnet_label(self):
@@ -829,8 +862,9 @@ class Subnet(GraphNode):
         :param name: str: subnet name
         :return: str: subnet label
         """
-        return ('Subnet_' + str(name).replace('.', '_').replace(':', '_')
-                .replace('-', '_').replace('/', '_'))
+        return "Subnet_" + str(name).replace(".", "_").replace(":", "_").replace("-", "_").replace(
+            "/", "_"
+        )
 
     @staticmethod
     def find_matching_subnets(store, domain, ipaddr, contexts):
@@ -843,16 +877,16 @@ class Subnet(GraphNode):
         :param contexts: [str] or None: Contexts that interest us - or None
         :return: generator(Subnet)
         """
-        query = 'MATCH(subnet:Class_Subnet) WHERE '
+        query = "MATCH(subnet:Class_Subnet) WHERE "
         if domain is not None:
-            query += 'subnet.domain = $domain '
+            query += "subnet.domain = $domain "
         if contexts is not None:
             if domain is not None:
-                query += 'AND '
-            query += 'subnet.context in $contexts '
-        query += 'RETURN subnet'
+                query += "AND "
+            query += "subnet.context in $contexts "
+        query += "RETURN subnet"
 
-        for subnet in store.load_cypher_nodes(query, {'domain': domain, 'contexts': contexts}):
+        for subnet in store.load_cypher_nodes(query, {"domain": domain, "contexts": contexts}):
             if subnet.belongs_on_this_subnet(ipaddr):
                 yield subnet
 
@@ -915,7 +949,7 @@ class Subnet(GraphNode):
         :return: Subnet: the desired subnet -- or None
         """
         query = "MATCH (n:Class_Subnet) WHERE n.name = $name RETURN n"
-        return store.load_cypher_node(query, {'name': subnet_name})
+        return store.load_cypher_node(query, {"name": subnet_name})
 
     @staticmethod
     def find_matching_subnet(ip, subnets):
@@ -926,12 +960,12 @@ class Subnet(GraphNode):
         :return: Subnet or None
         """
         for subnet in subnets:
-            if subnet is not None and subnet.belongs_on_this_subnet(ip, subnet):
+            if subnet is not None and subnet.belongs_on_this_subnet(ip):
                 return subnet
         return None
 
     @staticmethod
-    def find_subnet(store, ipaddr, cidrmask, domain, context='_GLOBAL_', net_segment=None):
+    def find_subnet(store, ipaddr, cidrmask, domain, context="_GLOBAL_", net_segment=None):
         """
         Find this subnet based on some combination of the parameters
         :param store: Store; the Store to use to find the subnet
@@ -948,9 +982,9 @@ class Subnet(GraphNode):
         AND n.domain = $domain
         """
         if context is not None:
-            query += ' AND n.context = $context'
+            query += " AND n.context = $context"
         if net_segment is not None:
-            query += ' AND n.net_segment = $net_segment'
+            query += " AND n.net_segment = $net_segment"
         parameters = {
             "cidrmask": int(cidrmask),
             "context": context,
@@ -958,7 +992,7 @@ class Subnet(GraphNode):
             "ipaddr": str(ipaddr),
             "net_segment": net_segment,
         }
-        query += ' RETURN n'
+        query += " RETURN n"
         return store.load_cypher_node(query, parameters)
 
     def belongs_on_this_subnet(self, ipaddr):
@@ -967,9 +1001,15 @@ class Subnet(GraphNode):
         :param ipaddr: pyNetAddr: Address to test
         :return: True or False
         """
-        base_ip = pyNetAddr(ipaddr).and_with_cidr(self.cidrmask)
-        print("Comparing subnet %s IPaddr %s anded with %s [%s]"
-              % (self._ipaddr, ipaddr, self.cidrmask, base_ip), file=stderr)
+        if isinstance(ipaddr, IPaddrNode):
+            ipaddr = ipaddr._ipaddr
+        elif isinstance(ipaddr, pyNetAddr):
+            pass
+        else:
+            ipaddr = pyNetAddr(str(ipaddr))
+        base_ip = ipaddr.and_with_cidr(self.cidrmask)
+        # print("Comparing subnet %s IPaddr %s anded with %s [%s]"
+        #       % (self._ipaddr, ipaddr, self.cidrmask, base_ip), file=stderr)
         return base_ip == self._ipaddr
 
     def __eq__(self, other):
@@ -978,8 +1018,7 @@ class Subnet(GraphNode):
         :param other: Subnet: The other subnet
         :return: bool: what you'd expect...
         """
-        assert isinstance(other, Subnet)
-        return self.name == other.name
+        return self.name == other.name if isinstance(other, Subnet) else False
 
     def equivalent(self, other):
         """
@@ -1004,7 +1043,7 @@ class Subnet(GraphNode):
         Everything else is redundant with respect to name
         Do I need the others indexed too?
         """
-        return ['name', 'context', 'ipaddr', 'cidrmask', 'domain', 'net_segment']
+        return ["name", "context", "ipaddr", "cidrmask", "domain", "net_segment"]
 
 
 @registergraphclass
@@ -1022,6 +1061,9 @@ class NetworkSegment(GraphNode):
         if name is None:
             name = str(uuid.uuid4())
         self.name = name
+
+    def __str__(self):
+        return "%s::%s" % (self.domain, self.name)
 
     @staticmethod
     def guess_net_segment(store, domain, ip_mac_pairs, fraction=0.5):
@@ -1058,7 +1100,7 @@ class NetworkSegment(GraphNode):
         # Let's go after the best match.
         #
         possible_segments = {}
-        parameters = {'domain': domain, 'mac_addrs': mac_addrs, 'ip_addrs': ip_addrs}
+        parameters = {"domain": domain, "mac_addrs": mac_addrs, "ip_addrs": ip_addrs}
         for row in store.load_cypher_query(query, params=parameters):
             pair = (row.macaddr, row.ipaddr)
             segment = row.net_segment
@@ -1072,7 +1114,7 @@ class NetworkSegment(GraphNode):
         # we had a mismatch on... We'll take the segment with the highest positive count...
         max_count = 0
         best_segment = None
-        for segment, count in possible_segments.viewitems():
+        for segment, count in possible_segments.items():
             if count > max_count:
                 best_segment = segment
                 max_count = count
@@ -1084,17 +1126,17 @@ class NetworkSegment(GraphNode):
         Return our key attributes in order of significance
         Domain is redundant with respect to name
         """
-        return ['name']
+        return ["name"]
 
 
 @registergraphclass
 class IPtcpportNode(GraphNode):
     """An object that represents an IP:port combination characterized by the pair"""
 
-    def __init__(self, domain, ipaddr, port=None, protocol='tcp'):
+    def __init__(self, domain, ipaddr, port=None, protocol="tcp"):
         """Construct an IPtcpportNode - validating our parameters"""
         GraphNode.__init__(self, domain=domain)
-        if isinstance(ipaddr, (str, unicode)):
+        if isinstance(ipaddr, str):
             ipaddr = pyNetAddr(str(ipaddr))
         if isinstance(ipaddr, pyNetAddr):
             if port is None:
@@ -1103,18 +1145,21 @@ class IPtcpportNode(GraphNode):
                 ipaddr.setport(port)
             self._repr = repr(ipaddr)
             if port <= 0 or port >= 65536:
-                raise ValueError('Invalid port for constructor: %s' % str(port))
+                raise ValueError("Invalid port for constructor: %s" % str(port))
             addrtype = ipaddr.addrtype()
             if addrtype == ADDR_FAMILY_IPV4:
                 ipaddr = ipaddr.toIPv6()
             elif addrtype != ADDR_FAMILY_IPV6:
-                raise ValueError('Invalid network address type [%s] for constructor: %s'
-                                 % (addrtype, str(ipaddr)))
+                raise ValueError(
+                    "Invalid network address type [%s] for constructor: %s"
+                    % (addrtype, str(ipaddr))
+                )
             ipaddr.setport(0)
         else:
-            raise ValueError('Invalid initial value for IPtcpportNode constructor: %s type(%s)'
-                             % (str(ipaddr), type(ipaddr)))
-        # self.ipaddr = unicode(str(ipaddr))
+            raise ValueError(
+                "Invalid initial value for IPtcpportNode constructor: %s type(%s)"
+                % (str(ipaddr), type(ipaddr))
+            )
         self.ipaddr = str(ipaddr)
         self.port = port
         self.protocol = protocol
@@ -1123,7 +1168,7 @@ class IPtcpportNode(GraphNode):
     @classmethod
     def meta_key_attributes(cls):
         """Return our key attributes in order of significance"""
-        return ['ipport', 'domain']
+        return ["ipport", "domain"]
 
     def format_ipport(self):
         """
@@ -1131,7 +1176,7 @@ class IPtcpportNode(GraphNode):
         Note that we make the port the most significant part of the key - which
         should allow some more interesting queries.
         """
-        return '%s_%s_%s' % (self.port, self.protocol, self.ipaddr)
+        return "%s_%s_%s" % (self.port, self.protocol, self.ipaddr)
 
 
 @registergraphclass
@@ -1140,8 +1185,19 @@ class ProcessNode(GraphNode):
 
     # R0913: Too many arguments (9/7)
     # pylint: disable=R0913
-    def __init__(self, domain, processname, host, pathname, argv, uid, gid, cwd, roles=None,
-                 is_monitored=False):
+    def __init__(
+        self,
+        domain,
+        processname,
+        host,
+        pathname,
+        argv,
+        uid,
+        gid,
+        cwd,
+        roles=None,
+        is_monitored=False,
+    ):
         GraphNode.__init__(self, domain=domain)
         self.host = host
         self.pathname = pathname
@@ -1151,7 +1207,7 @@ class ProcessNode(GraphNode):
         self.cwd = cwd
         self.is_monitored = is_monitored
         if roles is None:
-            self.roles = ['']
+            self.roles = [""]
         else:
             self.roles = None
             self.addrole(roles)
@@ -1170,24 +1226,26 @@ class ProcessNode(GraphNode):
         """Add a role to our ProcessNode"""
         self.roles = add_an_array_item(self.roles, roles)
         # Make sure the Processnode 'roles' attribute gets marked as dirty...
-        self.association.dirty_attrs.add('roles')
-        self.association.store.add_labels(self, ['Role_%s' % role
-                                                 for role in roles if role not in self.roles])
+        self.association.dirty_attrs.add("roles")
+        self.association.store.add_labels(
+            self, ["Role_%s" % role for role in roles if role not in self.roles]
+        )
         return self.roles
 
     def delrole(self, roles):
         """Delete a role from our ProcessNode"""
         self.roles = delete_an_array_item(self.roles, roles)
         # Mark our Processnode 'roles' attribute dirty...
-        self.association.dirty_attrs.add('roles')
-        self.association.store.delete_labels(self, ['Role_%s' % role
-                                                    for role in roles if role in self.roles])
+        self.association.dirty_attrs.add("roles")
+        self.association.store.delete_labels(
+            self, ["Role_%s" % role for role in roles if role in self.roles]
+        )
         return self.roles
 
     @classmethod
     def meta_key_attributes(cls):
         """Return our key attributes in order of significance"""
-        return ['processname', 'domain']
+        return ["processname", "domain"]
 
 
 @registergraphclass
@@ -1208,9 +1266,9 @@ class JSONMapNode(GraphNode):
     Too bad we can't store it effectively in Neo4j at the moment :-(
     """
 
-    JSONTYPE_FIELD = 'discovertype'
+    JSONTYPE_FIELD = "discovertype"
 
-    @inject.params(persistentjson='PersistentJSON')
+    @inject.params(persistentjson="PersistentJSON")
     def __init__(self, json=None, jhash=None, is_current=True, jsontype=None, persistentjson=None):
         """
         Constructor for JSONMapNode:
@@ -1221,16 +1279,16 @@ class JSONMapNode(GraphNode):
         :param persistentjson: Object to store big JSON strings
         """
         if persistentjson is None or isinstance(persistentjson, str):
-            raise ValueError('Invariant storage object must be specified.')
+            raise ValueError("Invariant storage object must be specified.")
         if json is None and (jhash is None or jsontype is None):
             raise ValueError("json and jhash can't both be None.")
-        GraphNode.__init__(self, domain='metadata')
+        GraphNode.__init__(self, domain="metadata")
 
         if json is None:
             self._map = pyConfigContext(persistentjson.get(jsontype, jhash))
         else:
             self._map = pyConfigContext(json)
-            jsontype = self._map.get(self.JSONTYPE_FIELD, 'unknowntype')
+            jsontype = self._map.get(self.JSONTYPE_FIELD, "unknowntype")
         json = str(self._map)
         # We use sha224 to keep the length under 60 characters (56 to be specific)
         # This is a performance consideration for Neo4j
@@ -1252,7 +1310,7 @@ class JSONMapNode(GraphNode):
     @staticmethod
     def strhash(string):
         """Return our canonical hash value (< 60 chars long)"""
-        return hashlib.sha224(string).hexdigest()
+        return hashlib.sha224(string.encode("utf8")).hexdigest()
 
     def __str__(self):
         """Convert to string - returning the JSON string itself"""
@@ -1295,7 +1353,7 @@ class JSONMapNode(GraphNode):
     @classmethod
     def meta_key_attributes(cls):
         """Return our key attributes in order of significance"""
-        return ['jhash']
+        return ["jhash"]
 
 
 # pylint  R0903: too few public methods. Not appropriate here...
@@ -1309,8 +1367,8 @@ class NeoRelationship(object):
         Relationship should be a neo4j.Relationship
         """
         self._relationship = relationship
-        self._id = getattr(relationship, '_id')  # Make pylint happy...
+        self._id = getattr(relationship, "_id")  # Make pylint happy...
         self.type = relationship.type
-        self.start_node = getattr(relationship.start_node, '_id')  # Make pylint happy...
-        self.end_node = getattr(relationship.end_node, '_id')  # Make pylint happy...
-        self.properties = relationship.properties
+        self.start_node = getattr(relationship.start_node, "_id")  # Make pylint happy...
+        self.end_node = getattr(relationship.end_node, "_id")  # Make pylint happy...
+        self.properties = dict(relationship)

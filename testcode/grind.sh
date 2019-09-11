@@ -20,7 +20,8 @@
 #
 #
 HERE=$(dirname $0)
-REPCOUNT=30
+cd $HERE
+REPCOUNT=15
 G_MESSAGES_DEBUG=all
 G_SLICE=always-malloc
 export G_MESSAGES_DEBUG G_SLICE
@@ -52,4 +53,4 @@ do
 done
 
 
-dosudo valgrind -q --sim-hints=lax-ioctls --leak-check=full --suppressions=$HERE/valgrind-msgs.supp $GEN --error-exitcode=100 --trace-children=no --child-silent-after-fork=yes $cmd $REPCOUNT
+dosudo valgrind -q --sim-hints=lax-ioctls --leak-check=full --suppressions=valgrind-msgs.supp $GEN --error-exitcode=100 --trace-children=no --child-silent-after-fork=yes $cmd $REPCOUNT
