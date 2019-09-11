@@ -1,26 +1,47 @@
 language: minimal
 
 env:
-  - BUILD_ENV=ubuntu:18.04
-  - BUILD_ENV=centos:7
+  global:
+    - VERSION=0.1.0
+
+stages:
+  - name: lint
+    if: branch = remove_to_enable
+  - name: tests
+    if: branch = remove_to_enable
+  - name: "create packages"
+  - name: "test packages"
+    if: branch = remove_to_enable
+
+jobs:
+  include:
+
+    - stage: lint
+      name: lint
+      script:
+        - echo "run some linter"
+
+    - stage: tests
+      name: tests
+      after_success:
+        - echo "do some tests"
+
+    - stage: "create packages"
+      name: "create packages"
+      after_success:
+        - docker build --build-arg VERSION -f ci/Dockerfiles/ubuntu1804_fpm.dockerfile -t ubuntu_fpm /tmp
+        - docker run -v /tmp/output:/output ubuntu_fpm bash -c "cp /workdir/*.deb /output"
+        - ls -al /tmp/output/*.deb
+        - echo "upload packages to artifactory"
+
+    - stage: "test packages"
+      name: "test packages"
+      script:
+        - echo "download packages"
+        - echo "test them out"
 
 script:
-  # $DOCKER should contain all the build prereqs installed
-  - DOCKER=$(echo $BUILD_ENV | tr -d '[:.]')
-  - docker build -f ci/Dockerfiles/$DOCKER.dockerfile -t $DOCKER .
-  # use $DOCKER to build packages through cmake
-  # input:
-  # path-to-source-directory = /root/assimilation/src
-  # output:
-  # path-to-binary-directory = /root/assimilation/bin
-  # path-to-build-artifacts = /root/assimilation/ba
-  - |
-    docker run \
-    -v $TRAVIS_BUILD_DIR:/root/assimilation/src \
-    -v /tmp/bin:/root/assimilation/bin \
-    -v /tmp/ba:/root/assimilation/ba \
-    $DOCKER \
-    bash -c "echo run: \"cmake ../src && make install\" | tee /root/assimilation/ba/output"
-  # test the new packages in a stock image (install and run tests)
-  - docker run -v /tmp/ba:/packages $BUILD_ENV cat /packages/output
-  # upload to artifactory
+  - echo "build binaries"
+    # create dummy nanoprobe binary
+  - echo "echo \"nanoprobe binary\"" > /tmp/nanoprobe
+  - chmod a+x /tmp/nanoprobe
