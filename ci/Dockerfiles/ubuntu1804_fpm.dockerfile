@@ -4,7 +4,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 ARG VERSION
 
 RUN apt-get -y update && apt-get -y install ruby ruby-dev build-essential
-RUN gem install fpm pleaserun
+RUN gem install --no-ri --no-rdoc fpm pleaserun
 
 WORKDIR /workdir
 COPY nanoprobe /workdir
