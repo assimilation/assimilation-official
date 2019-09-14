@@ -37,7 +37,9 @@ jobs:
         - docker run -v /tmp/output:/output ubuntu_fpm bash -c "cp /workdir/*.deb /output"
         - docker run -v /tmp/output:/output centos_fpm bash -c "cp /workdir/*.rpm /output"
         - ls -al /tmp/output/*.deb /tmp/output/*.rpm
-        - echo "upload packages to artifactory"
+        - echo "upload packages to bintray"
+        - curl -T nanoprobe-${VERSION}-1.x86_64.rpm -u$BINTRAY_USER:$BINTRAY_PASS https://api.bintray.com/content/assimilation/rpm/nanoprobe/
+        - curl -T nanoprobe_${VERSION}_amd64.deb -u$BINTRAY_USER:$BINTRAY_PASS https://api.bintray.com/content/assimilation/deb/nanoprobe/;deb_distribution=bionic;deb_component=contrib;deb_architecture=amd64
 
     - stage: "test packages"
       name: "test packages"
