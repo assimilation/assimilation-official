@@ -38,8 +38,8 @@ jobs:
         - docker run -v /tmp/output:/output centos_fpm bash -c "cp /workdir/*.rpm /output"
         - ls -al /tmp/output/*.deb /tmp/output/*.rpm
         - echo "upload packages to bintray"
-        - curl -T /tmp/output/nanoprobe-${VERSION}-1.x86_64.rpm -u$BINTRAY_USER:$BINTRAY_PASS https://api.bintray.com/content/assimilation/rpm/nanoprobe/$VERSION/
-        - curl -T /tmp/output/nanoprobe_${VERSION}_amd64.deb -u$BINTRAY_USER:$BINTRAY_PASS https://api.bintray.com/content/assimilation/deb/nanoprobe/$VERSION/;deb_distribution=bionic;deb_component=universe;deb_architecture=amd64
+        - curl -T /tmp/output/nanoprobe-${VERSION}-1.x86_64.rpm -u$BINTRAY_USER:$BINTRAY_PASS https://api.bintray.com/content/assimilation/rpm/nanoprobe/$VERSION/nanoprobe-${VERSION}-1.x86_64.rpm
+        - curl -T /tmp/output/nanoprobe_${VERSION}_amd64.deb -u$BINTRAY_USER:$BINTRAY_PASS "https://api.bintray.com/content/assimilation/deb/nanoprobe/$VERSION/nanoprobe_${VERSION}_amd64.deb;deb_distribution=bionic;deb_component=universe;deb_architecture=amd64"
 
     - stage: "test packages"
       name: "test packages"
