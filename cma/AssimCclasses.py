@@ -36,6 +36,8 @@ from sys import stderr
 import gc
 import AssimCtypes
 from AssimCtypes import (
+    gboolean,
+    gint,
     POINTER,
     String,
     cast,
@@ -52,7 +54,10 @@ from AssimCtypes import (
     GDestroyNotify,
     g_slist_length,
     g_slist_next,
+    struct__Frame,
+    struct__FrameSet,
     struct__GSList,
+    struct__NetIO,
     g_slist_free,
     MALLOC,
     FRAMETYPE_SIG,
@@ -204,6 +209,9 @@ from AssimCtypes import (
 from consts import CMAconsts
 from frameinfo import FrameTypes, FrameSetTypes
 
+Frame_p = POINTER(struct__Frame)
+FrameSet_p = POINTER(struct__FrameSet)
+NetIO_p = POINTER(struct__NetIO)
 
 def u_string_at(s: bytes, size: int = -1) -> Optional[str]:
     """
@@ -1288,7 +1296,7 @@ class pyFrame(pyAssimObj):
         base = self._Cstruct[0]
         while not_this_exact_type(base, Frame):
             base = base.baseclass
-        return base.dataspace(self._Cstruct)
+        return base.dataspace(cast(self._Cstruct, Frame_p))
 
     def isvalid(self):
         """Return True if this Frame is valid"""
@@ -1298,7 +1306,15 @@ class pyFrame(pyAssimObj):
         #        pstart = pointer(cast(base.value, c_char_p))
         #        if pstart[0] is None:
         #            return False
-        return int(base.isvalid(self._Cstruct, None, None)) != 0
+        print('Type: FRAME_P:', type(cast(self._Cstruct, Frame_p)))
+        print('FRAME_P:', cast(self._Cstruct, Frame_p))
+        print('TYPE(ISVALID?)', type(base.isvalid(cast(self._Cstruct, Frame_p), None, None)))
+        print('ISVALID?', base.isvalid(cast(self._Cstruct, Frame_p), None, None))
+        print('DIR(gboolean)?', dir(gboolean))
+        print('type(gboolean._type_)?', type(gboolean._type_))
+        print('type(gint._type_)?', type(gint._type_))
+        print('type(c_int._type_)?', type(c_int._type_))
+        return int((base.isvalid(cast(self._Cstruct, Frame_p), None, None))) != 0
 
     def setvalue(self, value):
         """Assign a chunk of memory to the Value portion of this Frame"""
@@ -1320,14 +1336,15 @@ class pyFrame(pyAssimObj):
         memmove(valptr, valbuf, vlen)
         while not_this_exact_type(base, Frame):
             base = base.baseclass
-        base.setvalue(self._Cstruct, cast(valptr, c_char_p), vlen, cast(None, GDestroyNotify))
+        base.setvalue(cast(self._Cstruct, Frame_p), cast(valptr, c_char_p), vlen, cast(None,
+                                                                               GDestroyNotify))
 
     def dump(self, prefix):
         """Dump out this Frame (using C-class "dump" member function)"""
         base = self._Cstruct[0]
         while not_this_exact_type(base, Frame):
             base = base.baseclass
-        base.dump(self._Cstruct, cast(prefix, c_char_p))
+        base.dump(cast(self._Cstruct, Frame_p), cast(prefix, c_char_p))
 
     def __str__(self):
         """Convert this Frame to a string"""
@@ -1345,7 +1362,7 @@ class pyFrame(pyAssimObj):
         frameptr = cast(frameptr, cClass.Frame)
         CCref(frameptr)
         frametype = frameptr[0].type
-        Cclassname = proj_class_classname(frameptr)
+        Cclassname: str = proj_class_classname(frameptr).decode('utf8')
         pyclassname = "py" + Cclassname
         if Cclassname == "NetAddr":
             statement = "%s(%d, None, Cstruct=cast(frameptr, cClass.%s))" % (
@@ -1771,8 +1788,9 @@ class pyCryptCurve25519(pyCryptFrame):
     def key_id_to_filename(key_id, keytype):
         """Translate a key_id to a filename"""
         ret = curve25519_key_id_to_filename(key_id, keytype)
+        print(type(ret), dir(ret), ret, file=stderr)
         pyret = u_string_at(ret.raw)
-        g_free(ret)
+        g_free(ret.raw)
         return pyret
 
     @staticmethod
@@ -1850,11 +1868,11 @@ class pyFrameSet(pyAssimObj):
 
     def append(self, frame):
         """Append a frame to the end of a @ref FrameSet"""
-        frameset_append_frame(self._Cstruct, frame._Cstruct)
+        frameset_append_frame(self._Cstruct, cast(frame._Cstruct, Frame_p))
 
     def prepend(self, frame):
         """Prepend a frame before the first frame in a @ref FrameSet"""
-        frameset_prepend_frame(self._Cstruct, frame._Cstruct)
+        frameset_prepend_frame(self._Cstruct, cast(frame._Cstruct, Frame_p))
 
     def construct_packet(self, signframe, cryptframe=None, compressframe=None):
         """Construct packet from curent frameset + special prefix frames"""
@@ -2085,7 +2103,7 @@ class pyConfigContext(pyAssimObj):
 
     def setframe(self, name, value):
         """Set the @ref Frame associated with "name\""""
-        self._Cstruct[0].setframe(self._Cstruct, name, value._Cstruct)
+        self._Cstruct[0].setframe(self._Cstruct, name, cast(value._Cstruct, Frame_p))
 
     def getconfig(self, name):
         """Return the pyConfigContext object associated with "name\""""
@@ -2177,6 +2195,7 @@ class pyConfigContext(pyAssimObj):
             l.append(u_string_at(curkey[0].data))
             curkey = g_slist_next(curkey)
         g_slist_free(keylist)
+        print(f'SELF: {self} keys: {l}')
         return l
 
     def __iter__(self):
@@ -2213,7 +2232,9 @@ class pyConfigContext(pyAssimObj):
         except ValueError:
             suffix = None
             prefix = key
+        print(f'prefix {prefix} suffix {suffix}')
         if prefix not in self:
+            print(f'prefix {prefix} NOT IN self {self}')
             # Note that very similar code exists in GraphNodes get member function
             if not prefix.endswith("]"):
                 return alternative
@@ -2222,8 +2243,10 @@ class pyConfigContext(pyAssimObj):
                 proper = prefix[0 : len(prefix) - 1]
                 try:
                     (preprefix, idx) = proper.split("[", 1)
+                    print(f'preprefix {preprefix} idx {idx}')
                 except ValueError:
                     return alternative
+                print(f'preprefix in self? {preprefix in self}')
                 if preprefix not in self:
                     return alternative
                 try:
@@ -2240,6 +2263,7 @@ class pyConfigContext(pyAssimObj):
                     return alternative
                 return value.deepget(suffix, alternative)
 
+        print(f'prefix {prefix} IN self {self}')
         prefixvalue = self[prefix]
         assert not isinstance(prefixvalue, bytes)
         if suffix is None:
@@ -2256,7 +2280,9 @@ class pyConfigContext(pyAssimObj):
 
     def __contains__(self, key):
         """return True if our object contains the given key"""
+        print(f'_CONTAINS_({key})')
         ktype = self._Cstruct[0].gettype(self._Cstruct, str(key))
+        print(f'_KEYTYPE({key}) == {ktype}')
         return ktype != CFG_EEXIST
 
     def __len__(self):
@@ -2417,14 +2443,14 @@ class pyNetIO(pyAssimObj):
         base = self._Cstruct[0]
         while not hasattr(base, "getfd"):
             base = base.baseclass
-        return base.getfd(self._Cstruct)
+        return base.getfd(cast(self._Cstruct, NetIO_p))
 
     def bindaddr(self, addr, silent=False):
         """Bind the socket underneath this NetIO object to the given address"""
         base = self._Cstruct[0]
         while not hasattr(base, "bindaddr"):
             base = base.baseclass
-        return base.bindaddr(self._Cstruct, addr._Cstruct, silent)
+        return base.bindaddr(cast(self._Cstruct, NetIO_p), addr._Cstruct, silent)
 
     def boundaddr(self):
         """Return the socket underlying this NetIO object"""
@@ -2477,14 +2503,14 @@ class pyNetIO(pyAssimObj):
         base = self._Cstruct[0]
         while not hasattr(base, "getmaxpktsize"):
             base = base.baseclass
-        return base.getmaxpktsize(self._Cstruct)
+        return base.getmaxpktsize(cast(self._Cstruct, NetIO_p))
 
     def setmaxpktsize(self, size):
         """Set the max packet size for this pyNetIO"""
         base = self._Cstruct[0]
         while not hasattr(base, "setmaxpktsize"):
             base = base.baseclass
-        return base.setmaxpktsize(self._Cstruct, int(size))
+        return base.setmaxpktsize(cast(self._Cstruct, NetIO_p), int(size))
 
     def compressframe(self):
         """Return the compression frame for this pyNetIO - may be None"""
@@ -2492,14 +2518,15 @@ class pyNetIO(pyAssimObj):
         base = self._Cstruct[0]
         while not hasattr(base, "compressframe"):
             base = base.baseclass
-        return base.compressframe(self._Cstruct)
+        return base.compressframe(cast(self._Cstruct, NetIO_p))
 
     def signframe(self):
         """Return the digital signature frame for this pyNetIO"""
         base = self._Cstruct[0]
         while not hasattr(base, "signframe"):
             base = base.baseclass
-        return pySignFrame(0, Cstruct=cast(base.signframe(self._Cstruct), cClass.SignFrame))
+        return pySignFrame(0, Cstruct=cast(base.signframe(cast(self._Cstruct, NetIO_p)),
+                                                          cClass.SignFrame))
 
     def connstate(self, peeraddr, qid=DEFAULT_FSP_QID):
         """Return the state of this connection - return value is one of the pyNetIO constants"""
@@ -2527,7 +2554,7 @@ class pyNetIO(pyAssimObj):
         # We ought to eventually construct a GSList of them and then call sendframesets
         # But this is easy for now...
         for frameset in framesetlist:
-            base.sendaframeset(self._Cstruct, destaddr._Cstruct, frameset._Cstruct)
+            base.sendaframeset(cast(self._Cstruct, NetIO_p), destaddr._Cstruct, frameset._Cstruct)
 
     def sendreliablefs(self, destaddr, framesetlist, qid=DEFAULT_FSP_QID):
         """Reliably send the (collection of) frameset(s) out on this pyNetIO (if possible)"""
@@ -2585,7 +2612,7 @@ class pyNetIO(pyAssimObj):
         netaddr[0].baseclass.unref(netaddr)  # We're about to replace it...
         # Basically we needed a pointer to pass, and this seemed like a good way to do it...
         # Maybe it was -- maybe it wasn't...  It's a pretty expensive way to get this effect...
-        fs_gslistint = base.recvframesets(self._Cstruct, byref(netaddr))
+        fs_gslistint = base.recvframesets(cast(self._Cstruct, NetIO_p), byref(netaddr))
         fslist = pyPacketDecoder.fslist_to_pyfs_array(fs_gslistint)
         if netaddr and len(fslist) > 0:
             # recvframesets gave us that 'netaddr' for us to dispose of - there are no other refs

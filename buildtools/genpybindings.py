@@ -31,7 +31,7 @@
 #
 #
 import os, sys
-import ctypesgencore
+import ctypesgen
 
 glibpkgname = "glib-2.0"
 
@@ -126,7 +126,7 @@ def build_cmdargs(outfile, sourceroot, buildroot, libdir, libfiles):
         args.append(os.path.join(buildincludedir, hfile))
 
     # Now build the quoted command line from the arguments
-    cmdline = "ctypesgen.py"
+    cmdline = "ctypesgen"
     for arg in args:
         cmdline += ' "%s"' % arg
 

@@ -36,7 +36,8 @@ storage.
 
 from __future__ import print_function
 from sys import stderr
-import collections
+from typing import List, Tuple, Union, Dict, Optional, Any, Callable
+from collections.abc import Mapping
 import os
 import re
 import subprocess
@@ -47,6 +48,15 @@ import sqlite3
 import string
 import dpath
 
+JsonPrimitive = Union[str, int, bool, float]
+JsonValueSpecification = Union[List[JsonPrimitive], JsonPrimitive]
+JsonFieldSpecification = Tuple[str, JsonValueSpecification]
+JsonQuerySpecification = List[JsonFieldSpecification]
+
+JsonList = List['JsonValue']
+JsonDict = Dict[str, 'JsonValue']
+JsonValue = Union[JsonPrimitive, 'JsonList', 'JsonDict']
+
 if hasattr(os, "syncfs"):
     syncfs = getattr(os, "syncfs")
 else:
@@ -54,16 +64,16 @@ else:
 
     libc = ctypes.CDLL("libc.so.6")
 
-    def syncfs(fd):
+    def syncfs(fd: int) -> int:
         """
         Wrapper for libc.syncfs if it's not already defined in our Python OS module...
         :param fd: file descriptor
         :return: int: typical system call return code...
         """
-        libc.syncfs(fd)
+        return libc.syncfs(fd)
 
 
-def dict_merge(original_dict, merge_dict):
+def dict_merge(original_dict: Mapping, merge_dict: Mapping) -> None:
     """
     Recursive dict merge. Merges merge_dict into original_dict, updating keys.
     :param original_dict: dict we're merging into
@@ -73,8 +83,8 @@ def dict_merge(original_dict, merge_dict):
     for key, value in merge_dict.items():
         if (
             key in original_dict
-            and isinstance(original_dict[key], dict)
-            and isinstance(value, collections.Mapping)
+            and isinstance(original_dict[key], Mapping)
+            and isinstance(value, Mapping)
         ):
             dict_merge(original_dict[key], value)
         else:
@@ -206,7 +216,7 @@ class PersistentInvariantJSON(object):
         return self.viewkeys()
 
     @staticmethod
-    def _equal_item_compare(equal_item, dict_obj):
+    def _equal_item_compare(equal_item: JsonFieldSpecification, dict_obj: JsonDict):
         """
         See if the dict_obj matches the equal item comparison criteria we've been given
 
@@ -218,7 +228,7 @@ class PersistentInvariantJSON(object):
 
         field, value_list = equal_item
         if isinstance(value_list, (str, int, float, bool)):
-            value_list = (value_list,)
+            value_list = [value_list]
 
         def _filter_match(data):
             """Return True if data is found in our desired value_list"""
@@ -226,7 +236,7 @@ class PersistentInvariantJSON(object):
 
         return dpath.util.search(dict_obj, field, afilter=_filter_match)
 
-    def _equal_set_compare_and(self, equal_sets, dict_obj):
+    def _equal_set_compare_and(self, equal_sets: JsonQuerySpecification, dict_obj: JsonDict):
         """
 
         :param equal_sets: [(str,[str])]: Query specification
@@ -252,8 +262,9 @@ class PersistentInvariantJSON(object):
                 del biggest_result[key]
         return biggest_result
 
-    def _equal_set_compare_or(self, equal_sets, dict_obj):
+    def _equal_set_compare_or(self, equal_sets: JsonQuerySpecification, dict_obj: JsonDict):
         """
+        Retrieve
 
         :param equal_sets:
         :param dict_obj:
@@ -266,7 +277,7 @@ class PersistentInvariantJSON(object):
                 result.append(comparison)
         return result
 
-    def equality_query(self, equal_sets, ctype="and"):
+    def equality_query(self, equal_sets: JsonQuerySpecification, ctype="and"):
         """
 
         :param equal_sets: sets to perform equality operation on...
@@ -518,14 +529,16 @@ class SQLiteInstance(object):
     regexes = {}
 
     def __init__(self, **initial_args):
-        dbpath = initial_args["pathname"]
+        dbpath: str = initial_args["pathname"]
         assert dbpath not in SQLiteInstance.instances
         self.in_transaction = False
-        self.cursor = None
+        self.cursor: Optional[sqlite3.Cursor] = None
         args_to_del = {"delayed_sync", "pathname", "audit", "root_directory"}
-        filtered_args = {key: initial_args[key] for key in initial_args if key not in args_to_del}
+        filtered_args: Dict[str, Any] = (
+            {key: initial_args[key] for key in initial_args if key not in args_to_del}
+        )
         self.connection = sqlite3.connect(dbpath, **filtered_args)
-        self.json_load = initial_args.get("json_load", json.loads)
+        self.json_load: Callable = initial_args.get("json_load", json.loads)
         SQLiteInstance.instances[dbpath] = self
         self.hash_tables = set(self.all_hash_tables())
         self.dbpath = dbpath
@@ -535,12 +548,12 @@ class SQLiteInstance(object):
         self.connection.create_function("regexp", 2, SQLiteInstance.regexp)
 
     @staticmethod
-    def regexp(expr, item):
+    def regexp(expr: str, item: str) -> bool:
         if expr not in SQLiteInstance.regexes:
             SQLiteInstance.regexes[expr] = re.compile(expr)
         return SQLiteInstance.regexes[expr].match(item) is not None
 
-    def delete_everything(self):
+    def delete_everything(self) -> None:
         """
         Delete everything for this SQLite Instance
         :return: None
@@ -563,7 +576,7 @@ class SQLiteInstance(object):
         self.cursor = None
 
     @staticmethod
-    def instance(**initial_args):
+    def instance(**initial_args) -> "SQLiteInstance":
         """
 
         :param initial_args:
@@ -575,7 +588,7 @@ class SQLiteInstance(object):
         return SQLiteInstance(**initial_args)
 
     @staticmethod
-    def sanitize(inchars):
+    def sanitize(inchars: str) -> str:
         """
         Sanitize a string
 
@@ -586,7 +599,7 @@ class SQLiteInstance(object):
         return "".join(char for char in inchars if char in sanitize_charset)
 
     @staticmethod
-    def table_name(name):
+    def table_name(name: str) -> str:
         """
 
         :param name:
@@ -594,7 +607,7 @@ class SQLiteInstance(object):
         """
         return SQLiteInstance.TABLE_PREFIX + SQLiteInstance.sanitize(name)
 
-    def ensure_transaction(self):
+    def ensure_transaction(self) -> None:
         """
         Ensure that we're in a transaction
         :return: None
@@ -604,7 +617,7 @@ class SQLiteInstance(object):
             self.cursor.execute(self.BEGIN_TRANS)
             self.in_transaction = True
 
-    def ensure_table(self, table):
+    def ensure_table(self, table: str) -> None:
         """
         Create a table if it doesn't exist
         :param table: Table to make sure we have
@@ -615,7 +628,7 @@ class SQLiteInstance(object):
         if table not in self.hash_tables:
             self.create_hash_table(table)
 
-    def execute(self, sql_statement, *args):
+    def execute(self, sql_statement: str, *args: List[str]):
         """
 
         :param sql_statement: str: A single SQL statement
@@ -625,7 +638,7 @@ class SQLiteInstance(object):
         self.ensure_transaction()
         return self.cursor.execute(sql_statement, *args)
 
-    def all_hash_tables(self):
+    def all_hash_tables(self) -> List[str]:
         """
         Return the names of all our hash tables (SQlite relations that correspond to hash tables)
         :return: [str]: Names of all our hash tables...
@@ -641,7 +654,7 @@ class SQLiteInstance(object):
         chopindex = len(self.TABLE_PREFIX)
         return [row[0][chopindex:] for row in self.cursor.fetchall()]
 
-    def create_hash_table(self, table):
+    def create_hash_table(self, table: str) -> None:
         """
         Create the given hash table
 
@@ -656,7 +669,7 @@ class SQLiteInstance(object):
         self.execute(sql)
         self.hash_tables.add(table)
 
-    def put(self, table, datahash, data):
+    def put(self, table: str, datahash: str, data: str):
         """
         Insert this data into one of our tables...
         :param table: str: table name

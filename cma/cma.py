@@ -122,8 +122,8 @@ from AssimCclasses import pyCompressFrame, pyCryptCurve25519, pyCryptFrame
 from cmaconfig import ConfigFile
 from bestpractices import BestPractices
 
-SUPPORTED_PYTHON_VERSIONS = ("2.7",)
-SUPPORTED_PY2NEO_VERSIONS = (3,)
+SUPPORTED_PYTHON_VERSIONS = ("3.7",)
+SUPPORTED_PY2NEO_VERSIONS = (4,)
 
 PYTHON_VERSION = "%s.%s" % sys.version_info[0:2]
 if PYTHON_VERSION not in SUPPORTED_PYTHON_VERSIONS:
@@ -598,8 +598,8 @@ def process_main_exception(ex):
 
 if __name__ == "__main__":
     pyversion = sys.version_info
-    if pyversion[0] != 2 or pyversion[1] < 7:
-        raise RuntimeError("Must be run using python 2.x where x >= 7")
+    if pyversion[0] != 3 or pyversion[1] < 7:
+        raise RuntimeError("Must be run using python 3.x where x >= 7")
     exitrc = 1
     # W0703 == Too general exception catching...
     # pylint: disable=W0703

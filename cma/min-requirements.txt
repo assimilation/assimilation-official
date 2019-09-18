@@ -1,4 +1,4 @@
-https://test-files.pythonhosted.org/packages/4e/4b/325a8b1a917f0172986fe545b102c088d448e61dc1b5bdefdf98be42abea/ctypesgen-1.0.1.dev8-py3-none-any.whl
+ctypesgen>1.0.0
 datetime
 docker
 dpath
