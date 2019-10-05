@@ -419,8 +419,7 @@ def main():
     jvers = jvmfd.readline()
     jvmfd.close()
     disp = MessageDispatcher(DispatchTarget.dispatchtable)
-    neovers = cmadb.db.neo4j_version
-    neoversstring = ("%s.%s.%s" if len(neovers) == 3 else "%s.%s.%s%s") % neovers[0:3]
+    neoversstring = py2neo.__version__
 
     CMAdb.log.info(
         "Starting CMA version %s - licensed under %s"
@@ -429,7 +428,7 @@ def main():
     CMAdb.log.info(
         "Neo4j version %s // py2neo version %s // Python version %s // %s"
         % (
-            ("%s.%s.%s" % cmadb.db.neo4j_version[0:3]),
+            cmadb.db.database.kernel_version,
             str(py2neo.__version__),
             ("%s.%s.%s" % sys.version_info[0:3]),
             jvers,
@@ -446,8 +445,6 @@ def main():
             % (neoversstring, PY2NEO_VERSION, ("%s.%s.%s" % sys.version_info[0:3]), jvers),
             file=sys.stderr,
         )
-    if len(neovers) > 3:
-        CMAdb.log.warning("Neo4j version %s is beta code - results not guaranteed." % str(neovers))
 
     # Important to note that we don't want PacketListener to create its own 'io' object
     # or it will screw up the ReliableUDP protocol...

@@ -38,11 +38,13 @@ Software for managing a Neo4j instance...
 Currently that only means a docker image of Neo4j...
 """
 from __future__ import print_function
+from typing import Optional
 import os
 import sys
 from sys import stderr
 import docker
 import docker.errors
+from docker.models.containers import Container
 import time
 import shutil
 
@@ -177,7 +179,7 @@ class NeoDockerServer(NeoServer):
             )
 
         self.docker_client = docker_client if docker_client else docker.from_env()
-        self.container = None
+        self.container: Optional[Container] = None
         # We need to run neo4j as the owner of its writable volumes...
         self.uid = list(writable_owners)[0]
         self.gid = list(writable_groups)[0]
@@ -264,6 +266,16 @@ class NeoDockerServer(NeoServer):
                 self.stop()
             else:
                 return self.container
+        count = 0
+        while self.container and count < 5:
+            count += 1
+            try:
+                self.container.remove()
+                break
+            except docker.errors.APIError:
+                time.sleep(1)
+                self.is_running()
+
         self.container = self.docker_client.containers.run(
             self.image_name,
             auto_remove=True,
@@ -273,7 +285,10 @@ class NeoDockerServer(NeoServer):
             user=self.uid_flag,
             volumes=self.volume_map,
             environment=self.environment_map,
+            remove=True,
         )
+        while not self.is_running():
+            time.sleep(1)
         time.sleep(5)
         # @FIXME: This should be a loop waiting for services to become available...
         print("Neo4j container %s started." % self.container.short_id, file=stderr)
@@ -286,11 +301,11 @@ class NeoDockerServer(NeoServer):
         :return:bool: True if the container is running
         """
         try:
+            print(f"Checking on container {self.host}...")
             self.container = self.docker_client.containers.get(self.host)
-            print(f"Container {self.container} is running {self.host}")
-            return True
+            print(f"Container {self.container} is {self.container.status} {self.host}")
+            return self.container.status == "running"
         except docker.errors.NotFound:
-            self.container = None
             return False
 
     def stop(self):

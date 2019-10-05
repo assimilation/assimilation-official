@@ -53,9 +53,9 @@ JsonValueSpecification = Union[List[JsonPrimitive], JsonPrimitive]
 JsonFieldSpecification = Tuple[str, JsonValueSpecification]
 JsonQuerySpecification = List[JsonFieldSpecification]
 
-JsonList = List['JsonValue']
-JsonDict = Dict[str, 'JsonValue']
-JsonValue = Union[JsonPrimitive, 'JsonList', 'JsonDict']
+JsonList = List["JsonValue"]
+JsonDict = Dict[str, "JsonValue"]
+JsonValue = Union[JsonPrimitive, "JsonList", "JsonDict"]
 
 if hasattr(os, "syncfs"):
     syncfs = getattr(os, "syncfs")

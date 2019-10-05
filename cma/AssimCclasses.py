@@ -49,6 +49,7 @@ from AssimCtypes import (
     byref,
     memmove,
     c_int,
+    c_uint,
     g_free,
     GSList,
     GDestroyNotify,
@@ -212,6 +213,7 @@ from frameinfo import FrameTypes, FrameSetTypes
 Frame_p = POINTER(struct__Frame)
 FrameSet_p = POINTER(struct__FrameSet)
 NetIO_p = POINTER(struct__NetIO)
+
 
 def u_string_at(s: bytes, size: int = -1) -> Optional[str]:
     """
@@ -1259,7 +1261,7 @@ class pyFrame(pyAssimObj):
             except (AttributeError):
                 frametype = int(initval)
             # If we don't do this, then a subclass __init__ function must do it instead...
-            pyAssimObj.__init__(self, Cstruct=cast(frame_new(frametype, 0), cClass.Frame))
+            pyAssimObj.__init__(self, Cstruct=cast(frame_new(frametype, 0), Frame_p))
         else:
             pyAssimObj.__init__(self, Cstruct=Cstruct)
 
@@ -1306,14 +1308,6 @@ class pyFrame(pyAssimObj):
         #        pstart = pointer(cast(base.value, c_char_p))
         #        if pstart[0] is None:
         #            return False
-        print('Type: FRAME_P:', type(cast(self._Cstruct, Frame_p)))
-        print('FRAME_P:', cast(self._Cstruct, Frame_p))
-        print('TYPE(ISVALID?)', type(base.isvalid(cast(self._Cstruct, Frame_p), None, None)))
-        print('ISVALID?', base.isvalid(cast(self._Cstruct, Frame_p), None, None))
-        print('DIR(gboolean)?', dir(gboolean))
-        print('type(gboolean._type_)?', type(gboolean._type_))
-        print('type(gint._type_)?', type(gint._type_))
-        print('type(c_int._type_)?', type(c_int._type_))
         return int((base.isvalid(cast(self._Cstruct, Frame_p), None, None))) != 0
 
     def setvalue(self, value):
@@ -1336,8 +1330,9 @@ class pyFrame(pyAssimObj):
         memmove(valptr, valbuf, vlen)
         while not_this_exact_type(base, Frame):
             base = base.baseclass
-        base.setvalue(cast(self._Cstruct, Frame_p), cast(valptr, c_char_p), vlen, cast(None,
-                                                                               GDestroyNotify))
+        base.setvalue(
+            cast(self._Cstruct, Frame_p), cast(valptr, c_char_p), vlen, cast(None, GDestroyNotify)
+        )
 
     def dump(self, prefix):
         """Dump out this Frame (using C-class "dump" member function)"""
@@ -1362,7 +1357,7 @@ class pyFrame(pyAssimObj):
         frameptr = cast(frameptr, cClass.Frame)
         CCref(frameptr)
         frametype = frameptr[0].type
-        Cclassname: str = proj_class_classname(frameptr).decode('utf8')
+        Cclassname: str = proj_class_classname(frameptr).decode("utf8")
         pyclassname = "py" + Cclassname
         if Cclassname == "NetAddr":
             statement = "%s(%d, None, Cstruct=cast(frameptr, cClass.%s))" % (
@@ -2195,7 +2190,6 @@ class pyConfigContext(pyAssimObj):
             l.append(u_string_at(curkey[0].data))
             curkey = g_slist_next(curkey)
         g_slist_free(keylist)
-        print(f'SELF: {self} keys: {l}')
         return l
 
     def __iter__(self):
@@ -2232,9 +2226,9 @@ class pyConfigContext(pyAssimObj):
         except ValueError:
             suffix = None
             prefix = key
-        print(f'prefix {prefix} suffix {suffix}')
+        print(f"prefix {prefix} suffix {suffix}")
         if prefix not in self:
-            print(f'prefix {prefix} NOT IN self {self}')
+            print(f"prefix {prefix} NOT IN self {self}")
             # Note that very similar code exists in GraphNodes get member function
             if not prefix.endswith("]"):
                 return alternative
@@ -2243,10 +2237,10 @@ class pyConfigContext(pyAssimObj):
                 proper = prefix[0 : len(prefix) - 1]
                 try:
                     (preprefix, idx) = proper.split("[", 1)
-                    print(f'preprefix {preprefix} idx {idx}')
+                    print(f"preprefix {preprefix} idx {idx}")
                 except ValueError:
                     return alternative
-                print(f'preprefix in self? {preprefix in self}')
+                print(f"preprefix in self? {preprefix in self}")
                 if preprefix not in self:
                     return alternative
                 try:
@@ -2263,7 +2257,7 @@ class pyConfigContext(pyAssimObj):
                     return alternative
                 return value.deepget(suffix, alternative)
 
-        print(f'prefix {prefix} IN self {self}')
+        print(f"prefix {prefix} IN self {self}")
         prefixvalue = self[prefix]
         assert not isinstance(prefixvalue, bytes)
         if suffix is None:
@@ -2280,9 +2274,7 @@ class pyConfigContext(pyAssimObj):
 
     def __contains__(self, key):
         """return True if our object contains the given key"""
-        print(f'_CONTAINS_({key})')
         ktype = self._Cstruct[0].gettype(self._Cstruct, str(key))
-        print(f'_KEYTYPE({key}) == {ktype}')
         return ktype != CFG_EEXIST
 
     def __len__(self):
@@ -2420,7 +2412,7 @@ class pyNetIO(pyAssimObj):
         """Initializer for pyNetIO"""
         self._Cstruct = None  # Keep error legs from complaining.
         if Cstruct is None:
-            Cstruct = cast(netio_new(0, configobj._Cstruct, packetdecoder._Cstruct), cClass.NetIO)
+            Cstruct = netio_new(0, configobj._Cstruct, packetdecoder._Cstruct)
             self.config = configobj
         else:
             self._Cstruct = Cstruct
@@ -2429,7 +2421,7 @@ class pyNetIO(pyAssimObj):
                 base = base.baseclass
             self.config = pyConfigContext(Cstruct=base._configinfo)
             CCref(base._configinfo)
-        pyAssimObj.__init__(self, Cstruct=Cstruct)
+        pyAssimObj.__init__(self, Cstruct=cast(Cstruct, NetIO_p))
 
     def setblockio(self, mode):
         """Set this NetIO object to blocking IO mode"""
@@ -2443,14 +2435,14 @@ class pyNetIO(pyAssimObj):
         base = self._Cstruct[0]
         while not hasattr(base, "getfd"):
             base = base.baseclass
-        return base.getfd(cast(self._Cstruct, NetIO_p))
+        return base.getfd(self._Cstruct)
 
     def bindaddr(self, addr, silent=False):
         """Bind the socket underneath this NetIO object to the given address"""
         base = self._Cstruct[0]
         while not hasattr(base, "bindaddr"):
             base = base.baseclass
-        return base.bindaddr(cast(self._Cstruct, NetIO_p), addr._Cstruct, silent)
+        return base.bindaddr(self._Cstruct, addr._Cstruct, silent)
 
     def boundaddr(self):
         """Return the socket underlying this NetIO object"""
@@ -2503,14 +2495,14 @@ class pyNetIO(pyAssimObj):
         base = self._Cstruct[0]
         while not hasattr(base, "getmaxpktsize"):
             base = base.baseclass
-        return base.getmaxpktsize(cast(self._Cstruct, NetIO_p))
+        return base.getmaxpktsize(self._Cstruct)
 
     def setmaxpktsize(self, size):
         """Set the max packet size for this pyNetIO"""
         base = self._Cstruct[0]
         while not hasattr(base, "setmaxpktsize"):
             base = base.baseclass
-        return base.setmaxpktsize(cast(self._Cstruct, NetIO_p), int(size))
+        return base.setmaxpktsize(self._Cstruct, int(size))
 
     def compressframe(self):
         """Return the compression frame for this pyNetIO - may be None"""
@@ -2518,15 +2510,14 @@ class pyNetIO(pyAssimObj):
         base = self._Cstruct[0]
         while not hasattr(base, "compressframe"):
             base = base.baseclass
-        return base.compressframe(cast(self._Cstruct, NetIO_p))
+        return base.compressframe(self._Cstruct)
 
     def signframe(self):
         """Return the digital signature frame for this pyNetIO"""
         base = self._Cstruct[0]
         while not hasattr(base, "signframe"):
             base = base.baseclass
-        return pySignFrame(0, Cstruct=cast(base.signframe(cast(self._Cstruct, NetIO_p)),
-                                                          cClass.SignFrame))
+        return pySignFrame(0, Cstruct=cast(base.signframe(self._Cstruct), cClass.SignFrame))
 
     def connstate(self, peeraddr, qid=DEFAULT_FSP_QID):
         """Return the state of this connection - return value is one of the pyNetIO constants"""
@@ -2554,7 +2545,7 @@ class pyNetIO(pyAssimObj):
         # We ought to eventually construct a GSList of them and then call sendframesets
         # But this is easy for now...
         for frameset in framesetlist:
-            base.sendaframeset(cast(self._Cstruct, NetIO_p), destaddr._Cstruct, frameset._Cstruct)
+            base.sendaframeset(self._Cstruct, destaddr._Cstruct, frameset._Cstruct)
 
     def sendreliablefs(self, destaddr, framesetlist, qid=DEFAULT_FSP_QID):
         """Reliably send the (collection of) frameset(s) out on this pyNetIO (if possible)"""
@@ -2567,10 +2558,7 @@ class pyNetIO(pyAssimObj):
             base = base.baseclass
         for frameset in framesetlist:
             success = base.sendareliablefs(
-                cast(self._Cstruct, cClass.NetIO),
-                cast(destaddr._Cstruct, cClass.NetAddr),
-                qid,
-                frameset._Cstruct,
+                self._Cstruct, cast(destaddr._Cstruct, cClass.NetAddr), qid, frameset._Cstruct
             )
             if not success:
                 raise IOError("sendareliablefs(%s, %s) failed." % (destaddr, frameset))
@@ -2612,7 +2600,7 @@ class pyNetIO(pyAssimObj):
         netaddr[0].baseclass.unref(netaddr)  # We're about to replace it...
         # Basically we needed a pointer to pass, and this seemed like a good way to do it...
         # Maybe it was -- maybe it wasn't...  It's a pretty expensive way to get this effect...
-        fs_gslistint = base.recvframesets(cast(self._Cstruct, NetIO_p), byref(netaddr))
+        fs_gslistint = base.recvframesets(self._Cstruct, byref(netaddr))
         fslist = pyPacketDecoder.fslist_to_pyfs_array(fs_gslistint)
         if netaddr and len(fslist) > 0:
             # recvframesets gave us that 'netaddr' for us to dispose of - there are no other refs
@@ -2700,7 +2688,7 @@ class pyPcapCapture(object):
             self._Cstruct = None
 
     def __iter__(self):
-        pktlen = c_int()
+        pktlen = c_uint()
         pktend = cClass.guint8()
         ret = pcap_capture_iter_next(self._Cstruct, byref(pktend), byref(pktlen))
         if not ret:

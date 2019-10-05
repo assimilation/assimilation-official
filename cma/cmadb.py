@@ -27,9 +27,10 @@ import os
 import sys
 from sys import stderr
 import inject
+import py2neo
 
 
-SUPPORTED_NEO4J_VERSIONS = (3,)
+SUPPORTED_NEO4J_VERSIONS = (4,)
 DEBUG = False
 
 
@@ -47,34 +48,26 @@ class CMAdb(object):
     globaldomain = "global"
     underdocker = None
     # versions we know we can't work with...
-    neo4jblacklist = ["2.0.0"]
+    neo4jblacklist = []
 
     @inject.params(db="py2neo.Graph", store="Store")
     def __init__(self, db=None, store=None):
-        self.db = db
+        self.db: py2neo.Graph = db
         self.io = None
         CMAdb.store = store
-        self.dbversion = self.db.neo4j_version
+        self.dbversion = py2neo.__version__
         CMAdb.dbversion = self.dbversion
-        vers = ""
-        dot = ""
-        for elem in self.dbversion:
-            if str(elem) == "":
-                continue
-            vers += "%s%s" % (dot, str(elem))
-            dot = "."
-        self.dbversstring = vers
-        if (
-            self.dbversstring in CMAdb.neo4jblacklist
-            or self.dbversion[0] not in SUPPORTED_NEO4J_VERSIONS
-        ):
+        print(f"DBVERSION: {type(self.dbversion)}: {self.dbversion}")
+        major = self.dbversion.split(".")[0]
+        print("MAJOR IS", major)
+        if self.dbversion in CMAdb.neo4jblacklist or int(major) not in SUPPORTED_NEO4J_VERSIONS:
             print(
-                "The Assimilation CMA isn't compatible with Neo4j version %s" % self.dbversstring,
+                "The Assimilation CMA isn't compatible with Neo4j version %s" % self.dbversion,
                 file=stderr,
             )
-            raise EnvironmentError("Neo4j version %s not supported" % self.dbversstring)
+            raise EnvironmentError("Neo4j version %s not supported" % self.dbversion)
 
-        if db.dbms.config.get("cypher.forbid_shortestpath_common_nodes", True):
+        if False and db.dbms.config.get("cypher.forbid_shortestpath_common_nodes", True):
             print(
                 'Neo4j must be configured with "cypher.forbid_shortestpath_common_nodes=false"',
                 file=stderr,
