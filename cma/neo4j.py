@@ -41,6 +41,7 @@ from __future__ import print_function
 from typing import Optional
 import os
 import sys
+import subprocess
 from sys import stderr
 import docker
 import docker.errors
@@ -62,7 +63,7 @@ class NeoServer(object):
         "/logs": "rw",
         "/metrics": "rw",
         "/plugins": "ro",
-        "/ssl": "ro",
+        "/ssl": "rw",
     }
 
     # Names and in-container values of ports that Neo4j exports...
@@ -170,6 +171,8 @@ class NeoDockerServer(NeoServer):
                 writable_stat = os.stat(external_dir)
                 writable_owners.add(writable_stat.st_uid)
                 writable_groups.add(writable_stat.st_gid)
+            else:  # Just make sure it exists...
+                read_only_stat = os.stat(external_dir)
         if len(writable_owners) > 1:
             raise TypeError("Neo4j writable volumes owned by multiple owners: %s" % writable_owners)
         if len(writable_groups) > 1:
@@ -287,12 +290,29 @@ class NeoDockerServer(NeoServer):
             environment=self.environment_map,
             remove=True,
         )
-        while not self.is_running():
-            time.sleep(1)
-        time.sleep(5)
-        # @FIXME: This should be a loop waiting for services to become available...
+        start_time = time.time()
+        self._wait_for_port("bolt")
+        self._wait_for_port("http")
+        print(f"Neo4j ports up in {time.time() - start_time:.1f} seconds", file=stderr)
+
         print("Neo4j container %s started." % self.container.short_id, file=stderr)
+        # print(f"CONTAINER INFO: {self}")
+        # subprocess.run(["docker", "logs", "-f", str(self.container.short_id)])
         return self.container
+
+    def _wait_for_port(self, port: int = 0, sleep: float = .5, max_loops=1000) -> bool:
+        if isinstance(port, str):
+            port = self.neo_ports[port]
+        port = port or self.neo_ports["bolt"]
+        start_time = time.time()
+        command = ["/usr/bin/lsof", "-i", f"tcp:{self.neo_ports['bolt']}"]
+        for _ in range(max_loops):
+            try:
+                subprocess.check_call(command)
+                stderr.flush()
+            except subprocess.CalledProcessError:
+                time.sleep(sleep)
+            break
 
     def is_running(self):
         """
@@ -301,9 +321,9 @@ class NeoDockerServer(NeoServer):
         :return:bool: True if the container is running
         """
         try:
-            print(f"Checking on container {self.host}...")
+            # print(f"Checking on container {self.host}...")
             self.container = self.docker_client.containers.get(self.host)
-            print(f"Container {self.container} is {self.container.status} {self.host}")
+            # print(f"Container {self.container} is {self.container.status} {self.host}")
             return self.container.status == "running"
         except docker.errors.NotFound:
             return False
@@ -349,6 +369,7 @@ class NeoDockerServer(NeoServer):
         :return:bool: True if password already set
         """
         name, _, extra = self._getpass()
+        # print(f"PASSWORD INFO: {name} {extra}", file=stderr)
         return name is not None and not extra
 
     def set_initial_password(self, initial_password, force=False):
@@ -367,22 +388,29 @@ class NeoDockerServer(NeoServer):
             name = None
         if extra or force:
             try:
-                # Do we need to stop Neo4j before doing this?
+                self.start()
                 os.unlink(self.auth_file_name)
                 os.unlink(self.roles_file_name)
                 print("Previous neo4j authorization information deleted.", file=stderr)
-            except OSError:
+                self.start()
+                time.sleep(5)
+                assert True and self.is_running()
+            except OSError as oops:
+                print(f"GOT OSError{oops}")
                 pass
 
         if name is not None and not extra:
             raise TypeError("Initial password already set.")
         command = self.initial_password_command
         command.append(initial_password)
+        output: bytes
+        # print(f"Running {command} in self.container")
         rc, output = self.container.exec_run(command, user=self.uid_flag)
-        output = output.strip()
+        output = output.decode('utf8').strip()
         print(output)
         if rc != 0:
-            raise RuntimeError("Could not set initial password: %s" % output)
+            subprocess.check_call(["docker", "ps"])
+            raise RuntimeError(f"Could not set initial password[{rc}]: {output}")
         if force:
             self.start(restart_if_running=True)
         result = rc == 0
@@ -406,9 +434,9 @@ if __name__ == "__main__":
     def stupid_docker_test():
         """This is a stupid Neo4j/Docker test..."""
         sys.stdout = sys.stderr  # Good for testing...
-        print(NeoDockerServer())
-        print(NeoDockerServer(edition="enterprise", accept_license=True))
-        print(NeoDockerServer(edition="enterprise", version="3.5.0", accept_license=True))
+        #  print(NeoDockerServer())
+        #  print(NeoDockerServer(edition="enterprise", accept_license=True))
+        # print(NeoDockerServer(edition="enterprise", version="3.5.0", accept_license=True))
         neo4j = NeoDockerServer(edition="enterprise", version="3.5.6", accept_license=True)
         print("Now RUNNING:", neo4j)
         neo4j.start(restart_if_running=False)

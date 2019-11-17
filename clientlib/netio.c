@@ -314,7 +314,7 @@ _netio_maximize_sockbufsize(const NetIO* self, gboolean forinput, int desiredsiz
 			break;
 		}
 		retval = midpoint;
-		DEBUGMSG2("%s.%d: trying %sput buffer size %d", __FUNCTION__, __LINE__
+		DEBUGMSG3("%s.%d: trying %sput buffer size %d", __FUNCTION__, __LINE__
 		,	 (forinput ? "in" : "out"), retval);
 		if (setsockopt(self->getfd(self), IPPROTO_UDP, optname, &retval, retvalsize) < 0) {
 #ifdef SO_RCVBUFFORCE 

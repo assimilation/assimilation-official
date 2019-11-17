@@ -34,6 +34,7 @@ import pwd
 import grp
 import inject
 import py2neo
+import neobolt.exceptions as NeoExceptions
 from neo4j import NeoDockerServer
 from store import Store
 from cmadb import CMAdb
@@ -66,7 +67,8 @@ class Neo4jCreds(object):
         if filename is None:
             filename = NEO4JCREDFILENAME
         self.neo4j_cred_filename = filename
-        self.neoserver = NeoDockerServer(version="3.5.7", edition="enterprise", accept_license=True)
+        self.neoserver = NeoDockerServer(version="3.5.12", edition="enterprise",
+                                         accept_license=True)
         self.neoserver.start()
         for _ in range(50):
             if self.neoserver.is_running():
@@ -261,20 +263,20 @@ class CMAInjectables(object):
         trycount = 0
         while True:
             try:
-                print("URI: %s" % url, file=sys.stderr)
-                print("hostport: %s" % hostport, file=sys.stderr)
-                print(
-                    "URI:%s bolt:%s, https:%s, http:%s, host:%s, port=%s"
-                    % (url, bolt, https, http, host, port),
-                    file=sys.stderr,
-                )
+                # print("URI: %s" % url, file=sys.stderr)
+                # print("hostport: %s" % hostport, file=sys.stderr)
+                # print(
+                #     "URI:%s bolt:%s, https:%s, http:%s, host:%s, port=%s"
+                #     % (url, bolt, https, http, host, port),
+                #     file=sys.stderr,
+                # )
                 # neodb = py2neo.Graph(
                 #     uri=url, bolt=True, https=False, http=False, host=host,
                 #     secure=True, bolt_port=7687
                 # )
                 neodatabase = py2neo.Database(url)
-                print("DATABASE", neodatabase)
-                print("GRAPH", neodatabase.default_graph)
+                # print("DATABASE", neodatabase)
+                # print("GRAPH", neodatabase.default_graph)
                 # print('CONFIG', neodatabase.config)
                 neodb = py2neo.Graph(
                     url,
@@ -288,7 +290,7 @@ class CMAInjectables(object):
                 )
                 # address = register_server(*uris, **settings)
                 # neodb = neodatabase.default_graph
-                print("CONSTRUCTED neodb", neodb, file=stderr)
+                # print("CONSTRUCTED neodb", neodb, file=stderr)
                 # Neo4j started.  All is well with the world.
                 break
             except (RuntimeError, IOError, py2neo.GraphError) as exc:
@@ -420,7 +422,7 @@ class CMAinit(object):
     ):
         """Initialize and construct a global database instance
         """
-        print("CALLING NEW initglobal", file=sys.stderr)
+        # print("CALLING NEW initglobal", file=sys.stderr)
         CMAdb.log = log
         CMAdb.debug = debug
         CMAdb.debug = True
@@ -433,7 +435,7 @@ class CMAinit(object):
 
         if cleanoutdb:
             CMAdb.log.info("Re-initializing the NEO4j database")
-            print("Re-initializing the NEO4j database", file=stderr)
+            print("Re-initializing the NEO4j database to empty", file=stderr)
             self.delete_all()
             print("delete_all complete", file=stderr)
 
@@ -443,8 +445,8 @@ class CMAinit(object):
             from transaction import NetTransaction
 
             CMAdb.net_transaction = NetTransaction(io=io, encryption_required=encryption_required)
-            print("CMAdb:", CMAdb, file=sys.stderr)
-            print("CMAdb.store(cmadb.py):", CMAdb.store, file=sys.stderr)
+            # print("CMAdb:", CMAdb, file=sys.stderr)
+            # print("CMAdb.store(cmadb.py):", CMAdb.store, file=sys.stderr)
             store.db_transaction = db.begin(autocommit=False)
             CMAdb.TheOneRing = CMAdb.store.load_or_create(
                 HbRing, name="The_One_Ring", ringtype=HbRing.THEONERING
@@ -452,8 +454,8 @@ class CMAinit(object):
             print("Created TheOneRing: %s" % CMAdb.TheOneRing)
             if CMAdb.use_network:
                 CMAdb.net_transaction.commit_trans()
-            print("COMMITTING Store", file=sys.stderr)
-            print("NetTransaction Commit results:", CMAdb.store.commit(), file=sys.stderr)
+            # print("COMMITTING Store", file=sys.stderr)
+            # print("NetTransaction Commit results:", CMAdb.store.commit(), file=sys.stderr)
             if CMAdb.store.db_transaction and not CMAdb.store.db_transaction.finished():
                 CMAdb.store.commit()
             CMAdb.net_transaction = NetTransaction(io=io, encryption_required=encryption_required)
@@ -476,21 +478,23 @@ class CMAinit(object):
         """
         qstring = "match (n) optional match (n)-[r]-() delete n,r"
 
-        print("qstring is %s" % qstring, file=stderr)
-        try:
-            print("delete_all: self.db is %s" % self.db, file=stderr)
-            result = self.db.run(qstring)
-        except Exception as oops:
-            print("Got exception: %s:%s " % (type(oops), oops), file=stderr)
-            raise
-        print("result is %s" % result, file=stderr)
+        # print("qstring is %s" % qstring, file=stderr)
+        start =time.time()
+        # print("delete_all: self.db is %s" % self.db, file=stderr)
+        while True:
+            try:
+                result = self.db.run(qstring)
+                print(f"Waited {time.time()-start:.1f} seconds for neo4j to process commands")
+                break
+            except NeoExceptions.ServiceUnavailable as oops:
+                pass
         if CMAdb.debug:
             CMAdb.log.debug(
                 "Cypher query to delete all relationships"
                 " and nonzero nodes executing: %s" % qstring
             )
             CMAdb.log.debug("Execution results: %s" % str(result))
-        print("calling json.delete_everything()")
+        # print("calling json.delete_everything()")
         json.delete_everything()
 
 

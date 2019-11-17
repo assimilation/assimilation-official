@@ -1,4 +1,4 @@
-ctypesgen>1.0.0
+ctypesgen>1.0.1
 datetime
 docker
 dpath

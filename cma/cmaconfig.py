@@ -26,7 +26,6 @@
 This file implements things related to Configuration files for the CMA.
 Not quite sure what all it will do, but hey, this comment is slightly better than nothing.
 """
-from __future__ import print_function
 
 # from sys import stderr
 from AssimCclasses import pyConfigContext, pyNetAddr, pySignFrame, pyCompressFrame
@@ -470,7 +469,7 @@ class ConfigFile(object):
         Return value is a Tuple (True/False, 'explanation of errors')
         """
 
-        if isinstance(template, (type, type)):
+        if isinstance(template, type):
             return ConfigFile._check_validity_type(template, configobj)
         if isinstance(template, dict):
             return ConfigFile._check_validity_dict(template, configobj)
@@ -496,7 +495,7 @@ class ConfigFile(object):
             for elem in configobj:
                 ret = ConfigFile._check_validity_set(template, elem)
                 if not ret[0]:
-                    return (False, "Element %s: %s" % (elem, ret[1]))
+                    return (False, "%s.%s" % (elem, ret[1]))
             return (True, "")
 
         # Pylint doesn't like our type matching - so I hid it from pylint through 'configtype'
@@ -520,7 +519,7 @@ class ConfigFile(object):
             for configkey in keys:
                 ret = ConfigFile._check_validity(validatetype, configobj[configkey])
                 if not ret[0]:
-                    return (False, "Element %s: %s" % (configkey, ret[1]))
+                    return (False, "%s.%s" % (configkey, ret[1]))
         else:
             # Every key in the configobj must also be in the template
             for elemname in keys:
@@ -528,7 +527,7 @@ class ConfigFile(object):
                     return (False, ("%s is not one of %s" % (elemname, str(template.keys()))))
                 ret = ConfigFile._check_validity(template[elemname], configobj[elemname])
                 if not ret[0]:
-                    return (False, "Element %s: %s" % (elemname, ret[1]))
+                    return (False, "%s.%s" % (elemname, ret[1]))
         return (True, "")
 
     @staticmethod

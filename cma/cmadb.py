@@ -57,9 +57,9 @@ class CMAdb(object):
         CMAdb.store = store
         self.dbversion = py2neo.__version__
         CMAdb.dbversion = self.dbversion
-        print(f"DBVERSION: {type(self.dbversion)}: {self.dbversion}")
+        # print(f"DBVERSION: {type(self.dbversion)}: {self.dbversion}")
         major = self.dbversion.split(".")[0]
-        print("MAJOR IS", major)
+        # print("MAJOR IS", major)
         if self.dbversion in CMAdb.neo4jblacklist or int(major) not in SUPPORTED_NEO4J_VERSIONS:
             print(
                 "The Assimilation CMA isn't compatible with Neo4j version %s" % self.dbversion,
@@ -76,7 +76,6 @@ class CMAdb(object):
 
         if CMAdb.debug:
             CMAdb.log.debug("Neo4j version: %s" % str(self.dbversion))
-            print("HELP Neo4j version: %s" % str(self.dbversion), file=stderr)
 
     @staticmethod
     def running_under_docker():

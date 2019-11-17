@@ -855,9 +855,13 @@ class TestpyConfigContext(TestCase):
                 "str1": "forty-two",
                 "bar": pyNetAddr((1, 2, 3, 4)),
                 "csf": pyCstringFrame(42, "41+1"),
+                "xyzzy": 0,
+                "twisty": -1,
             }
         )
         self.assertEqual(foo.getint("int1"), 42)
+        self.assertEqual(foo.getint("xyzzy"), 0)
+        self.assertEqual(foo.getint("twisty"), -1)
         self.assertEqual(foo.getstring("str1"), "forty-two")
         self.assertRaises(IndexError, foo.getaddr, ("int1"))
         self.assertRaises(IndexError, foo.getstring, ("int1"))
@@ -874,7 +878,7 @@ class TestpyConfigContext(TestCase):
         self.assertEqual(
             str(foo),
             '{"bar":"1.2.3.4","csf":"CstringFrame(42, \\"41+1\\")","int1":42,'
-            '"str1":"forty-two"}',
+            '"str1":"forty-two","twisty":-1,"xyzzy":0}',
         )
 
         foo["isf"] = pyIntFrame(310, initval=42, intbytes=3)
@@ -883,7 +887,7 @@ class TestpyConfigContext(TestCase):
         self.assertEqual(
             str(foo),
             '{"bar":"1.2.3.4","csf":"CstringFrame(42, \\"41+1\\")","int1":42,'
-            '"isf":"IntFrame(310, 3, 42)","str1":"forty-two"}',
+            '"isf":"IntFrame(310, 3, 42)","str1":"forty-two","twisty":-1,"xyzzy":0}'
         )
         if DEBUG:
             print("test_constructor.19(pyConfigContextTest)", file=stderr)
