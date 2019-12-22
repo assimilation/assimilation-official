@@ -39,7 +39,7 @@ Here are some more things I need:
 
 
 """
-from __future__ import print_function
+import time
 import collections
 import inspect
 import weakref
@@ -49,6 +49,7 @@ from sys import stderr
 from datetime import datetime, timedelta
 import inject
 import py2neo
+from neobolt.exceptions import ServiceUnavailable
 from assimevent import AssimEvent
 from AssimCclasses import pyNetAddr
 
@@ -480,7 +481,7 @@ class Store(object):
                 yieldval.append(self._yielded_value(elem))
             if tuple_class is None:
                 tuple_class = collections.namedtuple("CypherQueryResult", " ".join(current.keys()))
-            yield (tuple_class(*yieldval))
+            yield tuple_class(*yieldval)
             # yield yieldval
             count += 1
             if maxcount is not None and count >= maxcount:
@@ -739,7 +740,7 @@ class Store(object):
         :return: object: safe for Neo4j
         :raises ValueError: if the value can't be made acceptable
         """
-        if isinstance(value, (six.string_types, float, int)):
+        if isinstance(value, (str, bytes, float, int)):
             return value
         if isinstance(value, (list, tuple)):
             ret = []
@@ -932,7 +933,7 @@ class Store(object):
         result = {}
         assert isinstance(node, py2neo.Node)
         # print('VIEWKEYS:', node.viewkeys())
-        for attribute in node.viewkeys():
+        for attribute in node.keys():
             result[attribute] = node[attribute]
         return result
 
@@ -1016,7 +1017,7 @@ class Store(object):
                 complete_set.append(subj)
         complete_list = list(complete_set)
         for j in range(len(complete_list) - 1):
-            sublist = complete_list[j + 1 :]
+            sublist = complete_list[j + 1:]
             comparison = complete_list[j]
             cls = comparison.__class__
             key_values = self._get_key_values(cls, subj=comparison)
@@ -1243,7 +1244,11 @@ if __name__ == "__main__":
 
         # Clean out the database
         qstring = "match (n) optional match (n)-[r]-() delete n,r"
-        ourdb.run(qstring)
+        for _ in range(10):
+            try:
+                ourdb.run(qstring)
+            except ServiceUnavailable:
+                time.sleep(1)
 
         drone = "Drone121"
 

@@ -28,13 +28,15 @@ This module provides classes associated with querying - including providing meta
 about these queries for the client code.
 """
 from __future__ import print_function
-import os
 import sys
 from sys import stderr
+import os
+import time
 import re
 import collections
 import operator
 import inject
+from neobolt.exceptions import ServiceUnavailable
 from graphnodes import GraphNode, registergraphclass
 from AssimCclasses import pyConfigContext, pyNetAddr
 from AssimCtypes import ADDR_FAMILY_IPV6, ADDR_FAMILY_IPV4, ADDR_FAMILY_802
@@ -1417,7 +1419,16 @@ if __name__ == "__main__":
         dirname = os.path.dirname(sys.argv[0])
         dirname = "." if dirname == "" else dirname
         queries = ClientQuery.load_tree(qstore, "%s/../queries" % dirname)
-        qstore.db_transaction = qstore.db.begin(autocommit=False)
+        qstore.db_transaction = None
+        oops = ServiceUnavailable("OOPS?")
+        for _ in range(10):
+            try:
+                qstore.db_transaction = qstore.db.begin(autocommit=False)
+                break
+            except ServiceUnavailable as oops:
+                time.sleep(1)
+        if qstore.db_transaction is None:
+            raise oops
         qlist = [q for q in queries]
         qstore.commit()
         print("%d node TREE LOADED!" % len(qlist))

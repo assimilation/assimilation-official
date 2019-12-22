@@ -862,16 +862,16 @@ class TestCMABasic(TestCase):
         upnode = 'shape=house color=green penwidth=3.*label="%s'
         downnode = 'shape=house style="filled,dashed" fillcolor=gray90 .*label="%s'
         anynode = "shape=house"
-        ringnext = "node_.*->node_.* \[label=RingNext_The_One_Ring\]"
+        ringnext = r"node_.*->node_.* \[label=RingNext_The_One_Ring\]"
 
         pats = {
             "node_.*->node_.* label=nicowner": nodecount * 2,
-            '\[shape=octagon color=navy label="00-00-00-00-00-00': 1,
+            r'\[shape=octagon color=navy label="00-00-00-00-00-00': 1,
             # Is having only one loopback NIC a bug?? I think maybe so!
             # Some Python versions have this wrong...
             # '\[shape=octagon color=navy label="00-1b-fc-.*ASUSTek COMPUTER INC\.': nodecount,
-            '\[shape=octagon color=navy label="00-1b-fc-': nodecount,
-            "node_.*->node_.* label=ipowner": nodecount,
+            r'\[shape=octagon color=navy label="00-1b-fc-': nodecount,
+            r"node_.*->node_.* label=ipowner": nodecount,
         }
         pats[upnode % dronedesignation(1)] = 1
         if doHBDEAD:
