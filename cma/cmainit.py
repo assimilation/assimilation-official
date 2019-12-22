@@ -35,7 +35,7 @@ import grp
 import inject
 import py2neo
 import neobolt.exceptions as NeoExceptions
-from neo4j import NeoDockerServer
+from neo4j import NeoDockerServer, NeoServer
 from store import Store
 from cmadb import CMAdb
 from AssimCtypes import NEO4JCREDFILENAME, CMAUSERID
@@ -105,8 +105,9 @@ class Neo4jCreds(object):
         ret = "".join((random.choice(chars)) for _ in range(length))
         return str(ret)
 
-    def update(self, newauth=None, length=None):
+    def _disabled_update(self, newauth=None, length=None):
         """Update credentials from the new authorization info we've been given.
+        FIXME: Get RID OF THIS FUNCTION!!
         """
         if length is None or length < 1:
             length = Neo4jCreds.default_length
@@ -139,7 +140,8 @@ class Neo4jCreds(object):
             os.chmod(self.neo4j_cred_filename, 0o600)
             os.chown(self.neo4j_cred_filename, userinfo.pw_uid, userinfo.pw_gid)
             f.write("%s\n%s\n" % (self.name, self.auth))
-        self._log.info("Updated Neo4j credentials cached in %s." % self.neo4j_cred_filename)
+        self._log.info("(disabled_update): Updated Neo4j credentials cached in %s." %
+                       self.neo4j_cred_filename)
 
     def _save_credentials(self):
         """
@@ -153,7 +155,8 @@ class Neo4jCreds(object):
             os.chmod(self.neo4j_cred_filename, 0o600)
             os.chown(self.neo4j_cred_filename, userinfo.pw_uid, userinfo.pw_gid)
             f.write("%s\n%s\n" % (self.name, self.auth))
-        self._log.info("Updated Neo4j credentials cached in %s." % self.neo4j_cred_filename)
+        self._log.info("_save_credentials(): Updated Neo4j credentials cached in %s." %
+                       self.neo4j_cred_filename)
 
     def __str__(self, filename=None):
         """We return the current assimilation Neo4j credentials (login, password) as a string
@@ -260,7 +263,10 @@ class CMAInjectables(object):
         url = "http:/127.0.0.1:7474"
         url = "bolt://localhost:7687"
 
+        print("in setup_db:", file=stderr)
+
         trycount = 0
+        NeoServer.wait_for_port("bolt")
         while True:
             try:
                 # print("URI: %s" % url, file=sys.stderr)
@@ -278,22 +284,24 @@ class CMAInjectables(object):
                 # print("DATABASE", neodatabase)
                 # print("GRAPH", neodatabase.default_graph)
                 # print('CONFIG', neodatabase.config)
+                print("Constructing neodb:", file=stderr)
                 neodb = py2neo.Graph(
                     url,
                     user=neo_credentials.name,
                     password=neo_credentials.auth,
-                    bolt=False,
-                    http=True,
+                    bolt=True,
+                    http=False,
                     https=False,
                     bolt_port=9999,
                     secure=False,
                 )
+                print(f"Built neodb: {neodb}", file=stderr)
                 # address = register_server(*uris, **settings)
                 # neodb = neodatabase.default_graph
                 # print("CONSTRUCTED neodb", neodb, file=stderr)
                 # Neo4j started.  All is well with the world.
                 break
-            except (RuntimeError, IOError, py2neo.GraphError) as exc:
+            except (RuntimeError, IOError, ConnectionResetError, py2neo.GraphError) as exc:
                 print("TRYING AGAIN [%s]...[%s]" % (url, str(exc)), file=sys.stderr)
                 trycount += 1
                 if trycount > CMAInjectables.settings["NEO4J_RETRIES"]:
@@ -307,6 +315,8 @@ class CMAInjectables(object):
                     log.warning("Waiting for Neo4j [%s] to start [%s]." % (url, str(exc)))
                 # Let's try again in a second...
                 time.sleep(5)
+        print(f"Totally Built neodb: {neodb}", file=stderr)
+        print(f"setup_db: returning {neodb}", file=stderr)
         return neodb
 
     @staticmethod

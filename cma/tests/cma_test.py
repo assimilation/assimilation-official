@@ -19,10 +19,16 @@
 #  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
 #
 #
-from __future__ import print_function
 from sys import stderr
+from neobolt.exceptions import ServiceUnavailable
 import sys
-import gc, sys, time, collections, os, subprocess, re
+import gc
+import sys
+import time
+import collections
+import os
+import subprocess
+import re
 import optparse
 from py2neo import Graph
 import inject
@@ -33,6 +39,7 @@ sys.path.insert(0, ".")
 sys.path.append("/usr/local/lib/python2.7/dist-packages")
 sys.path.extend([".", "..", "../cma", "/usr/local/lib/python2.7/dist-packages"])
 print("SYS.PATH: %s" % sys.path)
+from neo4j import NeoServer
 from frameinfo import *
 from AssimCclasses import *
 from graphnodes import ProcessNode
@@ -98,7 +105,15 @@ class TestFoo:
         TestFoo.db = db
         TestFoo.log = log
         TestFoo.store = store
-        TestFoo.new_transaction()
+        print(f"GOT db {db} store {store}", file=stderr)
+        print("Waiting for bolt:", NeoServer.wait_for_port("bolt"))
+        print("Waiting for http:", NeoServer.wait_for_port("http"))
+        for _ in range(10):
+            try:
+                TestFoo.new_transaction()
+                break
+            except ServiceUnavailable:
+                time.sleep(1)
 
     @staticmethod
     def new_transaction():

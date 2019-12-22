@@ -38,7 +38,7 @@ Software for managing a Neo4j instance...
 Currently that only means a docker image of Neo4j...
 """
 from __future__ import print_function
-from typing import Optional
+from typing import Optional, Union
 import os
 import sys
 import subprocess
@@ -66,9 +66,6 @@ class NeoServer(object):
         "/ssl": "rw",
     }
 
-    # Names and in-container values of ports that Neo4j exports...
-    neo_ports = {"http": 7474, "https": 7473, "bolt": 7687}
-
     def start(self):
         """Abstract method to start a server"""
         raise NotImplementedError("Abstract method start")
@@ -89,6 +86,25 @@ class NeoServer(object):
         :return:
         """
         print(args)
+
+    #  Names and in-container values of ports that Neo4j exports...
+    neo_ports = {"http": 7474, "https": 7473, "bolt": 7687}
+
+    @classmethod
+    def wait_for_port(cls, port: Union[str, int] = 0, sleep: float = .5, max_loops=1000) -> bool:
+        if isinstance(port, str):
+            port = cls.neo_ports[port]
+        port = port or cls.neo_ports["bolt"]
+        start_time = time.time()
+        command = ["/usr/bin/lsof", "-i", f"tcp:{port}"]
+        for _ in range(max_loops):
+            try:
+                subprocess.check_call(command)
+                stderr.flush()
+            except subprocess.CalledProcessError:
+                time.sleep(sleep)
+            return True
+        return False
 
 
 class NeoDockerServer(NeoServer):
@@ -291,28 +307,14 @@ class NeoDockerServer(NeoServer):
             remove=True,
         )
         start_time = time.time()
-        self._wait_for_port("bolt")
-        self._wait_for_port("http")
+        self.wait_for_port("bolt")
+        self.wait_for_port("http")
         print(f"Neo4j ports up in {time.time() - start_time:.1f} seconds", file=stderr)
 
         print("Neo4j container %s started." % self.container.short_id, file=stderr)
         # print(f"CONTAINER INFO: {self}")
         # subprocess.run(["docker", "logs", "-f", str(self.container.short_id)])
         return self.container
-
-    def _wait_for_port(self, port: int = 0, sleep: float = .5, max_loops=1000) -> bool:
-        if isinstance(port, str):
-            port = self.neo_ports[port]
-        port = port or self.neo_ports["bolt"]
-        start_time = time.time()
-        command = ["/usr/bin/lsof", "-i", f"tcp:{self.neo_ports['bolt']}"]
-        for _ in range(max_loops):
-            try:
-                subprocess.check_call(command)
-                stderr.flush()
-            except subprocess.CalledProcessError:
-                time.sleep(sleep)
-            break
 
     def is_running(self):
         """
