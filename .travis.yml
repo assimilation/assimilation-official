@@ -23,3 +23,8 @@ script:
   - mkdir ../root_of_binary_tree && pushd ../root_of_binary_tree
   - cmake ../assimilation-official && sudo make install
   - sudo cpack
+
+deploy:
+  provider: bintray
+  file: ci/bintray.json
+  edge: true
