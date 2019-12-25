@@ -22,5 +22,5 @@ script:
   - pwd 
   - mkdir ../root_of_binary_tree && pushd ../root_of_binary_tree
   - cmake ../assimilation-official && sudo make install
-  - cd testcode/cma
+  - cd cma
   - testify tests
