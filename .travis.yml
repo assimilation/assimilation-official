@@ -4,52 +4,20 @@ env:
   global:
     - VERSION=0.1.2
 
-stages:
-  - name: lint
-    if: branch = remove_to_enable
-
-  - name: tests
-    if: branch = remove_to_enable
-
-  - name: "create packages"
-
-  - name: "test packages"
-    if: branch = remove_to_enable
-
-jobs:
-  include:
-
-    - stage: lint
-      name: lint
-      script:
-        - echo "run some linter"
-
-    - stage: tests
-      name: tests
-      after_success:
-        - echo "do some tests"
-
-    - stage: "create packages"
-      name: "create packages"
-      after_success:
-        - docker build --build-arg VERSION -f ci/Dockerfiles/ubuntu1804_fpm.dockerfile -t ubuntu_fpm /tmp/dummy/
-        - docker build --build-arg VERSION -f ci/Dockerfiles/centos7_fpm.dockerfile -t centos_fpm /tmp/dummy/
-        - docker run -v /tmp/output:/output ubuntu_fpm bash -c "cp /workdir/*.deb /output"
-        - docker run -v /tmp/output:/output centos_fpm bash -c "cp /workdir/*.rpm /output"
-        - ls -al /tmp/output/*.deb /tmp/output/*.rpm
-        - echo "upload packages to bintray"
-        - curl -T /tmp/output/nanoprobe-${VERSION}-1.x86_64.rpm -u$BINTRAY_USER:$BINTRAY_PASS https://api.bintray.com/content/assimilation/rpm/nanoprobe/$VERSION/nanoprobe-${VERSION}-1.x86_64.rpm
-        - curl -T /tmp/output/nanoprobe_${VERSION}_amd64.deb -u$BINTRAY_USER:$BINTRAY_PASS "https://api.bintray.com/content/assimilation/deb/nanoprobe/$VERSION/nanoprobe_${VERSION}_amd64.deb;deb_distribution=bionic;deb_component=universe;deb_architecture=amd64"
-
-    - stage: "test packages"
-      name: "test packages"
-      script:
-        - echo "download packages"
-        - echo "test them out"
+install:
+  - apt-get -y update && apt-get -y install --no-install-recommends \
+    cmake \
+    gcc \
+    python \
+    doxygen \
+    pkg-config \
+    libglib2.0-dev \
+    python-pip \
+    libpcap0.8-dev \
+    libsodium-dev \
+    valgrind
+  - pip install ctypesgen
 
 script:
-  - echo "build binaries"
-    # create dummy nanoprobe binary
-  - mkdir /tmp/dummy
-  - echo "echo \"nanoprobe binary\"" > /tmp/dummy/nanoprobe
-  - chmod a+x /tmp/dummy/nanoprobe
+ - mkdir ../root_of_binary_tree && pushd ../root_of_binary_tree
+ - cmake $TRAVIS_BUILD_DIR && make install
