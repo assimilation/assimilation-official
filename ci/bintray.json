@@ -33,7 +33,7 @@
   },
   "files": [
     {
-      "includePattern": "../root_of_binary_tree/(.*\.deb)",
+      "includePattern": "../root_of_binary_tree/(assimilation-.*\.deb)",
       "uploadPattern": "pool/main/a/assimilation/$1",
       "matrixParams": {
         "override": 1,
