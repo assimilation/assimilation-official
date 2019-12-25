@@ -16,7 +16,7 @@ addons:
       - valgrind
 
 install:
-  - pip install --user ctypesgen
+  - sudo pip install ctypesgen
 
 script:
   - pwd 
