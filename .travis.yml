@@ -25,6 +25,8 @@ script:
   - sudo cpack
 
 deploy:
+  on:
+    branch: borgified/ubuntu
   provider: bintray
   file: ci/bintray.json
   edge: true
