@@ -1,11 +1,19 @@
 language: minimal
-
-env:
-  global:
-    - VERSION=0.1.2
+dist: bionic
+apt:
+  packages:
+    - cmake
+    - gcc
+    - python
+    - doxygen
+    - pkg-config
+    - libglib2.0-dev
+    - python-pip
+    - libpcap0.8-dev
+    - libsodium-dev
+    - valgrind
 
 install:
-  - apt-get -y update && apt-get -y install --no-install-recommends cmake gcc python doxygen pkg-config libglib2.0-dev python-pip libpcap0.8-dev libsodium-dev valgrind
   - pip install ctypesgen
 
 script:
