@@ -14,7 +14,7 @@ apt:
     - valgrind
 
 install:
-  - pip install ctypesgen
+  - pip install --user ctypesgen
 
 script:
  - mkdir ../root_of_binary_tree && pushd ../root_of_binary_tree
