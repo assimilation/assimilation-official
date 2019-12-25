@@ -17,5 +17,6 @@ install:
   - pip install --user ctypesgen
 
 script:
- - sudo mkdir ../root_of_binary_tree && pushd ../root_of_binary_tree
- - cmake $TRAVIS_BUILD_DIR && make install
+  - pwd 
+  - sudo mkdir ../root_of_binary_tree && pushd ../root_of_binary_tree
+  - cmake $TRAVIS_BUILD_DIR && make install
