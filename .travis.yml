@@ -28,5 +28,5 @@ deploy:
   on:
     branch: borgified/ubuntu
   provider: bintray
-  file: ci/bintray.json
+  file: $TRAVIS_BUILD_DIR/ci/bintray.json
   edge: true
