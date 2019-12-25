@@ -30,3 +30,6 @@ deploy:
   provider: bintray
   file: $TRAVIS_BUILD_DIR/ci/bintray.json
   edge: true
+
+after_deploy:
+  - docker build -f $TRAVIS_BUILD_DIR/ci/Dockerfiles/ubuntu1804.dockerfile $TRAVIS_BUILD_DIR
