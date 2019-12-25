@@ -1,17 +1,19 @@
 language: minimal
 dist: bionic
-apt:
-  packages:
-    - cmake
-    - gcc
-    - python
-    - doxygen
-    - pkg-config
-    - libglib2.0-dev
-    - python-pip
-    - libpcap0.8-dev
-    - libsodium-dev
-    - valgrind
+addons:
+  apt:
+    update: true
+    packages:
+      - cmake
+      - gcc
+      - python
+      - doxygen
+      - pkg-config
+      - libglib2.0-dev
+      - python-pip
+      - libpcap0.8-dev
+      - libsodium-dev
+      - valgrind
 
 install:
   - pip install --user ctypesgen
