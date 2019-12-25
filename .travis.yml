@@ -16,11 +16,10 @@ addons:
       - valgrind
 
 install:
-  - sudo pip install ctypesgen
+  - sudo pip install ctypesgen testify
 
 script:
   - pwd 
   - mkdir ../root_of_binary_tree && pushd ../root_of_binary_tree
   - cmake ../assimilation-official && sudo make install
-  - cd cma
-  - testify tests
+  - cpack
