@@ -22,4 +22,4 @@ script:
   - pwd 
   - mkdir ../root_of_binary_tree && pushd ../root_of_binary_tree
   - cmake ../assimilation-official && sudo make install
-  - cpack
+  - sudo cpack
