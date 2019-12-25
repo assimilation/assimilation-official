@@ -18,5 +18,5 @@ install:
 
 script:
   - pwd 
-  - sudo mkdir ../root_of_binary_tree && pushd ../root_of_binary_tree
-  - cmake $TRAVIS_BUILD_DIR && make install
+  - mkdir ../root_of_binary_tree && pushd ../root_of_binary_tree
+  - cmake ../assimilation-official && make install
