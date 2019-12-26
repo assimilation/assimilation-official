@@ -23,6 +23,10 @@ script:
   - mkdir ../root_of_binary_tree && pushd ../root_of_binary_tree
   - cmake ../assimilation-official && sudo make install
   - sudo cpack
+  - docker build -t assimproj-docker-repo.bintray.io/nanoprobe:latest -f $TRAVIS_BUILD_DIR/ci/Dockerfiles/nanoprobe.dockerfile .
+  - docker login -u $BINTRAY_USER -p $BINTRAY_KEY assimproj-docker-repo.bintray.io
+  - docker push assimproj-docker-repo.bintray.io/nanoprobe:latest
+
 
 deploy:
   on:
