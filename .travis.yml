@@ -24,9 +24,10 @@ script:
   - cmake ../assimilation-official && sudo make install
   - sudo cpack
   - docker build -t assimproj-docker-repo.bintray.io/nanoprobe:latest -f $TRAVIS_BUILD_DIR/ci/Dockerfiles/nanoprobe.dockerfile .
-  - docker login -u $BINTRAY_USER -p $BINTRAY_KEY assimproj-docker-repo.bintray.io
+  - docker build -t assimproj-docker-repo.bintray.io/cma:latest -f $TRAVIS_BUILD_DIR/ci/Dockerfiles/cma.dockerfile .
+  - echo "$BINTRAY_KEY" | docker login -u "$BINTRAY_USER" --password-stdin assimproj-docker-repo.bintray.io
   - docker push assimproj-docker-repo.bintray.io/nanoprobe:latest
-
+  - docker push assimproj-docker-repo.bintray.io/cma:latest
 
 deploy:
   on:
