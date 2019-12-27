@@ -67,7 +67,6 @@ WINEXPORT int		kill_pid_service(const char * pidfile, int signal);
 
 const char *		localaddr = NULL;
 const char *		cmaaddr = NULL;
-const char *		procname = "nanoprobe";
 
 gint64		pktcount = 0;
 NetIO*		nettransport;
