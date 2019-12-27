@@ -1,8 +1,19 @@
 language: minimal
-
+dist: bionic
 addons:
   apt:
     update: true
+    packages:
+      - cmake
+      - gcc
+      - python
+      - doxygen
+      - pkg-config
+      - libglib2.0-dev
+      - python-pip
+      - libpcap0.8-dev
+      - libsodium-dev
+      - valgrind
 
 before_install:
   - sudo apt-get install -y python3 python3-pip python3-setuptools python3-wheel ninja-build
