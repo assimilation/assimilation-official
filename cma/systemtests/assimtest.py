@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3.6
 # vim: smartindent tabstop=4 shiftwidth=4 expandtab number
 #
 # This file is part of the Assimilation Project.
@@ -148,7 +148,7 @@ def testmain(logname):
         action="append",
         default=[],
         dest="testcases",
-        choices=AssimSysTest.testnames.keys(),
+        choices=list(AssimSysTest.testnames.keys()),
         help="specific test cases to use",
     )
 
@@ -255,7 +255,7 @@ def testmain(logname):
 
     if opts.seed is None:
         # Prepare Random number generator
-        f = open("/dev/urandom", "r")
+        f = open("/dev/urandom", "rb")
         seed = struct.unpack("BBBBBBBB", f.read(8))
         f.close()
     else:

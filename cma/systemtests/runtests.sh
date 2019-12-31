@@ -24,8 +24,9 @@
 #
 #   Script to run system tests and save results and syslog into a unique directory.
 #
+PYTHON=python3.6
 if [ $# -eq 0 ] || [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
-    python assimtest.py
+    $PYTHON assimtest.py
     exit
 fi
 dirname=$(date --iso-8601=seconds)
@@ -37,17 +38,17 @@ SYSLOGTAIL="$dirname/syslog"
 echo $LOGMSG > $LOGNAME
 echo '# vim: syntax=messages' > $SYSLOGTAIL
 logger -s "$LOGMSG" 2>$LOGNAME
-SYSLOG=`echo $@ | sed 's/.*-l  *\([^ ]*\).*/\1/'`
+# SYSLOG=`echo $@ | sed 's/.*-l  *\([^ ]*\).*/\1/'`
 : ${SYSLOG="/var/log/syslog"}
 tail -1f $SYSLOG >> $SYSLOGTAIL &
 syslogpid=$!
-time python assimtest.py "$@" >>$LOGNAME 2>&1 &
+time $PYTHON assimtest.py "$@" >>$LOGNAME 2>&1 &
 testpid=$!
 tail -f $LOGNAME &
 tailpid=$!
 wait $testpid
 rc=$?
-kill $tailpid
-kill $syslogpid
+kill $tailpid || true
+kill $syslogpid || true
 echo "Tests complete with rc $rc"
 exit $rc

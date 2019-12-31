@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # vim: smartindent tabstop=4 shiftwidth=4 expandtab number colorcolumn=90
 #
 # This file is part of the Assimilation Project.
@@ -312,7 +312,10 @@ class DockerSystem(TestSystem):
         subprocess.check_call(args)
 
 
-import fabric.api
+try:
+    import fabric.api
+except ImportError:
+    fabric = None
 
 
 class VagrantSystem(TestSystem):
@@ -323,6 +326,7 @@ class VagrantSystem(TestSystem):
         "Constructor for VagrantSystem class"
         import vagrant
 
+        assert fabric.api
         self.imagecount = imagecount
         # need to pass the number of nanoprobe VMs to Vagrant
         os_env = os.environ.copy()

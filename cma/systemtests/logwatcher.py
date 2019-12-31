@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # vim: smartindent tabstop=4 shiftwidth=4 expandtab number
 #
 # This file is part of the Assimilation Project.
@@ -67,7 +67,7 @@ class LogWatcher(object):
         self.regexes = None
         self.setregexes(regexes)
         self.filename = log
-        self.debug = debug
+        self.debug = debug if debug else 0
         self.returnonlymatch = returnonlymatch
         self.whichmatched = -1
         self.unmatched = None
