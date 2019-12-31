@@ -122,7 +122,7 @@ from AssimCclasses import pyCompressFrame, pyCryptCurve25519, pyCryptFrame
 from cmaconfig import ConfigFile
 from bestpractices import BestPractices
 
-SUPPORTED_PYTHON_VERSIONS = ("3.7",)
+SUPPORTED_PYTHON_VERSIONS = ("3.6",)
 SUPPORTED_PY2NEO_VERSIONS = (4,)
 
 PYTHON_VERSION = "%s.%s" % sys.version_info[0:2]
@@ -584,18 +584,18 @@ def process_main_exception(ex):
     trace = sys.exc_info()[2]
     tblist = traceback.extract_tb(trace, 20)
     # Put our traceback into the logs in a legible way
-    logger("Got an exception in Main [%s]" % str(ex))
-    logger("======== Begin Main Exception Traceback ========")
+    logger(f"Got a {type(ex).__name__} exception in Main [{str(ex)})]")
+    logger(f"======== Begin Main {type(ex).__name__} Exception Traceback ========")
     for tb in tblist:
         (filename, line, funcname, text) = tb
         filename = os.path.basename(filename)
         logger("%s.%s:%s: %s" % (filename, line, funcname, text))
-    logger("======== End Main Exception Traceback ========")
+    logger(f"======== End Main {type(ex).__name__} Exception Traceback ========")
 
 
 if __name__ == "__main__":
     pyversion = sys.version_info
-    if pyversion[0] != 3 or pyversion[1] < 7:
+    if pyversion[0] != 3 or pyversion[1] < 6:
         raise RuntimeError("Must be run using python 3.x where x >= 7")
     exitrc = 1
     # W0703 == Too general exception catching...

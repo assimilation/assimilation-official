@@ -269,8 +269,11 @@ class ForkExecObserver(FIFOEventObserver):
     def __del__(self):
         if self.childpid > 0:
             os.close(self.FIFOwritefd)
-            # FIXME: Our child is running as root, and we aren't - so we can't kill it...
-            os.kill(self.childpid, signal.SIGTERM)
+            try:
+                os.kill(self.childpid, signal.SIGTERM)
+            except PermissionError:
+                # FIXME: Our child is running as root, and we aren't - so we can't kill it...
+                pass
             self.childpid = 0
 
     def listenforevents(self):

@@ -48,6 +48,8 @@ import docker.errors
 from docker.models.containers import Container
 import time
 import shutil
+import py2neo
+from neobolt.exceptions import ServiceUnavailable
 
 
 class NeoServer(object):
@@ -85,7 +87,7 @@ class NeoServer(object):
         :param args:
         :return:
         """
-        print(args)
+        print(args, file=stderr)
 
     #  Names and in-container values of ports that Neo4j exports...
     neo_ports = {"http": 7474, "https": 7473, "bolt": 7687}
@@ -275,11 +277,14 @@ class NeoDockerServer(NeoServer):
         """
 
         :param restart_if_running:bool: False => return existing container
+        :param db: database object:
         :return:docker.container.Container: Container that's running Neo4j
         We run this container with the permissions of the owner of its various
         read/write directories
         """
 
+        print("Starting Neo4j...", file=stderr)
+        start_time = time.time()
         if self.is_running():
             if restart_if_running:
                 self.stop()
@@ -295,23 +300,26 @@ class NeoDockerServer(NeoServer):
                 time.sleep(1)
                 self.is_running()
 
-        self.container = self.docker_client.containers.run(
-            self.image_name,
-            auto_remove=True,
-            detach=True,
-            name=self.host,
-            ports=self.port_map,
-            user=self.uid_flag,
-            volumes=self.volume_map,
-            environment=self.environment_map,
-            remove=True,
-        )
-        start_time = time.time()
+        count = 0
+        while not self.container and count < 5:
+            try:
+                self.container = self.docker_client.containers.run(
+                    self.image_name,
+                    auto_remove=True,
+                    detach=True,
+                    name=self.host,
+                    ports=self.port_map,
+                    user=self.uid_flag,
+                    volumes=self.volume_map,
+                    environment=self.environment_map,
+                    remove=True,
+                )
+            except docker.errors.APIError:
+                time.sleep(1)
         self.wait_for_port("bolt")
         self.wait_for_port("http")
-        print(f"Neo4j ports up in {time.time() - start_time:.1f} seconds", file=stderr)
-
-        print("Neo4j container %s started." % self.container.short_id, file=stderr)
+        print(f"Neo4j container {self.container.short_id} started in"
+              f" {time.time() - start_time:.1f} seconds.", file=stderr)
         # print(f"CONTAINER INFO: {self}")
         # subprocess.run(["docker", "logs", "-f", str(self.container.short_id)])
         return self.container
@@ -323,9 +331,11 @@ class NeoDockerServer(NeoServer):
         :return:bool: True if the container is running
         """
         try:
-            # print(f"Checking on container {self.host}...")
+            # print(f"Checking on container {self.host}...", file=stderr)
             self.container = self.docker_client.containers.get(self.host)
-            # print(f"Container {self.container} is {self.container.status} {self.host}")
+            if self.debug:
+                self.debug_msg(f"Container {self.container.short_id} is {self.container.status}"
+                       f" {self.host}")
             return self.container.status == "running"
         except docker.errors.NotFound:
             return False
@@ -336,6 +346,7 @@ class NeoDockerServer(NeoServer):
         :return: None
         """
         container_s = str(self.container.short_id)
+        print(f"Stopping container {self.container.short_id}")
         while self.is_running():
             try:
                 self.container.kill(15)
@@ -352,6 +363,7 @@ class NeoDockerServer(NeoServer):
         :param name: username we're looking for
         :return: Tuple[str, str, str]: name, auth string, extra
         """
+        name = name.lower()
         bad_return = None, None, None
         try:
             with open(self.auth_file_name) as auth_fd:
@@ -360,10 +372,11 @@ class NeoDockerServer(NeoServer):
                     if not line:
                         return bad_return
                     fields = line.split(":", 2)
-                    if fields[0] == name:
+                    if fields[0].lower() == name:
                         return fields
         except (IOError, ValueError):
-            return bad_return
+            pass
+        return bad_return
 
     def is_password_set(self):
         """
@@ -371,8 +384,16 @@ class NeoDockerServer(NeoServer):
         :return:bool: True if password already set
         """
         name, _, extra = self._getpass()
-        # print(f"PASSWORD INFO: {name} {extra}", file=stderr)
+        extra = extra.strip()
         return name is not None and not extra
+
+    def _unlink_auth_info(self):
+        for file in (self.auth_file_name, self.roles_file_name):
+            try:
+                os.unlink(file)
+                print(f"neo4j auth {file} deleted.", file=stderr)
+            except OSError:
+                pass
 
     def set_initial_password(self, initial_password, force=False):
         """
@@ -391,14 +412,10 @@ class NeoDockerServer(NeoServer):
         if extra or force:
             try:
                 self.start()
-                os.unlink(self.auth_file_name)
-                os.unlink(self.roles_file_name)
-                print("Previous neo4j authorization information deleted.", file=stderr)
-                self.start()
-                time.sleep(5)
+                self._unlink_auth_info()
                 assert True and self.is_running()
             except OSError as oops:
-                print(f"GOT OSError{oops}")
+                print(f"GOT OSError{oops}", file=stderr)
                 pass
 
         if name is not None and not extra:
@@ -407,6 +424,7 @@ class NeoDockerServer(NeoServer):
         command.append(initial_password)
         output: bytes
         # print(f"Running {command} in self.container")
+        self._unlink_auth_info()
         rc, output = self.container.exec_run(command, user=self.uid_flag)
         output = output.decode('utf8').strip()
         print(output)

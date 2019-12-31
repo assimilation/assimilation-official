@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.7
+#!/usr/bin/env python3.6
 # vim: smartindent tabstop=4 shiftwidth=4 expandtab number
 #
 #   Genpybindings - generate python bindings for Assimilation C classes

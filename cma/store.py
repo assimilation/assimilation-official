@@ -39,6 +39,7 @@ Here are some more things I need:
 
 
 """
+from typing import Optional
 import time
 import collections
 import inspect
@@ -1142,6 +1143,24 @@ class Store(object):
             if self.debug:
                 print("batch_execute_node_updates:%s" % cypher, file=stderr)
             self.db_transaction.run(cypher).forward()
+
+    def begin(self, autocommit=False):
+        """
+
+        :param autocommit:
+        :return:
+        """
+        oops: Optional[Exception] = None
+        for _ in range(20):
+            try:
+                self.db_transaction = self.db.begin(autocommit=autocommit)
+                oops = None
+                break
+            except ServiceUnavailable as oops:
+                time.sleep(.5)
+        if oops is not None:
+            raise oops
+        return self.db_transaction
 
     def commit(self):
         """

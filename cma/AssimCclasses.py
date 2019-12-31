@@ -219,6 +219,7 @@ def u_string_at(s: bytes, size: int = -1) -> Optional[str]:
     """
     Return a UTF-8 encoded version of a C-string
     :param s: C-style string pointer
+    :param size: int: size of string if known
     :return: UTF8-encoded Python string, or None
     """
     s_at = string_at(s, size)
@@ -1783,7 +1784,6 @@ class pyCryptCurve25519(pyCryptFrame):
     def key_id_to_filename(key_id, keytype):
         """Translate a key_id to a filename"""
         ret = curve25519_key_id_to_filename(key_id, keytype)
-        print(type(ret), dir(ret), ret, file=stderr)
         pyret = u_string_at(ret.raw)
         g_free(ret.raw)
         return pyret

@@ -468,10 +468,9 @@ It is always <b>crypto_box_PUBLICKEYBYTES</b> bytes long - no more, no less.
     def c_defines(cls, f):
         "Generate C #defines from our data"
         l = FrameTypes.intframetypes.keys()
-        l.sort()
         f.write(FrameTypes.fileheader % __file__)
         # Create pretty ASCII art pictures and #defines of all our different packet formats
-        for i in l:
+        for i in sorted(l):
             ourtuple = FrameTypes.intframetypes[i]
             pyclass = ourtuple[0].__name__
             frametype = i
@@ -604,8 +603,7 @@ class FrameSetTypes(object):
         "Print out the C #defines that go with this set of definitions"
         f.write(FrameSetTypes._fileheader % __file__)
         l = FrameSetTypes.intframetypes.keys()
-        l.sort()
-        for i in l:
+        for i in sorted(l):
             ourtuple = FrameSetTypes.intframetypes[i]
             f.write("#define FRAMESETTYPE_%s\t%d\t///< %s\n" % (ourtuple[0], i, ourtuple[1]))
         f.write("///@}\n")

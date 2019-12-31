@@ -19,6 +19,7 @@
 #  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
 #
 #
+from __future__ import print_function
 import os
 def print_posix():
     maxcount=0
@@ -35,13 +36,13 @@ def print_posix():
     for name in names:
         if counts[name] > maxcount:
             selection = name
-    print selection
+    print(selection)
 
 # posix, nt, dos, mac, ce, java, os2, or riscos.
 if os.name == 'posix':
     print_posix()
 elif os.name == 'mac':
-    print 'PackageMaker'
+    print('PackageMaker')
 elif os.name == 'nt' or os.name == 'dos' or os.name == 'ce':
-    print 'NSIS'
+    print('NSIS')
 

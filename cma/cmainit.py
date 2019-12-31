@@ -75,12 +75,15 @@ class Neo4jCreds(object):
                 break
             time.sleep(0.1)
         if not self.neoserver.is_password_set():
+            print("Neo4j does not currently have a password set", file=stderr)
             if os.path.exists(self.neo4j_cred_filename):
+                print("We currently know a password for neo4j", file=stderr)
                 self.name, self.auth = self._read_neo4j_credentials()
             else:
+                print("We currently DO NOT know a password for neo4j", file=stderr)
                 self.name = Neo4jCreds.default_name
                 self.auth = self.randpass(Neo4jCreds.default_length)
-            self.neoserver.set_initial_password(self.auth, force=True)
+            self.neoserver.set_initial_password(self.auth)
             self._save_credentials()
         else:
             self.name, self.auth = self._read_neo4j_credentials()
@@ -263,7 +266,6 @@ class CMAInjectables(object):
         url = "http:/127.0.0.1:7474"
         url = "bolt://localhost:7687"
 
-        print("in setup_db:", file=stderr)
 
         trycount = 0
         NeoServer.wait_for_port("bolt")
@@ -284,7 +286,7 @@ class CMAInjectables(object):
                 # print("DATABASE", neodatabase)
                 # print("GRAPH", neodatabase.default_graph)
                 # print('CONFIG', neodatabase.config)
-                print("Constructing neodb:", file=stderr)
+                # print("Constructing neodb:", file=stderr)
                 neodb = py2neo.Graph(
                     url,
                     user=neo_credentials.name,
@@ -295,7 +297,7 @@ class CMAInjectables(object):
                     bolt_port=9999,
                     secure=False,
                 )
-                print(f"Built neodb: {neodb}", file=stderr)
+                # print(f"Built neodb: {neodb}", file=stderr)
                 # address = register_server(*uris, **settings)
                 # neodb = neodatabase.default_graph
                 # print("CONSTRUCTED neodb", neodb, file=stderr)
@@ -315,8 +317,7 @@ class CMAInjectables(object):
                     log.warning("Waiting for Neo4j [%s] to start [%s]." % (url, str(exc)))
                 # Let's try again in a second...
                 time.sleep(5)
-        print(f"Totally Built neodb: {neodb}", file=stderr)
-        print(f"setup_db: returning {neodb}", file=stderr)
+        #  print(f"setup_db: returning {neodb}", file=stderr)
         return neodb
 
     @staticmethod
@@ -457,17 +458,15 @@ class CMAinit(object):
             CMAdb.net_transaction = NetTransaction(io=io, encryption_required=encryption_required)
             # print("CMAdb:", CMAdb, file=sys.stderr)
             # print("CMAdb.store(cmadb.py):", CMAdb.store, file=sys.stderr)
-            store.db_transaction = db.begin(autocommit=False)
-            CMAdb.TheOneRing = CMAdb.store.load_or_create(
-                HbRing, name="The_One_Ring", ringtype=HbRing.THEONERING
-            )
-            print("Created TheOneRing: %s" % CMAdb.TheOneRing)
-            if CMAdb.use_network:
-                CMAdb.net_transaction.commit_trans()
-            # print("COMMITTING Store", file=sys.stderr)
-            # print("NetTransaction Commit results:", CMAdb.store.commit(), file=sys.stderr)
-            if CMAdb.store.db_transaction and not CMAdb.store.db_transaction.finished():
-                CMAdb.store.commit()
+            with store.begin(autocommit=False) as transaction:
+                CMAdb.TheOneRing = CMAdb.store.load_or_create(
+                    HbRing, name="The_One_Ring", ringtype=HbRing.THEONERING
+                )
+                print("Created TheOneRing: %s" % CMAdb.TheOneRing)
+                if CMAdb.use_network:
+                    CMAdb.net_transaction.commit_trans()
+                # print("COMMITTING Store", file=sys.stderr)
+                # print("NetTransaction Commit results:", CMAdb.store.commit(), file=sys.stderr)
             CMAdb.net_transaction = NetTransaction(io=io, encryption_required=encryption_required)
         else:
             CMAdb.net_transaction = None
@@ -494,7 +493,7 @@ class CMAinit(object):
         while True:
             try:
                 result = self.db.run(qstring)
-                print(f"Waited {time.time()-start:.1f} seconds for neo4j to process commands")
+                # print(f"Waited {time.time()-start:.1f} seconds for neo4j to clean out database.")
                 break
             except NeoExceptions.ServiceUnavailable as oops:
                 pass

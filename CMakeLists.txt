@@ -22,6 +22,7 @@ cmake_minimum_required(VERSION 2.6.4)
 project(assimilation C)
 execute_process (OUTPUT_VARIABLE BUILDTIME OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND date +%s)
 set (BASEVERSION "1.1.7")
+set (PYTHON python3.6)
 set (PROJVERS "${BASEVERSION}.${BUILDTIME}")
 set (SRCROOT ${CMAKE_CURRENT_SOURCE_DIR})
 set (BINROOT ${CMAKE_CURRENT_BINARY_DIR})
@@ -36,7 +37,7 @@ file (READ ${BUILDTOOLS}/long_license.txt LICENSE_LONG)
 string(STRIP "${LICENSE_SHORT}" LICENSE_SHORT)
 string(STRIP "${LICENSE_LONG}" LICENSE_LONG)
 
-execute_process (OUTPUT_VARIABLE CPACK_GENERATOR OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND python ${BUILDTOOLS}/select-cpack.py)
+execute_process (OUTPUT_VARIABLE CPACK_GENERATOR OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND ${PYTHON} ${BUILDTOOLS}/select-cpack.py)
 
 #set (CPACK_COMPONENTS_ALL_IN_ONE_PACKAGE 0)
 #############################################################
@@ -189,7 +190,7 @@ set (CLIENTLIB ${PROJECT_NAME}clientlib)
 set (SERVERLIB ${PROJECT_NAME}serverlib)
 # Figure out where to install our python code
 # This isn't perfect, but it should be good enough for us to get things going...
-execute_process (OUTPUT_VARIABLE PYTHON_PKGDIR OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND python ${BUILDTOOLS}/install-path.py)
+execute_process (OUTPUT_VARIABLE PYTHON_PKGDIR OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND ${PYTHON} ${BUILDTOOLS}/install-path.py)
 set (PYINSTALL ${PYTHON_PKGDIR}/${PROJECT_NAME})
 MESSAGE ("Python INSTALLDIR IS ${PYINSTALL}")
 
@@ -412,7 +413,7 @@ add_custom_target(tests # ALL
     COMMENT "\"make install public_keys\" must precede first test run. Also, UDP port 1984 must be available (free)" VERBATIM
 )
 add_custom_target(public_keys # ALL
-    sudo python ${PROJECT_SOURCE_DIR}/cma/assimcli.py genkeys
+    sudo ${PYTHON} ${PROJECT_SOURCE_DIR}/cma/assimcli.py genkeys
     WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/cma
     COMMENT "Generating public keys for testing (with sudo)" VERBATIM
 )

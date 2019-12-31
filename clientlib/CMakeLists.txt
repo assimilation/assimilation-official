@@ -32,7 +32,7 @@ configure_file(${PROJECT_SOURCE_DIR}/include/projectcommon.h.in ${PROJECT_BINARY
 #
 ADD_CUSTOM_COMMAND(
    OUTPUT ${FST_H}
-   COMMAND python ${GENCMD} framesettypes ${FST_H}
+   COMMAND ${PYTHON} ${GENCMD} framesettypes ${FST_H}
    DEPENDS ${GENCMD}
    )
 ADD_CUSTOM_TARGET(generate_framesettypes DEPENDS ${FST_H})
@@ -42,7 +42,7 @@ ADD_CUSTOM_TARGET(generate_framesettypes DEPENDS ${FST_H})
 #
 ADD_CUSTOM_COMMAND(
    OUTPUT ${FT_H}
-   COMMAND python ${GENCMD} frametypes ${FT_H}
+   COMMAND ${PYTHON} ${GENCMD} frametypes ${FT_H}
    DEPENDS ${GENCMD}
    )
 ADD_CUSTOM_TARGET(generate_frametypes DEPENDS ${FT_H})
@@ -65,7 +65,7 @@ SET (CTYPEBIN ${SRCROOT}/cma/AssimCtypes.py-install)
 #
 ADD_CUSTOM_COMMAND(
    OUTPUT ${CTYPESRC}
-   COMMAND python ${BUILDTOOLS}/genpybindings.py ${CTYPESRC} ${SRCROOT} ${BINROOT} ${BINROOT}/clientlib lib${CLIENTLIB}
+   COMMAND ${PYTHON} ${BUILDTOOLS}/genpybindings.py ${CTYPESRC} ${SRCROOT} ${BINROOT} ${BINROOT}/clientlib lib${CLIENTLIB}
    DEPENDS ../include/*.h ${BINROOT}/include/framesettypes.h ${BINROOT}/include/frametypes.h ${BINROOT}/include/projectcommon.h ${CLIENTLIB}
    )
 ADD_CUSTOM_TARGET(generate_ctypes_src ALL DEPENDS ${CTYPESRC} ${CLIENTLIB})
@@ -77,7 +77,7 @@ SET_SOURCE_FILES_PROPERTIES(${CTYPESRC}  PROPERTIES GENERATED 1)
 #
 ADD_CUSTOM_COMMAND(
    OUTPUT ${CTYPEBIN}
-   COMMAND python ${BUILDTOOLS}/genpybindings.py ${CTYPEBIN} ${SRCROOT} ${BINROOT} ${InstallLIBS} lib${CLIENTLIB}
+   COMMAND ${PYTHON} ${BUILDTOOLS}/genpybindings.py ${CTYPEBIN} ${SRCROOT} ${BINROOT} ${InstallLIBS} lib${CLIENTLIB}
    DEPENDS ../include/*.h ${BINROOT}/include/framesettypes.h ${BINROOT}/include/frametypes.h ${BINROOT}/include/projectcommon.h ${CLIENTLIB}
    )
 ADD_CUSTOM_TARGET(generate_ctypes_bin ALL DEPENDS ${CTYPEBIN})
