@@ -1,0 +1,13 @@
+#!/bin/sh -eu
+# vim:ts=4:sw=4:softtabstop=4:smarttab:expandtab
+DOCKER_TAG=$(grep -v '#' < docker-tag.txt | head -n1)
+QUIET=-q
+QUIET=
+printf "Building %s: " "$DOCKER_TAG"
+time docker build ${QUIET} -t ${DOCKER_TAG} . 2>&1 | tee -i build.out
+
+case ${1-nothing} in
+    *push*|*upload*) docker push ${DOCKER_TAG};;
+    nothing);;
+    *) echo "Don't know what option ${1} means...";;
+esac

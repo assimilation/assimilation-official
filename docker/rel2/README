@@ -1,0 +1,25 @@
+
+  Here's what remains to be done for this release:
+  - Generate a CMA docker image (which we're doing here...)
+  - Generate a nanoprobe docker image based on our assimilation published base image
+
+Here's the minimum of what needs to go into the nanoprobe image:
+  - Our assimilation published base image: docker assimilationproject/meson-centos6:0.0.1
+  - C source and headers
+  - libpcap
+  - libsodium
+  - glib2.0
+  - meson.build file
+
+Here's the minimum of what needs to go into the server Docker image:
+  - a suitable Python-2.6.x friendly base image
+  - CMA subdirectory - including AssimCtypes.py
+  - requirements.txt - and all the associated subpackages
+  - Assimilation client shared library (from nanoprobe image?)
+  - libpcap
+  - libsodium
+  - glib2.0
+
+Questions:
+  Can the C shared library come from our generated version
+

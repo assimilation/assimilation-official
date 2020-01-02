@@ -1,0 +1,32 @@
+#!/bin/bash -eu
+# vim:ts=4:sw=4:softtabstop=4:smarttab:expandtab
+MESON_TAG=$(grep -v '#' < ../meson/docker-tag.txt | head -n1)
+DOCKER_TAG=$(grep -v '#' < docker-tag.txt | head -n1)
+gen_dockerfile() {
+    sed -e "s%@MESON_TAG@%${MESON_TAG}%g" \
+        -e "s%@RANDOM@%${RANDOM}%g" \
+        < dockerfile.in > Dockerfile
+}
+get_source() {
+    HERE=$(pwd)
+    rm -fr src/
+    mkdir ./src
+    (
+        cd ../../..
+        echo "Copying 'C' source for Docker image..."
+        find clientlib include serverlib nanoprobe -name '*.[ch]' -print | cpio -pdmu $HERE/src/
+    )
+}
+
+get_source
+gen_dockerfile
+printf "Building %s: " "$DOCKER_TAG"
+QUIET=-q
+QUIET=
+time docker build ${QUIET} -t ${DOCKER_TAG} . 2>&1 | tee -i build.out
+
+case ${1-nothing} in
+    *push*|*upload*) docker push ${DOCKER_TAG};;
+    nothing);;
+    *) echo "Don't know what option ${1} means..."; exit 1;;
+esac
