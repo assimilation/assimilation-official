@@ -1,5 +1,7 @@
-#!/bin/sh -eu
+#!/bin/bash
 # vim:ts=4:sw=4:softtabstop=4:smarttab:expandtab
+set -euo pipefail
+
 for directory in meson nanoprobe
 do
     (
