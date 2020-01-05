@@ -11,22 +11,32 @@ WORKDIR /tmp/build/src
 RUN ${PYCMD} --version
 #
 # Compile libsodium - because we want a reasonably recent version 
-# @TODO: Validate the source tar ball signature
 #
 ENV LIBSODIUM_BASEURL=https://download.libsodium.org/libsodium/releases/libsodium-
 ENV LIBSODIUM_URL=${LIBSODIUM_BASEURL}${LIBSODIUM_VERSION}.tar.gz
 ENV LIBSODIUM_SIG=${LIBSODIUM_URL}.sig
 RUN wget --quiet ${LIBSODIUM_SIG} ${LIBSODIUM_URL}
+
+# validating source tar ball signature
+RUN wget --quiet https://download.libsodium.org/jedi.gpg.asc
+RUN gpg --import jedi.gpg.asc
+RUN gpg --verify libsodium-${LIBSODIUM_VERSION}.tar.gz.sig
+
 RUN tar xzf $(basename ${LIBSODIUM_URL})
 RUN  cd libsodium-${LIBSODIUM_VERSION} && ./configure prefix=/usr && make && make check && make install
 #
 # Compile libpcap - because we need a static (.a) version of the library
-# @TODO: Validate the source tar ball signature
 #
 ENV LIBPCAP_BASEURL=https://www.tcpdump.org/release/libpcap-
 ENV LIBPCAP_URL=${LIBPCAP_BASEURL}${LIBPCAP_VERSION}.tar.gz
 ENV LIBPCAP_SIG=${LIBPCAP_URL}.sig
 RUN wget --quiet ${LIBPCAP_SIG} ${LIBPCAP_URL}
+
+# validating source tar ball signature
+RUN wget --quiet https://www.tcpdump.org/release/signing-key.asc
+RUN gpg --import signing-key.asc
+RUN gpg --verify libpcap-${LIBPCAP_VERSION}.tar.gz.sig
+
 RUN tar xzf $(basename ${LIBPCAP_URL})
 RUN  cd libpcap-${LIBPCAP_VERSION} && ./configure prefix=/usr && make && make install
 #
