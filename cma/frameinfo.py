@@ -3,7 +3,6 @@
 A collection of classes which provide constants for FrameTypes and FrameSetTypes
 """
 
-import six
 import re
 
 # from AssimCclasses import pyFrame, pyAddrFrame, pySignFrame, pySeqnoFrame, \
@@ -13,84 +12,84 @@ import re
 
 
 class pyFrame(object):
-    "Placeholder bootstrapping class"
+    """Placeholder bootstrapping class"""
 
     def __init__(self):
         pass
 
 
 class pyAddrFrame(object):
-    "Placeholder bootstrapping class"
+    """Placeholder bootstrapping class"""
 
     def __init__(self):
         pass
 
 
 class pySignFrame(object):
-    "Placeholder bootstrapping class"
+    """Placeholder bootstrapping class"""
 
     def __init__(self):
         pass
 
 
 class pySeqnoFrame(object):
-    "Placeholder bootstrapping class"
+    """Placeholder bootstrapping class"""
 
     def __init__(self):
         pass
 
 
 class pyIntFrame(object):
-    "Placeholder bootstrapping class"
+    """Placeholder bootstrapping class"""
 
     def __init__(self):
         pass
 
 
 class pyCstringFrame(object):
-    "Placeholder bootstrapping class"
+    """Placeholder bootstrapping class"""
 
     def __init__(self):
         pass
 
 
-class pyNVpairFrame(object):
-    "Placeholder bootstrapping class"
+class GpyNVpairFrame(object):
+    """Placeholder bootstrapping class"""
 
     def __init__(self):
         pass
 
 
 class pyIpPortFrame(object):
-    "Placeholder bootstrapping class"
+    """Placeholder bootstrapping class"""
 
     def __init__(self):
         pass
 
 
 class pyCryptFrame(object):
-    "Placeholder bootstrapping class"
+    """Placeholder bootstrapping class"""
 
     def __init__(self):
         pass
 
 
 class pyCompressFrame(object):
-    "Placeholder class"
+    """Placeholder class"""
 
     def __init__(self):
         pass
 
 
 class pyCryptCurve25519(pyCryptFrame):
-    "Placeholder class"
+    """Placeholder class"""
 
     def __init__(self):
         pyCryptFrame.__init__(self)
 
 
 class FrameTypes(object):
-    "Class defining the universe of FrameSets - including code to generate a C header file"
+    """Class defining the universe of FrameSets - including code to generate a C header file"""
     fileheader = """
 /**
  * @file
@@ -376,7 +375,8 @@ The type of discovery data and program collecting it are inside.
             pyCstringFrame,
             "CONFIGJSON",
             "JSON configuration data from CMA",
-            "This frame provides the JSON for initial configuration data as a NUL-terminated C-style string.",
+            "This frame provides JSON for initial configuration JSON as a NUL-terminated C-style "
+            "string.",
         ),
         21: (
             pyCstringFrame,
@@ -419,7 +419,7 @@ In spite of the apparent variability permitted, it is an 8-byte (64-bit) integer
             pyCstringFrame,
             "RSCJSON",
             "JSON resource string",
-            """This frame provides the data describing the a resource action or cancel operation in detail.
+            """This frame provides data describing the a resource or cancel operation in detail.
 """,
         ),
         28: (
@@ -456,21 +456,21 @@ It is always <b>crypto_box_PUBLICKEYBYTES</b> bytes long - no more, no less.
 
     @staticmethod
     def get(key):
-        "Return the tuple that corresponds to this key (integer or string)"
-        if isinstance(key, six.string_types):
+        """Return the tuple that corresponds to this key (integer or string)"""
+        if isinstance(key, (str, bytes)):
             return FrameTypes.strframetypes[str(key)]
         else:
             if int(key) in FrameTypes.intframetypes:
                 return FrameTypes.intframetypes[int(key)]
-            return (None, str(key), str(key), str(key))
+            return None, str(key), str(key), str(key)
 
     @classmethod
     def c_defines(cls, f):
-        "Generate C #defines from our data"
-        l = FrameTypes.intframetypes.keys()
+        """Generate C #defines from our data"""
+        intframetypes = FrameTypes.intframetypes.keys()
         f.write(FrameTypes.fileheader % __file__)
         # Create pretty ASCII art pictures and #defines of all our different packet formats
-        for i in sorted(l):
+        for i in sorted(intframetypes):
             ourtuple = FrameTypes.intframetypes[i]
             pyclass = ourtuple[0].__name__
             frametype = i
@@ -492,7 +492,7 @@ It is always <b>crypto_box_PUBLICKEYBYTES</b> bytes long - no more, no less.
 
         # Create the frame type map - mapping frame types to function names in the 'C' code.
         f.write("#define	FRAMETYPEMAP	{\t\t\t\t\t\\\n")
-        for i in l:
+        for i in intframetypes:
             tup = FrameTypes.intframetypes[i]
             clsname = tup[0].__name__
             Cclassname = re.sub("^py", "", clsname) + "_tlvconstructor"
@@ -507,7 +507,7 @@ for s in FrameTypes.strframetypes.keys():
 
 
 class FrameSetTypes(object):
-    "Class defining the universe of FrameSets - including code to generate a C header file"
+    """Class defining the universe of FrameSets - including code to generate a C header file"""
     _fileheader = """#ifndef _FRAMESETTYPES_H
 #define _FRAMESETTYPES_H
 /**
@@ -590,17 +590,17 @@ class FrameSetTypes(object):
 
     @staticmethod
     def get(key):
-        "Return the tuple that corresponds to this key (integer or string)"
-        if isinstance(key, six.string_types):
+        """Return the tuple that corresponds to this key (integer or string)"""
+        if isinstance(key, (str, bytes)):
             return FrameSetTypes.strframetypes[str(key)]
         else:
             if key in FrameSetTypes.intframetypes:
                 return FrameSetTypes.intframetypes[int(key)]
-            return (None, str(int(key)), str(int(key)), str(int(key)))
+            return None, str(int(key)), str(int(key)), str(int(key))
 
     @classmethod
     def c_defines(cls, f):
-        "Print out the C #defines that go with this set of definitions"
+        """Print out the C #defines that go with this set of definitions"""
         f.write(FrameSetTypes._fileheader % __file__)
         l = FrameSetTypes.intframetypes.keys()
         for i in sorted(l):
