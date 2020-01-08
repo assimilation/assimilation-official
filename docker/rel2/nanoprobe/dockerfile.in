@@ -37,6 +37,7 @@ RUN yum -y install pkgconfig-devel glib2-devel glib2-static zlib-devel zlib-stat
 # Now bring in the Assimilation C source and compile it...
 #
 ADD meson.build /tmp/build/src/
+ADD src/cma/frameinfo.py /tmp/build/src/cma
 ENV PKG_CONFIG_PATH /usr/local/lib/pkgconfig/
 ADD src/ /tmp/build/src/
 RUN time /usr/local/bin/meson /tmp/build/bin/

@@ -10,11 +10,13 @@ gen_dockerfile() {
 get_source() {
     HERE=$(pwd)
     rm -fr src/
-    mkdir ./src
+    mkdir -p ./src src/cma
     (
         cd ../../..
         echo "Copying 'C' source for Docker image..."
         find clientlib include serverlib nanoprobe -name '*.[ch]' -print | cpio -pdmu $HERE/src/
+    cp cma/frameinfo.py $HERE/src/cma
+    cp include/projectcommon.h.in $HERE/src/include
     )
 }
 

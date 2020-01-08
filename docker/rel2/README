@@ -6,9 +6,9 @@
 Here's the minimum of what needs to go into the nanoprobe image:
   - Our assimilation published base image: docker assimilationproject/meson-centos6:0.0.1
   - C source and headers
-  - libpcap
-  - libsodium
-  - glib2.0
+  - libpcap (built from source because I needed a static version of the library)
+  - libsodium (built from source because the version in CentOS 6 was an early prerelease)
+  - glib2.0 (which I just used from the CentOS6 version)
   - meson.build file
 
 Here's the minimum of what needs to go into the server Docker image:
@@ -21,5 +21,5 @@ Here's the minimum of what needs to go into the server Docker image:
   - glib2.0
 
 Questions:
-  Can the C shared library come from our generated version
+  Can the C shared library come from our generated version? (I suspect not)
 
