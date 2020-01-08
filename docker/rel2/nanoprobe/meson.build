@@ -184,6 +184,8 @@ serversrc = [
     'serverlib/cdp.c',
     'serverlib/dump.c',
     'serverlib/lldp.c',
+    frame_types,
+    frame_set_types,
 ]
 include_dirs = 'include'
 nanoprobe_sources = [serversrc, 'nanoprobe/nanomain.c']

@@ -43,5 +43,4 @@ ADD src/ /tmp/build/src/
 RUN time /usr/local/bin/meson /tmp/build/bin/
 WORKDIR /tmp/build/bin
 RUN time /usr/local/bin/ninja
-RUN ls -l /tmp/build/bin/nanoprobe /tmp/build/bin/*.so /tmp/build/bin/*.a
-RUN sha256sum /tmp/build/bin/nanoprobe /tmp/build/bin/*.so /tmp/build/bin/*.a
+RUN sha256sum /tmp/build/bin/nanoprobe /tmp/build/bin/*.so /tmp/build/bin/*.a | tee sums
