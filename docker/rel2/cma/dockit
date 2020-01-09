@@ -12,11 +12,10 @@ cp -a ../getsigningkey.py ../hashes.csv ${SRC}
     find cma \( -path cma/.tox -prune -o -path cma/venv -prune \) -o \
         -type f -a \( -name '*.py' -o -name '*require*' -o -name 'tox.ini' \) |
         cpio ${FLAGS} ${SRC}
-    find include clientlib serverlib nanoprobe -name '*.[ch]' -type f |
+    find include clientlib serverlib nanoprobe \( -name '*.[ch]' -o -name '*.in' \) -type f |
         cpio ${FLAGS} ${SRC}
 )
 cp -a ../nanoprobe/meson.build ${SRC}
-find . -print | sort
 printf "Building %s: " "$DOCKER_TAG"
 time docker build ${QUIET} -t ${DOCKER_TAG} . 2>&1 | tee -i build.out
 

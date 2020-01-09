@@ -27,11 +27,26 @@ RUN wget --quiet ${LIBSODIUM_URL} ${LIBSODIUM_SIG}      # Get libsodium and its 
 RUN gpg $(basename ${LIBSODIUM_SIG})                    # Validate libsodium tar ballDD
 # NOTE: This will give a warning about not knowing if this is a trusted signature. That's OK...
 RUN tar xzf $(basename ${LIBSODIUM_URL})                # untar and install...
-RUN cd libsodium-${LIBSODIUM_VERSION} && ./configure prefix=/usr && make && make check && make install
+WORKDIR libsodium-${LIBSODIUM_VERSION}
+RUN ./configure prefix=/usr && bash -c "time make && time make check && make install"
 # Install other packages that
 RUN apt-get update >/dev/null 2>&1
 RUN apt-get install -y libglib2.0-dev libpcap-dev
 #
 # Now get ready to build our libraries, etc...
 #
-ADD src/meson.build src/cma/ src/include/ src/clientlib/ src/serverlib/ src/nanoprobe/  ${SRCDIR}/
+ADD src/meson.build ${SRCDIR}/
+ADD src/cma/ ${SRCDIR}/cma/
+ADD src/include/ ${SRCDIR}/include/
+ADD src/clientlib/ ${SRCDIR}/clientlib/
+ADD src/serverlib/ ${SRCDIR}/serverlib/
+ADD src/nanoprobe/  ${SRCDIR}/nanoprobe/
+ENV BINDIR /tmp/bin
+RUN $PYCMD -m pip install meson ninja
+WORKDIR ${SRCDIR}
+RUN bash -c "time meson ${BINDIR}"
+WORKDIR ${BINDIR}
+RUN bash -c "time ninja install"
+ENV LIBDIR /usr/lib/
+RUN mv libassimilationclient.so ${LIBDIR}
+RUN ls -l ${LIBDIR}/libassimilationclient.so && sha256sum ${LIBDIR}libassimilationclient.so
