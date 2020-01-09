@@ -31,7 +31,7 @@ WORKDIR libsodium-${LIBSODIUM_VERSION}
 RUN ./configure prefix=/usr && bash -c "time make && time make check && make install"
 # Install other packages that
 RUN apt-get update >/dev/null 2>&1
-RUN apt-get install -y libglib2.0-dev libpcap-dev
+RUN apt-get install -y libglib2.0-dev libpcap-dev dbus
 #
 # Now get ready to build our libraries, etc...
 #
@@ -42,11 +42,12 @@ ADD src/clientlib/ ${SRCDIR}/clientlib/
 ADD src/serverlib/ ${SRCDIR}/serverlib/
 ADD src/nanoprobe/  ${SRCDIR}/nanoprobe/
 ENV BINDIR /tmp/bin
-RUN $PYCMD -m pip install meson ninja
 WORKDIR ${SRCDIR}
+RUN $PYCMD -m pip install meson ninja -r cma/requirements.txt
 RUN bash -c "time meson ${BINDIR}"
 WORKDIR ${BINDIR}
 RUN bash -c "time ninja install"
 ENV LIBDIR /usr/lib/
 RUN mv libassimilationclient.so ${LIBDIR}
 RUN ls -l ${LIBDIR}/libassimilationclient.so && sha256sum ${LIBDIR}libassimilationclient.so
+RUN apt-get install -y docker.io

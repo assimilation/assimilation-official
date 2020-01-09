@@ -1,0 +1,13 @@
+This software is a container just to simplify packaging. It's not very containery ;-)
+Here's how this container works:
+
+ - It needs for the following volumes to be available from the real system:
+   - /usr/share/assimilation
+   - /var/lib/assimilation
+   - /run - mounted from /run or /var/run (??)
+   - /var/run/docker.sock
+ - It needs to be able to start stop and otherwise control a neo4j container
+ - It needs to do its own install in /usr/share and /var/lib if that isn't present...
+ - It needs to dbus package installed before docker.io gets installed
+ - It needs to have docker.io package installed
+ - It needs to start as root and downgrade to non-root (assimilation) user id
