@@ -1,0 +1,20 @@
+{
+    "cypher": "START nic=node:NICNode('*:*')
+               WHERE NOT EXISTS (nic.OUI)
+               OPTIONAL MATCH (ip)<-[:ipowner]-(nic)
+               OPTIONAL MATCH (ip)<-[:ipowner]-(nic)<-[:nicowner]-(system)
+               RETURN DISTINCT ip, nic, system
+               ORDER BY ip.ipaddr",
+    "copyright": "Copyright(C) 2016 Assimilation Systems Limited",
+    "descriptions": {
+        "en": {
+            "short":    "get all MACs w/o OUIs",
+            "long":     "retrieve information MAC addresses which have no OUI information"
+        }
+    },
+    "parameters": {},
+    "cmdline": {
+        "en": "${nic.macaddr} ${ip.ipaddr} ${system.designation} ${ip.hostname}",
+        "script": "${nic.macaddr},${ip.ipaddr},${system.designation},${ip.hostname}"
+    }
+}

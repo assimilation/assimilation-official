@@ -1,0 +1,175 @@
+#!/bin/sh -eu
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab number colorcolumn=80
+#
+#   'docker' -  Docker discovery script - discovers global docker
+#               configuration information and per-container information
+#
+# This file is part of the Assimilation Project.
+#
+# Author: Alan Robertson <alanr@unix.sh>
+# Copyright (C) 2016 - Assimilation Systems Limited
+#
+# Free support is available from the Assimilation Project community
+#   - http://assimproj.org
+# Paid support is available from Assimilation Systems LimitGed
+#   - http://assimilationsystems.com
+#
+# The Assimilation software is free software: you can redistribute it and/or
+# modify it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# The Assimilation software is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with the Assimilation Project software.
+# If not, see http://www.gnu.org/licenses/
+#
+DIR=$(dirname "$0")
+. $DIR/assim_common.sh
+
+
+# Return true if the argument is a number...
+isanumber() {
+  case "$1" in
+    *[A-Za-z]*|*:*|*.*)	return 1;;
+  esac
+  test \( "$1" -le 0 \) -o \( "$1" -ge 0 \) 2>/dev/null
+}
+
+
+# Format a scalar in the proper JSON format according to its type
+scalarfmt() {
+  case "$1" in
+      true|false|null)	printf "$1";	return;;
+  esac
+  if
+    isanumber "$1"
+  then
+    printf '%s'		"$1"
+  else
+    printf '"%s"'	"$1"
+  fi
+}
+
+
+# Print out a scalar name/value pair in JSON notation
+scalarval() {
+  name="$1"
+  value="$2"
+  printf '"%s": %s' "$name" "$(scalarfmt "$value")"
+}
+
+
+#
+#   Global information about this docker instance in JSON
+#
+global_docker_info() {
+    currently_nested=no
+    comma=''
+    echo '    "info": {'
+    printf '      '
+    assim_run_in_context docker --version | sed  -e 's%^Docker *%%'                  \
+                            -e 's%version *%"version": "%'      \
+                            -e 's%,%",%'                        \
+                            -e 's%build %"build": "%'           \
+                            -e 's%$%",%'                        \
+
+    assim_run_in_context docker info 2>/dev/null | sed 's%^ %NESTED %'  |
+    while
+        read line
+    do
+        case $line in
+            NESTED*)    
+                    if
+                        [ $currently_nested = no ]
+                    then
+                        nest_comma='  '
+                        printf ',\n"StorageProperties": {\n'
+                    fi
+                    output_line "$nest_comma" "$(echo $line | sed 's%^NESTED *%%')"
+                    currently_nested=yes
+                    nest_comma=',
+  '
+                    ;;
+                Registry*) 
+                    output_registry "$comma" "$line"
+                    ;;
+            *)      if
+                        [ $currently_nested = yes ]
+                    then
+                        printf '\n  }\n'
+                    fi
+                    currently_nested=no
+                    output_line "$comma" "$line"
+                    ;;
+        esac
+        comma=',
+'
+    done | sed 's%^%      %'
+    printf '\n    },\n'
+}
+
+output_line() {
+    name=$(echo "$2" | sed -e 's%^ *%%' -e 's%:.*%%')
+    value=$(echo "$2" | sed -e 's%[^:]*: *%%')
+    printf '%s%s' "$1" $(scalarval "$name" "$value")
+}
+
+#
+#   The Docker registry is an array of strings, but nothing is quoted :-(
+#   
+output_registry() {
+    printf '%s' "$1"
+    echo "$2" | sed -e 's%Registry: *%"Registry": %'    \
+                    -e 's%\[%["%'                       \
+                    -e 's%]%"]%'                        \
+                    -e 's% *, *%", "%'
+}
+
+running_docker_containers() {
+    assim_run_in_context docker ps | cut -d' ' -f1 | grep -v '^CONTAINER$'
+}
+
+#   Information about a single container...
+container_info() {
+    assim_run_in_context docker inspect "$@" 2>/dev/null |
+        sed -e 's%^\[{%{%' -e 's%^]$%%'
+}
+
+# JSON Information about each running container
+all_container_info() {
+    echo '    "containers": {'
+    containercomma=''
+    for container in $(running_docker_containers)
+    do
+        info=$(container_info "$container")
+        test -z "$info"  && continue
+        printf '%s"%s": ' "$containercomma" "$container"
+        echo "$info"
+        containercomma=',
+'
+    done | sed -e 's%^%      %'
+    printf '\n    }\n'
+}
+
+
+discover() {
+    prefix="    "
+    cat <<-!
+	{
+	  "discovertype": "docker",
+	  "description": "docker global and running container information",
+	  "host": "$(uname -n)",
+	  "source": "$0",
+	  "data": {
+	!
+    global_docker_info
+    all_container_info
+    printf '  }\n}\n'
+}
+
+discover

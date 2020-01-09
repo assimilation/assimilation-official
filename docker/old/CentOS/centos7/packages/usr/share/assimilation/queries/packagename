@@ -1,0 +1,26 @@
+{
+    "copyright": "Copyright(C) 2016 Assimilation Systems Limited",
+    "querytype": "PythonExec",
+    "subtype": "PythonPackageQuery",
+    "descriptions": {
+        "en": {
+            "short":    "get package by name",
+            "long":     "get the list of packages with the given name"
+        }
+    },
+    "parameters": {
+        "packagename": {
+            "type": "string",
+            "lang": {
+                "en": {
+                    "short": "package name",
+                    "long":  "package name - optionally ending in '::<architecture>'",
+                }
+            }
+        }
+    },
+    "cmdline": {
+        "en":     "${domain}:${drone.designation} ${package} ${version}  ${packagetype}",
+        "script": "${domain},${drone.designation},${package},${version},${packagetype}"
+    }
+}

@@ -1,0 +1,63 @@
+#!/bin/sh
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab number colorcolumn=100
+# This file is part of the Assimilation Project.
+#
+# @author Copyright &copy; 2013 - Alan Robertson <alanr@unix.sh>
+# @n
+#  The Assimilation software is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  The Assimilation software is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
+#
+#   Discover ulimit values for root
+#
+DIR=$(dirname "$0")
+. $DIR/assim_common.sh
+        # All lower-case roman letters ;-)
+flagset="a b c d e f g h i j k l m n o p q r s t u v w x y z"
+        # Valid flags on Linux
+flagset="c d e f i l m n p q r s t u v x"
+flagtext() {
+    ulimitflag="$1"
+    shift
+    fmt='"%s":%s'
+	for flag in "$@"
+    do
+        if
+            value=$(assim_run_in_context sh -c "ulimit $ulimitflag -$flag" 2>/dev/null)  && [ ! -z "$value" ]
+        then
+            case $value in
+              unlimited)    value='null';;
+              *[A-Za-z{}]*) continue;;
+            esac
+            printf "$fmt" "${flag}" "${value}"
+            fmt=',"%s":%s'
+        fi
+    done
+}
+
+discover() {
+    cat <<-!
+	{
+	  "discovertype": "ulimit",
+	  "description": "ulimit values for root",
+	  "host": "$(uname -n)",
+	  "source": "$0",
+	  "proxy": "${ASSIM_PROXY_PATH}",
+	  "data": {
+	!
+    printf '    "hard": {%s},\n' $(flagtext -H $flagset)
+    printf '    "soft": {%s}\n'  $(flagtext -S $flagset)
+    printf "  }\n}"
+
+}
+
+discover

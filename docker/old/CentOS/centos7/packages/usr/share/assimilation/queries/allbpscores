@@ -1,0 +1,15 @@
+{
+    "cypher": "START drone=node:Drone('*:*') RETURN drone.bp_category_security_score AS secscore, drone.bp_category_networking_score as netscore, drone ORDER BY secscore DESCENDING",
+    "copyright": "Copyright(C) 2013 Assimilation Systems Limited",
+    "descriptions": {
+        "en": {
+            "short":    "return host all BP scores",
+            "long":     "retrieve all the best practice  scores of all agent-equipped servers (security, networking)"
+        }
+    },
+    "parameters": {},
+    "cmdline": {
+        "en":     "security=${secscore}	networking=${netscore}	${drone.designation}",
+        "script": "${secscore}	${netscore}	${drone.designation}"
+    }
+}

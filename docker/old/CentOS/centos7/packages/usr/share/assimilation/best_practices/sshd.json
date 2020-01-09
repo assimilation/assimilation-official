@@ -1,0 +1,69 @@
+{
+  "copyright": {
+	"category": "comment",
+        "rule": "IGNORE(copyright notice)",
+	"copyright": "This file Copyright (c) 2015 - Assimilation Systems Limited",
+	"license": "GPL v3",
+	"comment": "A collection of best practices rules sensitive to sshd configuration"
+	},
+  "nist_V-38484": {
+	"category": "security",
+	"severity": "medium",
+        "rule": "MUST(EQ($PrintLastLog, True))"
+	},
+  "nist_V-38607": {
+	"category": "security",
+	"severity": "high",
+        "rule": "MUST(IN($Protocol, 2))"
+	},
+  "nist_V-38608": {
+	"category": "security",
+	"severity": "low",
+        "rule": "MUST(LE($ClientAliveInterval, 900))"
+	},
+  "nist_V-38610": {
+	"category": "security",
+	"severity": "low",
+        "rule": "MUST(EQ($ClientAliveCountMax, 0))"
+	},
+  "nist_V-38611": {
+	"category": "security",
+	"severity": "medium",
+        "rule": "MUST(EQ($IgnoreRhosts, True))"
+	},
+  "nist_V-38612": {
+	"category": "security",
+	"severity": "medium",
+        "rule": "NONEOK(EQ($HostbasedAuthentication, False))"
+	},
+  "nist_V-38613": {
+	"category": "security",
+	"severity": "medium",
+        "rule": "MUST(EQ($PermitRootLogin, False))"
+	},
+  "nist_V-38614": {
+	"category": "security",
+	"severity": "high",
+        "rule": "NONEOK(EQ($PermitEmptyPasswords, False))"
+	},
+  "nist_V-38615": {
+	"category": "security",
+	"severity": "medium",
+        "rule": "MUST(EQ($Banner, \"/etc/issue\"))"
+	},
+  "nist_V-38616": {
+	"category": "security",
+	"severity": "low",
+        "rule": "MUST(EQ($PermitUserEnvironment, False))"
+	},
+  "nist_V-38617": {
+	"category": "security",
+	"severity": "medium",
+	"rule": "MUST(IN($Ciphers, aes128-ctr,aes192-ctr,aes256-ctr,aes128-cbc,3des-cbc,aes192-cbc,aes256-cbc))"
+	},
+  "itbp-00002": {
+	"category": "security",
+	"severity": "low",
+        "rule": "MUST(EQ($PasswordAuthentication, False))"
+	}
+}

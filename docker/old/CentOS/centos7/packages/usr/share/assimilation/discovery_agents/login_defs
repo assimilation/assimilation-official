@@ -1,0 +1,113 @@
+#!/bin/sh
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab number colorcolumn=80
+#
+#   /etc/login.defs configuration discovery
+#   A non-default login.defs configuration file can be parsed by setting the
+#   environment variable ${LOGIN_DEFS_CONFIG}
+#
+# This file is part of the Assimilation Project.
+#
+# Author: Alan Robertson <alanr@unix.sh>
+# Copyright (C) 2015 - Assimilation Systems Limited
+#
+# Free support is available from the Assimilation Project community
+#   http://assimproj.org
+# Paid support is available from Assimilation Systems Limited:
+#   http://assimilationsystems.com
+#
+# The Assimilation software is free software: you can redistribute it and/or
+# modify # it under the terms of the GNU General Public License as published
+# by the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# The Assimilation software is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with the Assimilation Project software.
+# If not, see http://www.gnu.org/licenses/
+#
+#
+set -e
+: ${LOGIN_DEFS_CONFIG:=/etc/login.defs}
+nl='
+'
+
+# Format our login.defs config file output into JSON
+find_login_defs_info() {
+    prefix="$1"
+    comma=''
+    linecomma=",${nl}${prefix}"
+    comma=''
+    while
+        read keyword value
+    do
+        test -z "$keyword" -o -z "$value"  && continue
+        case $keyword in
+            '#'*|'')   continue
+                ;;
+            *)  printf '%s"%s": %s' "$comma" "$keyword" "$(fmtitems $value)"
+                ;;
+        esac
+        comma="$linecomma"
+    done
+
+}
+
+# Format a value as a string or an integer, taking special care with octal
+# and hexadecimal integers (which JSON doesn't support).
+typefmt() {
+    if
+        printf '%d' "$1" >/dev/null 2>&1
+    then
+        # This takes care of Octal/Hex->Decimal conversion
+        printf '%d' $1
+    else
+        case $1 in
+            [Yy][Ee][Ss])   printf true;;
+            [Nn][Oo])       printf false;;
+            *)              printf '"%s"' "$1"
+        esac
+    fi
+}
+fmtitems() {
+    set $*
+    if
+      [ $# -eq 1 ]
+    then
+        printf "%s" "$(typefmt "$1")"
+    else
+        printf '['
+        acomma=''
+        for val in "$@"
+        do
+            printf '%s%s' "$acomma" $(typefmt "$val")
+            acomma=', '
+        done
+        printf ']'
+    fi
+}
+
+discover() {
+    prefix="    "
+    cat <<-!
+	{
+	  "discovertype": "login_defs",
+	  "description": "login configuration from $LOGIN_DEFS_CONFIG",
+	  "host": "$(uname -n)",
+	  "source": "$0",
+	  "data": {
+	!
+    if
+        [ ! -f "$LOGIN_DEFS_CONFIG" -o  ! -r  "$LOGIN_DEFS_CONFIG" ]
+    then
+        printf '    "NODATA": "ERROR: Cannot read %s"\n' "$LOGIN_DEFS_CONFIG"
+    else
+        printf '%s' "$prefix"
+        sed -e s'%#.*%%' ${LOGIN_DEFS_CONFIG} | find_login_defs_info "$prefix"
+    fi
+  printf '\n  }\n}\n'
+}
+discover

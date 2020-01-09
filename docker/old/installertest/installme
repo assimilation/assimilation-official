@@ -1,0 +1,1601 @@
+#!/bin/sh -eu
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab number colorcolumn=80
+#
+# Magical shell script to install the Assimilation code
+#
+# This file is part of the Assimilation Project.
+#
+# Author: Alan Robertson <alanr@unix.sh>
+# Copyright (C) 2015 - Assimilation Systems Limited
+#
+# Free support is available from the Assimilation Project community
+#   - http://assimproj.org
+# Paid support is available from Assimilation Systems Limited
+#   - http://assimilationsystems.com
+#
+# The Assimilation software is free software: you can redistribute it and/or
+# modify # it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# The Assimilation software is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with the Assimilation Project software.
+# If not, see http://www.gnu.org/licenses/
+#
+REL=1.1.6
+LOGME=true
+RELFLAG=''
+LOGFLAG=''
+REMOTERUNAS=''
+REMOTESUDO='sudo'
+LOCALSUDO='sudo'
+WORKLOG=/tmp/assimilation-install.txt
+ASSIMSHARE=/usr/share/assimilation
+CRYPTODIR="$ASSIMSHARE/crypto.d"
+ROOTURL=https://dl.dropboxusercontent.com/u/65564307/builds
+INSTALLURL=https://bit.ly/assiminstall
+BASEURL=$ROOTURL/Releases
+PRERELURL=$ROOTURL/Prereleases
+SRCROOT=https://github.com/assimilation/assimilation-official/raw
+NEOVERS=3.0.1
+NEO="https://neo4j.com/"
+NEO4J_ROOTDIR=/usr/share/neo4j
+NEOTARDIR="neo4j-community-${NEOVERS}"
+NEOTARFILE="${NEOTARDIR}-unix.tar.gz"
+NEOTARURL="${NEO}artifact.php?name=${NEOTARFILE}"
+NEO4J_SERVICEFILE=/lib/systemd/system/neo4j.service
+NEODATA=/var/lib/neo4j/data
+export NEO4J_CONF=/etc/neo4j
+BUILDLOG=build.out
+TARBALL=''
+
+
+if
+    [ ! -d "$(dirname ${NEO4J_SERVICEFILE})" ]
+then
+    NEO4J_SERVICEFILE=/usr/${NEO4J_SERVICEFILE}
+fi
+
+DEBIAN_BASE_CMA_PKGS='python-pip python-flask
+            lsof python-netaddr
+            cluster-glue
+            resource-agents
+            lsb-release
+            libpcap0.8
+            gcc
+            adduser'
+DEBIAN_BASE_NANO_PKGS='apt-transport-https resource-agents lsb-release libpcap0.8 adduser'
+DEBIAN_BASE_PIP_PKGS='getent' # Plus py2neo
+DEBIAN_LIBSODIUM='libsodium13'
+
+CENTOS_BASE_CMA_PKGS='python-pip
+            python-flask
+            lsof
+            python-netaddr
+            initscripts
+            resource-agents
+            gcc
+            tar
+            which'
+CENTOS_BASE_NANO_PKGS=''
+CENTOS_BASE_PIP_PKGS='getent' # Plus py2neo
+CENTOS_LIBSODIUM='libsodium'
+CENTOS6_BASE_NANO_PKGS=''
+CENTOS6_PYSCL=python27
+CENTOS6_BASE_CMA_PKGS="lsof
+            resource-agents
+            iproute2
+            lsb-release
+            lsof
+            gcc
+            which'
+            scl-utils
+            $CENTOS6_PYSCL-python
+            $CENTOS6_PYSCL-python
+            $CENTOS6_PYSCL-python-setuptools"
+CENTOS6_BASE_PIP_PKGS="flask netaddr getent demjson" # Plus py2neo
+CENTOS6_LIBSODIUMBASE="ftp://mandril.creatis.insa-lyon.fr/linux/remi/enterprise/6/remi"
+#wget https://dl.fedoraproject.org/pub/epel/epel-release-latest-6.noarch.rpm
+#wget https://rpms.remirepo.net/enterprise/remi-release-6.rpm
+#rpm -Uvh remi-release-6.rpm epel-release-latest-6.noarch.rpm
+
+SUSE_BASE_CMA_PKGS='python-pip
+            python-flask
+            lsof
+            python-netaddr
+            resource-agents
+            gcc
+            tar
+            which'
+SUSE_BASE_NANO_PKGS='libsodium13'
+SUSE_BASE_PIP_PKGS='getent'
+
+logwork() {
+    : "ACTION LOG: $*"
+    echo "$(date): $*" >> $WORKLOG
+}
+
+# CentOS6 Software collections environment for python27
+# This can cause quoting issues in our arguments...
+pyscl() {
+    logwork "Running scl enable $CENTOS6_PYSCL $*"
+    scl --list
+    scl enable "$CENTOS6_PYSCL" "$*"
+}
+
+py2neo_version() {
+    if
+        [ $(version_compare $REL 1) -le 0 ]
+    then
+        echo 'py2neo<2.0'
+    else
+        echo 'py2neo==2.0.8'
+    fi
+}
+
+mktmpdir() {
+    if
+        does_command_exist mktemp
+    then
+        mktemp -d --suffix ".installme" "$@"
+    else
+        dir=/tmp/tmp.$(uname -n)-$$-$RANDOM.installme
+        mkdir /tmp/$dir
+        echo $dir
+    fi
+}
+
+# Replacement for the 'line' command in RH Docker images...
+myline() {
+    head -1
+}
+
+# Make sure the right directories are in our PATH
+setup_path() {
+    case $PATH in
+        :*) PATH=/sbin:/usr/sbin:/bin:/usr/bin$PATH;;
+        *)  PATH=/sbin:/usr/sbin:/bin:/usr/bin:$PATH;;
+    esac
+    export PATH
+}
+
+# Return 0 (True) if the given command exists
+does_command_exist() {
+    (
+        cmd=$1
+        IFS=':'
+        set -- $PATH
+
+        for dir
+        do
+            if
+                [ -f "${dir}/$cmd" -a -x "${dir}/$cmd"  ]
+            then
+                exit 0
+            fi
+        done
+        exit 1
+    )
+}
+
+# Compare two "digits" in a version number (things between "'"s or "-"s)
+digit_compare() {
+    ldigit=$(echo $1)
+    rdigit=$(echo $2)
+    #echo "Comparing [$ldigit] with [$rdigit]" >&2
+    if
+        [ "$ldigit" = "$rdigit" ]
+    then
+        echo 0
+        return
+    elif
+        [ -z "$ldigit" ]
+    then
+        echo -1
+        return
+    elif
+        [ -z "$rdigit" ]
+    then
+        echo 1
+        return
+    fi
+    case "$ldigit$rdigit" in
+        [0-9]|[0-9][0-9]|[0-9][0-9][0-9]|[0-9][0-9][0-9][0-9])
+            compare=$(expr $ldigit - $rdigit)
+            if
+                [ $compare -eq 0 ]
+            then
+                continue
+            fi
+            if
+                [ $compare -lt 0 ]
+            then
+                echo -1
+            else
+                echo 1
+            fi
+            return
+            ;;
+    esac
+    first=$(printf '%s\n%s\n' "$ldigit" "$rdigit" | sort | myline)
+    if
+        [ "X$first" = "X$ldigit" ]
+    then
+        echo -1
+    else
+        echo 1
+    fi
+}
+
+
+# Compare two version numbers (with "." or "-" separators)
+version_compare() {
+    lhs="$1"
+    rhs="$2"
+    delim='.-'
+    if
+        [ "$lhs" = "$rhs" ]
+    then
+        echo 0
+        return
+    fi
+    while
+        [ "X$lhs" != X -a "X$rhs" != X ]
+    do
+        ldigit=$(echo "$lhs" | sed  "s%[$delim].*$%%")
+        rdigit=$(echo "$rhs" | sed  "s%[$delim].*$%%")
+        oldlhs=$lhs
+        oldrhs=$rhs
+        lhs=$(echo "$lhs"    | sed "s%^[^$delim]*[$delim]*%%")
+        rhs=$(echo "$rhs"    | sed "s%^[^$delim]*[$delim]*%%")
+        #echo "NEW LHS: $lhs" >&2
+        #echo "NEW RHS: $rhs" >&2
+        compare=$(digit_compare "$ldigit" "$rdigit")
+        #echo "DIGITCOMPARE [$ldigit]:[$rdigit] => $compare" >&2
+        case $compare in
+            0)  ;;
+            *)  echo $compare
+                return
+                ;;
+        esac
+    done
+    if
+        [ -z "$lhs" -a ! -z "$rhs" ]
+    then
+        echo -1
+    elif
+        [ ! -z "$lhs" -a -z "$rhs" ] 
+    then
+         echo  1
+    else
+        echo 0
+    fi
+
+}
+
+# What's the currently installed java version?
+java_version() {
+    vstring=$(java -version 2>&1 | grep -i runtime || echo 0.0)
+    echo "$vstring" | sed -e 's%^[^0-9]*%%' -e 's%[-_].*%%' -e 's%\.[^.]*$%%'
+}
+
+# Determine the OS version using the lsb_release command
+determine_os_version_lsb_release() {
+    does_command_exist lsb_release || return 1
+    DISTRIB_ID=$(lsb_release -s -i)
+    DISTRIB_RELEASE=$(lsb_release -s -r)
+    DISTRIB_CODENAME=$(lsb_release -s -c)
+    OSCLASS='gnu/linux'
+    case ${DISTRIB_ID} in
+        SUSE*)  DISTRIB_ID=suse;;
+    esac
+    case ${DISTRIB_CODENAME} in
+        n/a)    DISTRIB_CODENAME=unknown;;
+    esac
+    return 0
+}
+
+# Determine the OS version using the /etc/lsb-release file
+determine_os_version_etc_lsb_release() {
+    grep '^DISTRIB_ID=' /etc/lsb-release >/dev/null 2>&1 || return 1
+    . /etc/lsb-release
+    OSCLASS='gnu/linux'
+    return 0
+}
+
+# Determine the OS version using the /etc/redhat-release file
+# This works for Red Hat or CentOS, probably others...
+determine_os_version_etc_redhat_release() {
+    test -f /etc/redhat-release -a -r /etc/redhat-release || return 1
+    OSCLASS='gnu/linux'
+    DISTRIB_ID=$(egrep -o '^[^ ]*' /etc/redhat-release)
+    DISTRIB_RELEASE=$(egrep -o '[0-9.]+' /etc/redhat-release)
+    case $(cat /etc/redhat-release) in
+      *\(*\)*)  DISTRIB_CODENAME=$(sed -e 's%.*(%%' -e 's%).*%%' < /etc/redhat-release)
+                ;;
+        *)      DISTRIB_CODENAME=unknown;;
+    esac
+    return 0
+}
+
+# Determine the OS version using the /etc/debian_version file
+determine_os_version_etc_debian_version() {
+    test -f /etc/debian_version -a -r /etc/debian_version || return 1
+    OSCLASS='gnu/linux'
+    DISTRIB_ID=Debian
+    DISTRIB_RELEASE=$(egrep -o '[0-9.]+' /etc/debian_version)
+    case $DISTRIB_RELEASE in
+        "") DISTRIB_CODENAME=$(cat /etc/debian_version)
+            DISTRIB_RELEASE=unknown;;
+        *)  DISTRIB_CODENAME=unknown;;
+    esac
+    return 0
+}
+
+# Determine the OS version using the hostnamectl command
+determine_os_version_hostnamectl() {
+    does_command_exist hostnamectl || return 1
+    osinfo=$(hostnamectl | grep 'System:' | sed 's%.*: *%%')
+    test ! -z "$osinfo" || return 1
+    OSCLASS='gnu/linux'
+    DISTRIB_ID=$(echo $osinfo | grep -o '^[^ ]*')
+    DISTRIB_RELEASE=$(echo $osinfo | egrep -o '[0-9.]+')
+    case $osinfo in
+        *'('*')'*)
+            DISTRIB_CODENAME=$(echo "$VERSION" | sed -e 's%.*\\(%%' -e 's%\\)%%')
+            ;;
+        *)  DISTRIB_CODENAME=unknown
+            ;;
+    esac
+}
+# Determine the OS version using the /etc/SuSE-release file
+determine_os_version_etc_suse_release() {
+    grep 'VERSION.*=' /etc/[Ss][Uu][Ss][Ee]-release >/dev/null 2>&1 || return 1
+    DISTRIB_ID=suse
+    DISTRIB_RELEASE=$(grep 'VERSION.*=' /etc/[Ss][Uu][Ss][Ee]-release | 
+        sed 's%.*= *%%')
+    DISTRIB_CODENAME=$(grep 'CODENAME*=' /etc/[Ss][Uu][Ss][Ee]-release | 
+        sed 's%.*= *%%')
+    OSCLASS='gnu/linux'
+}
+
+# Determine the OS version using the /etc/os-release file
+determine_os_version_etc_os_release() {
+    grep '^ID *=' /etc/os-release >/dev/null 2>&1 || return 1
+    . /etc/os-release
+    OSCLASS='gnu/linux'
+    DISTRIB_ID=$ID
+    DISTRIB_RELEASE=$VERSION_ID
+    DISTRIB_LIKE=$ID_LIKE
+    case $VERSION in
+        *'('*')'*)
+            DISTRIB_CODENAME=$(echo "$VERSION" | sed -e 's%.*(%%' -e 's%)%%')
+            ;;
+      *)    DISTRIB_CODENAME=unknown
+            ;;
+    esac
+    return 0
+}
+
+#
+#   Code names are nice to know, let's fix it up if we weren't told...
+#
+fixup_codename_if_possible() {
+    DISTRIB_MAPID=$(echo $DISTRIB_ID | tr 'A-Z' 'a-z')
+    case $DISTRIB_MAPID in
+        opensuse|suse)
+            DISTRIB_MAPID=suse;;
+         centos|redhat|scientific|scientificfermi|red)
+            DISTRIB_MAPID=centos;;
+    esac
+    test "$DISTRIB_CODENAME" != unknown && return 0
+    case $DISTRIB_MAPID in
+        ubuntu)
+            case $DISTRIB_RELEASE in
+                15.04)  DISTRIB_CODENAME=vivid;;
+                14.10)  DISTRIB_CODENAME=unicorn;;
+                14.04)  DISTRIB_CODENAME=trusty;;
+                13.10)  DISTRIB_CODENAME=saucy;;
+                13.04)  DISTRIB_CODENAME=raring;;
+                12.10)  DISTRIB_CODENAME=quantal;;
+                12.04)  DISTRIB_CODENAME=precise;;
+            esac
+            ;;
+        debian)
+            case $DISTRIB_RELEASE in
+                8|8.*)  DISTRIB_CODENAME=jessie;;
+                7|7.*)  DISTRIB_CODENAME=wheezy;;
+                6|6.*)  DISTRIB_CODENAME=squeeze;;
+                5|5.*)  DISTRIB_CODENAME=lenny;;
+                4|4.*)  DISTRIB_CODENAME=etch;;
+            esac
+            ;;
+        opensuse|suse)
+            case $DISTRIB_RELEASE in
+                42.1)   DISTRIB_CODENAME=malachite;;
+                13.2)   DISTRIB_CODENAME=harlequin;;
+                13.1)   DISTRIB_CODENAME=bottle;;
+            esac
+    esac
+}
+
+
+osversion_methods="determine_os_version_lsb_release
+        determine_os_version_etc_lsb_release
+        determine_os_version_etc_suse_release
+        determine_os_version_etc_redhat_release
+        determine_os_version_etc_debian_version
+        determine_os_version_etc_os_release"
+
+# Test each of the OS version scripts on the current OS
+test_os_versions() {
+    for method in $osversion_methods
+    do (
+        if
+            $method
+        then
+            fixup_codename_if_possible
+            echo  "  == OSCLASS [$OSCLASS] ID [$DISTRIB_ID] [$DISTRIB_MAPID]" \
+                 "RELEASE [$DISTRIB_RELEASE] CODENAME [$DISTRIB_CODENAME]" \
+                 " <== $method"
+        else
+            echo "FAIL: $method"
+        fi
+    ) done
+}
+
+LOGURL='https://docs.google.com/forms/d/1n1RponvHNLB_4Kl6EEZyhT8FAx2f9TDwZoh0egsT2h0/formResponse'
+IPURL='https://www.ipchicken.com/' # Yes, really...
+getip() {
+	wget -q -O- $IPURL | egrep '^ *[0-9.]+ *<br>' | sed 's% *\([0-9.]*\).*%\1%'
+}
+
+loginstall() {
+    itype=$1
+    shift
+    wget -q --post-data "entry.59650547=$REL&entry.1354036570=$itype&entry.2040350945=$OSCLASS&entry.1731073781=$DISTRIB_ID&entry.1416063754=$DISTRIB_RELEASE&entry.1919357490=$(uname -n)&entry.1150686738=$DISTRIB_CODENAME&entry.2051158958=$(getip)&entry.1053325124=$*" $LOGURL >/dev/null
+}
+
+#
+test_version_comparisons() {
+    test_cases="1       1        0
+                1       2       -1
+                2       1        1
+                1       1.0     -1
+                1.0     1        1
+                1.0     1.0      0
+                1.0.1   1.0.1    0
+                1.0     1.0.1   -1
+                1.0.1   1.0      1
+                1.0     1.0a    -1
+                1.0a    1.0      1
+                21      22      -1
+                22      22       0
+                22      21       1"
+    echo "$test_cases" |
+    while
+        read lhs rhs answer
+    do
+        result=$(version_compare "$lhs" "$rhs")
+        if
+            #echo "COMPARE [$result] [$answer]" >&2
+            [ "$result" -ne "$answer" ]
+        then
+            echo "OOPS: Comparing [$lhs]:[$rhs] => $result instead of $answer">&2
+            exit 1
+        else
+            : echo "COMPARE [$lhs]:[$rhs] => $result == $answer"
+        fi
+    done
+    if
+        [ $? -ne 0 ]
+    then
+        echo 'COMPARISONS FAILED!'
+        return 1
+    else
+        echo 'All comparisons succeeded. Hurray!!'
+    fi
+}
+
+# Try really hard to figure out what version of Linux we have
+determine_linux_version() {
+    for method in $osversion_methods
+    do
+        if
+            $method
+        then
+            fixup_codename_if_possible
+            OSCLASS=$(echo "$OSCLASS" | tr 'A-Z' 'a-z')
+            DISTRIB_ID=$(echo $DISTRIB_ID | tr 'A-Z' 'a-z')
+            DISTRIB_RELEASE=$(echo $DISTRIB_RELEASE | tr 'A-Z' 'a-z')
+            DISTRIB_CODENAME=$(echo $DISTRIB_CODENAME | tr 'A-Z' 'a-z')
+            export OSCLASS DISTRIB_ID DISTRIB_RELEASE DISTRIB_CODENAME
+            export DISTRIB_DESCRIPTION DISTRIB_MAPID
+            return 0
+        fi
+    done
+    return 1
+}
+
+# AIX is pretty simple :-)
+determine_aix_version() {
+    OSCLASS='aix'
+    DISTRIB_ID='ibm'
+    DISTRIB_RELEASE="$(uname -v).$(uname -r)"
+    DISTRIB_CODENAME='none'
+}
+
+# Solaris is pretty simple :-)
+determine_solaris_version() {
+    OSCLASS='solaris'
+    DISTRIB_ID='oracle'
+    DISTRIB_RELEASE=$(uname -r)
+    DISTRIB_CODENAME='none'
+}
+# BSD versions are pretty simple too :-)
+determine_bsd_version() {
+    DISTRIB_ID=$(OSCLASS)
+    DISTRIB_RELEASE=$(uname -r)
+    DISTRIB_CODENAME='none'
+}
+
+# Try really hard to figure out what version of what OS we're running
+# Good info on this here: https://en.wikipedia.org/wiki/Uname
+determine_os_version() {
+    uname_s=$(uname -s | tr 'A-Z' 'a-z')
+    OSCLASS=$uname_s # preliminary guess
+    case $uname_s in
+        linux)      determine_linux_version;;
+        aix)        determine_aix_version;;
+        solaris)    determine_solaris_version;;
+        sunos)      determine_solaris_version;;
+        freebsd)    determine_bsd_version;;
+    esac
+    fixup_codename_if_possible
+    DISTRIB_DESCRIPTION="$DISTRIB_ID $OSCLASS version $DISTRIB_RELEASE"
+    case $DISTRIB_CODENAME in
+        unknown|none)
+            ;;
+        *)  DISTRIB_DESCRIPTION="$DISTRIB_DESCRIPTION [$DISTRIB_CODENAME]"
+            ;;
+    esac
+}
+
+
+# return the packaging type if known...
+# We don't support all these formats, but it's good to know...
+packaging_type() {
+    case "${OSCLASS}" in
+        *linux)
+            case $DISTRIB_MAPID in
+                suse|opensuse|centos|redhat|scientific|scientificfermi|fedora)
+                        echo rpm; return 0;;
+                debian|ubuntu|mint|netrunner|deepin)
+                        echo deb; return 0;;
+                arch)
+                        echo pkg.tar.xz; return 0;;
+                gentoo)
+                        echo ebuild; return 0;;
+                slackware)
+                        echo tgz; return 0;;
+                stampede)
+                        echo slp; return 0;;
+                *pardus*)
+                        echo pisi; return 0;;
+            esac
+            if
+                does_command_exist dpkg
+            then
+                echo deb; return 0
+            elif
+                does_command_exist rpm
+            then
+                echo rpm; return 0
+            fi
+            ;;
+    esac
+    echo unknown
+    return 1
+}
+
+# return true (0) if we should use systemd for neo4j
+use_systemd() {
+    case "${OSCLASS}" in
+        *linux)
+            case $DISTRIB_MAPID in
+                *suse*|fedora)          return 0;;
+                centos)
+                    case $DISTRIB_RELEASE in
+                        5*|6*)          return 1;;
+                        *)              return 0;;
+                    esac
+                    ;;
+                ubuntu)
+                    case $DISTRIB_RELEASE in
+                        12*|13*|14*)    return 1;;
+                        *)              return 0;;
+                    esac
+                    ;;
+                debian)
+                    case $DISTRIB_RELEASE in
+                        7*)         return 1;;
+                        *)          return 0;;
+                    esac
+                    ;;
+            esac;;
+    esac
+    return 1
+}
+
+
+is_supported_os() {
+    case $OSCLASS in
+        *linux)
+                case $DISTRIB_MAPID in
+                    centos|fedora)          return 0;;
+                    suse)                   return 0;;
+                    ubuntu|debian)          return 0;;
+                esac
+    esac
+    return 1
+}
+
+# Transform a filename to a package name
+package_from_filename() {
+    case $1 in
+        *assimilation-nanoprobe)    echo assimilation-nanoprobe;;
+        *assimilation-cma)          echo assimilation-cma;;
+        *)                          basename $1 | sed 's%-[0-9].*%%';;
+    esac
+}
+
+# This is because our package names include the version info - which is probably
+# broken - but it's what we've done...
+debian_current_pkg_names() {
+    for pkg
+    do
+        case $pkg in
+            assimilation-nanoprobe*)    dpkg-query -W assimilation-nanoprobe\*;;
+            assimilation-cma*)          dpkg-query -W assimilation-cma\*;;
+            libsodium-dev*)             dpkg-query -W libsodium-dev\*;;
+            libsodium-dbg*)             dpkg-query -W libsodium-dbg\*;;
+            libsodium*)                 dpkg-query -W libsodium\* | \
+                                                    egrep -v '[-](dev|dbg)';;
+            *)                          dpkg-query -W $pkg;;
+        esac 2>/dev/null | cut -f1 | head -n 1
+    done
+}
+
+# Is the given package installed?
+is_package_installed() {
+    if
+        [ $# -lt 1 ]
+    then
+        return 0
+    fi
+    pkg=$(echo $1 | sed 's%=.*%%')
+    if
+        [ -f "$pkg" ]
+    then
+        pkg=$(package_from_filename "$1")
+        case $(packaging_type) in
+            deb)    installname=$(debian_current_pkg_names "$pkg")
+                    if
+                        [ ! -z "$(echo $installname)" ]
+                    then
+                        pkg=$installname
+                    fi
+                    ;;
+        esac
+    fi
+    case $(packaging_type) in
+        rpm)    case "$(rpm -q "$pkg" 2>/dev/null)" in
+                    *'is not installed'*)   return 1;;
+                    *)                      return 0;;
+                esac
+                ;;
+        deb)    case "$(dpkg --status "$pkg" 2>/dev/null| grep 'Status:')" in
+                   *ok*installed)   return 0;;
+                    *)              return 1;;
+                esac
+                ;;
+    esac
+    return 1
+}
+
+yum_or_dnf() {
+    case $DISTRIB_MAPID in
+        suse|opensuse)  echo zypper --non-interactive;;
+        fedora)
+            if
+                [ $(version_compare $DISTRIB_RELEASE 21) -gt 0 ]
+            then
+                echo dnf -y
+            else
+                echo yum -y
+            fi;;
+        *)  echo yum -y
+    esac
+}
+
+# Which iproute package do we require?
+iproute_version() {
+    case $DISTRIB_MAPID in
+        ubuntu)
+            if
+                [ $(version_compare $DISTRIB_RELEASE 14.04) -gt 0 ]
+            then
+                echo 'iproute2'
+            else
+                echo 'iproute'
+            fi;;
+        debian)
+            if
+                [ $(version_compare $DISTRIB_RELEASE 8) -ge 0 ]
+            then
+                echo 'iproute2'
+            else
+                echo 'iproute'
+            fi;;
+        *)  echo 'iproute2'
+    esac
+}
+
+# Install packages from repositories (system packages) - try once...
+install_sys_package_onetry() {
+    pkglist=''
+    flags=''
+    for pkg
+    do
+        case $pkg in
+            --*)    flags="$flags $pkg"
+                    continue;;
+        esac
+        if
+            is_package_installed $pkg
+        then
+            : package $pkg is installed
+        else
+            pkglist="$pkglist $pkg"
+        fi
+    done
+    if
+        [ -z "$pkglist" ]
+    then
+        return 0
+    fi 
+    logwork "Installing repo packages: $pkglist"
+    case $(packaging_type) in
+        rpm)    $(yum_or_dnf) -q $flags install $pkglist
+                ;;
+        deb)    apt-get -y -q --no-install-recommends $flags install $pkglist;;
+    esac
+}
+
+# Install packages from repositories (system packages) - with a few retries
+# It's my observation that otherwise about 5%-10% of installs break
+# because the packaging system can't seem to install something-or-other...
+install_sys_package() {
+    # We do the retries at this level so that we don't repeat any part
+    # that might have succeeded. Some packaging systems get irritated
+    # if you tell it to install things that are already installed.
+    # Not to count the fact that it's wasted work...
+    rc=0
+    for j in 1 2 3
+    do
+        if
+            [ $j -gt 1 ]
+        then
+            printf "Retrying package installation of %s. [try %d]...\n" "$*" $j
+        fi
+        if
+            install_sys_package_onetry "$@"
+        then
+            return 0
+        else
+            rc=$?
+            case $(packaging_type) in
+                deb)    logwork "Seeing if apt-get update will fix it."
+                        apt-get update;;
+            esac
+            sleep 10
+        fi
+    done
+    return $rc
+}
+
+upgrade_local_packages() {
+    logwork "Upgrading from local package files:" $*
+    case $(packaging_type) in
+        rpm)    $(yum_or_dnf) -q upgrade "$@"
+                cmd=$(yum_or_dnf)
+                case $cmd in
+                    zypper*)    $cmd -q install "$@";;
+                    *)          $cmd -q upgrade "$@";;
+                esac
+                ;;
+        deb)    dpkg --remove --force-depends $(debian_current_pkg_names "$@")
+                dpkg --install "$@"
+                ;;
+    esac
+}
+install_local_packages() {
+    logwork "Installing from local package files:" $*
+    if
+        is_package_installed "$1"
+    then
+        upgrade_local_packages "$@"
+    else
+        case $(packaging_type) in
+            rpm)    $(yum_or_dnf) -q install "$@";;
+            deb)    dpkg --install "$@";;
+        esac
+    fi
+}
+
+package_architecture() {
+    case $(packaging_type) in
+        rpm)    uname -p;;
+        deb)    dpkg --print-architecture;;
+    esac
+}
+
+map_release_id() {
+    case $DISTRIB_MAPID in
+        centos|debian) mapid=$(echo $DISTRIB_RELEASE | sed 's%[.].*%%');;
+        *)      mapid=$DISTRIB_RELEASE;;
+    esac
+    echo $mapid
+}
+
+
+assim_packaging_arch() {
+    uname -m
+}
+
+assim_packaging_dir() {
+    # BASEURL
+    # REL=1.0
+    echo $BASEURL/$REL/${DISTRIB_MAPID}_$(map_release_id)-$(assim_packaging_arch)
+}
+
+initial_checks() {
+    if
+        is_supported_os
+    then
+        echo "$DISTRIB_ID $OSCLASS is a supported distribution"
+    else
+        echo "Sorry, $DISTRIB_DESCRIPTION is NOT a supported distribution"
+        exit 1
+    fi
+    case $(id -u) in
+        0)  : OK!;;
+        *)  echo "Sorry, must be root to install."
+            exit 1
+            ;;
+    esac
+}
+
+# return needed base packages 
+minimum_packages() {
+    case $DISTRIB_ID in
+      ubuntu|debian)
+        cat <<-!EOF
+			wget
+			ca-certificates
+		!EOF
+        ;;
+      centos|redhat|scientific|scientificfermi|fedora)
+        cat <<-!EOF
+			wget
+			ca-certificates
+		!EOF
+        ;;
+      *suse)
+        cat <<-!EOF
+			wget
+			ca-certificates
+			ca-certificates-mozilla
+		!EOF
+        ;;
+    esac
+}
+
+# perform initial setup of the OS
+initial_setup() {
+    cd $TMPDIR
+    setup_path
+    determine_os_version
+    install_sys_package $(minimum_packages)
+}
+
+
+#
+#   Retrieve the requested file from the release (build) directory
+#
+get_release_file() {
+    file=$1
+    flags='-q'
+    # Dropbox done me wrong...
+    flags='-q --no-check-certificate'
+    if
+        wget $flags -O $TMPDIR/$file $(assim_packaging_dir)/$file
+    then
+        logwork "Retrieving $(assim_packaging_dir)/$file"
+        #ls -l $TMPDIR/$file
+        if
+           [ -s $TMPDIR/$file ]
+        then
+            return 0
+        fi
+    fi
+    : "Could NOT retrieve $(assim_packaging_dir)/$file"
+    rm -f $TMPDIR/$file
+    return 1
+}
+
+is_supported_release() {
+    if
+        get_release_file $BUILDLOG
+    then
+        : "Assim $REL $DISTRIB_MAPID $DISTRIB_RELEASE: good release"
+        return 0
+    fi
+        : "Assim $REL $DISTRIB_MAPID $DISTRIB_RELEASE: UNKNOWN release"
+    return 1
+}
+
+assim_pkg_sha256sums() {
+    egrep '^[0-9a-f]{64}' $TMPDIR/$BUILDLOG 2>/dev/null
+}
+
+#   Return our generated package names...
+assim_package_names() {
+    if
+        [ -s $TMPDIR/$BUILDLOG ]
+    then
+        assim_pkg_sha256sums | cut -c67-
+    else
+        return 1
+    fi
+}
+
+# Verify SHA256 sums - if we can...
+check_assim_pkg_checksums() {
+    if
+        assim_pkg_sha256sums > $TMPDIR/packages.sums
+    then
+        if
+            sha256sum --status --check $TMPDIR/packages.sums
+        then
+            : "SHA256 sums are all good!"
+        else
+            echo "SHA256 sums of packages are incorrect"
+            sha256sum --check $TMPDIR/packages.sums
+        fi
+    else
+        : "No md5 sums to compare to"
+    fi
+}
+# Download our assimilation packages
+download_assim_packages() {
+    for pkg in $(assim_package_names)
+    do
+        get_release_file $pkg
+    done
+    check_assim_pkg_checksums
+}
+
+# Install base .deb and python CMA packages
+install_debian_cma_base() {
+    logwork "Running: apt-get -y update"
+    apt-get -y update
+    install_sys_package $DEBIAN_BASE_CMA_PKGS
+    logwork "Running: pip install $(py2neo_version) $DEBIAN_BASE_PIP_PKGS"
+    pip install "$(py2neo_version)" $DEBIAN_BASE_PIP_PKGS
+}
+# Install base CentOS RPM and python CMA packages
+install_centos_cma_base() {
+    install_sys_package epel-release || true
+    if
+        [ $(version_compare $DISTRIB_RELEASE 7) -ge 0 ]
+    then
+        install_sys_package $CENTOS_BASE_CMA_PKGS
+        logwork "Running: pip install $(py2neo_version) $CENTOS_BASE_PIP_PKGS"
+        pip install "$(py2neo_version)" $CENTOS_BASE_PIP_PKGS
+    else
+        #install_sys_package centos-release-SCL
+        install_sys_package centos-release-scl
+        install_sys_package $CENTOS6_BASE_CMA_PKGS
+        pyscl easy_install pip
+        pyscl pip install $CENTOS6_BASE_PIP_PKGS
+        # The scl stuff requires weird quoting...
+        pyscl pip install "$(py2neo_version | sed 's%\([<>]\)%\\\1%g')"
+    fi
+}
+
+install_suse_cma_base(){
+        install_sys_package $SUSE_BASE_CMA_PKGS
+        logwork "Running: pip install $(py2neo_version) $SUSE_BASE_PIP_PKGS"
+        pip install $(py2neo_version) $SUSE_BASE_PIP_PKGS
+}
+
+# Install minimal fedora packages
+install_fedora_cma_base() {
+    install_sys_package $CENTOS_BASE_CMA_PKGS
+    logwork "Running: pip install $(py2neo_version) $CENTOS_BASE_PIP_PKGS"
+    pip install "$(py2neo_version)" $CENTOS_BASE_PIP_PKGS
+}
+
+# Install base .deb and python nanoprobe packages
+install_debian_nano_base() {
+    install_sys_package $DEBIAN_BASE_NANO_PKGS $(iproute_version)
+    # This comparison only works for Ubuntu, will need to change
+    # for other Debian distros...
+    if
+        [ $(version_compare $DISTRIB_RELEASE 15.04) -ge 0 ]
+    then
+        if
+            grep "^deb.* $DISTRIB_CODENAME.* universe" /etc/apt/sources.list
+        then
+            install_sys_package software-properties-common
+            logwork "Enabling universe repository to get libsodium"
+            add-apt-repository "deb http://us.archive.ubuntu.com/ubuntu/ \
+                $DISTRIB_CODENAME universe"
+        fi
+        apt-get update
+        install_sys_package $DEBIAN_LIBSODIUM
+    fi
+}
+
+# Install CENTOS base RPM and python nanoprobe packages
+install_centos_nano_base() {
+    install_sys_package epel-release || true
+    install_sys_package $CENTOS_BASE_NANO_PKGS
+    if
+        [ $(version_compare $DISTRIB_RELEASE 7) -ge 0 ]
+    then
+        install_sys_package $CENTOS_LIBSODIUM
+    else
+        install_sys_package $CENTOS6_BASE_NANO_PKGS
+        ARCH=$(package_architecture)
+        SUFFIX="$ARCH/libsodium-last-1.0.10-1.el6.remi.$ARCH.rpm"
+        URL=$CENTOS6_LIBSODIUMBASE/$SUFFIX
+        logwork "wget: retrieving $URL"
+        wget -q -O libsodium.$ARCH.rpm $URL
+        install_local_packages libsodium.$ARCH.rpm
+    fi
+}
+
+# Install minimal fedora nanoprobe packages
+install_fedora_nano_base() {
+    install_sys_package $CENTOS_BASE_NANO_PKGS
+}
+
+install_suse_nano_base() {
+    install_sys_package $SUSE_BASE_NANO_PKGS
+}
+
+# Install Nano config files for the CMA system only
+install_nano_config_for_cma() {
+    for dir in /etc/default /etc/sysconfig
+    do
+        if
+            [ -d $dir ]
+        then
+            cat <<-!EOFNANOCONFIG > $dir/nanoprobe
+			# NANOPROBE_DYNAMIC avoids port conflicts with the CMA
+			# This is only needed on machine acting as CMA
+			# The alternatives are:
+			#   - Bind it to a non-CMA IP address and port 1984
+			#   - Bind it to a different port with ANY address
+			# If you bind it to a non-CMA IP address, you'll need two IP
+			# addresses and you'll need to configure the CMA to not bind to ANY
+			NANOPROBE_DYNAMIC=yes
+			!EOFNANOCONFIG
+            return
+        fi
+    done
+}
+# Install the Debian version of Neo4j
+install_debian_neo4j() {
+    install_java
+    NEODEB=http://debian.neo4j.org/
+    CERT='https://debian.neo4j.org/neotechnology.gpg.key'
+    neoversion=stable
+    if
+        [ -f /etc/aptsources.list.d/neo4j.list ]
+    then
+        : 'Already taken care of'
+        return
+    fi
+    logwork "Installing Neo4j cert from $CERT"
+    #wget -q https://certs.godaddy.com/repository/gdig2.crt
+    wget -q -O - $CERT | apt-key add -
+    logwork "Adding Neo4j repo"
+    echo "deb $NEODEB/repo ${neoversion}/" \
+            > /etc/apt/sources.list.d/neo4j.list
+    logwork "Running apt-get -y update"
+    apt-get -y update
+    install_sys_package neo4j=$NEOVERS
+}
+
+add_debian_backports() {
+    case ${DISTRIB_RELEASE} in
+        6*|7*|8*)   : Needs help;;
+        *)          : OK; return;;
+    esac
+    if
+        grep $DISTRIB_CODENAME-backports /etc/apt/sources.list >/dev/null 2>&1
+    then
+        return
+    fi
+    logwork "Adding ${DISTRIB_CODENAME} backports for $JAVA"
+    printf "deb http://http.debian.net/debian %s-backports main\n"  \
+        "${DISTRIB_CODENAME}" >> /etc/apt/sources.list
+    apt-get update
+}
+
+# Figure out which version of Java to install
+select_java_package_name() {
+    case $DISTRIB_MAPID in
+        centos|fedora)  JAVA='java-1.8.0-openjdk-headless'
+                        ;;
+        suse)           JAVA='java-1_8_0-openjdk-headless'
+                        ;;
+        debian|ubuntu)  JAVA='openjdk-8-jre-headless'
+                        ;;
+        *)              JAVA='java-1.8.0-openjdk-headless'
+                        ;;
+    esac
+    echo $JAVA
+}
+
+prep_java_installation() {
+    case $DISTRIB_MAPID in
+        debian) add_debian_backports;;
+        ubuntu)
+            case ${DISTRIB_CODENAME} in
+                precise)    install_sys_package  python-software-properties;;
+                trusty)     install_sys_package  software-properties-common;;
+            esac
+            case ${DISTRIB_RELEASE} in
+                11.*|12.*|13.*|14.*)
+                    logwork "Adding PPA for $JAVA: ppa:openjdk-r/ppa"
+                    add-apt-repository ppa:openjdk-r/ppa
+                    ;;
+            esac
+    esac
+}
+
+install_java() {
+    JAVA=$(select_java_package_name)
+    prep_java_installation
+    install_sys_package "${JAVA}"
+    case $DISTRIB_MAPID in
+        debian|ubuntu)  JAVA_ALT='/usr/lib/jvm/java-1.8.0-openjdk-amd64'
+                        logwork "Updating Java alternatives to $JAVA_ALT"
+                        /usr/sbin/update-java-alternatives -s ${JAVA_ALT}
+                        ;;
+    esac
+}
+
+lock_rpm_version() {
+    logwork "Locking neo4j version to $NEOVERS"
+    cmd=$(yum_or_dnf)
+    case $cmd in
+        zypper*)    zypper addlock neo4j
+                    ;;
+        *)          install_sys_package yum-versionlock neo4j-${NEOVERS}
+                    $cmd versionlock add neo4j
+                    ;;
+    esac
+}
+
+
+# Install the RPM (centos) version of Neo4j
+install_rpm_neo4j() {
+    install_java
+    logwork "Adding Neo4j signing key"
+    NEOKEY=https://debian.neo4j.org/neotechnology.gpg.key
+    wget -q $NEOKEY
+    rpm --import neotechnology.gpg.key
+    logwork "Adding and enabling Neo4j repo at yum.neo4j.org"
+    case $(yum_or_dnf) in
+        *zypper*)   zypper lr | grep neo4j >/dev/null || \
+                    zypper addrepo http://yum.neo4j.org neo4j
+                    # zypper thinks something is wrong with the neo4j repo
+                    install_sys_package --no-gpg-checks neo4j-${NEOVERS}
+                    ;;
+        *)
+        cat <<-!EOF > /etc/yum.repos.d/neo4j.repo
+		[neo4j]
+		name=Neo4j Yum Repo
+		baseurl=http://yum.neo4j.org
+		enabled=1
+		gpgcheck=1
+		!EOF
+        install_sys_package neo4j-${NEOVERS}
+        ;;
+    esac
+    lock_rpm_version
+}
+
+
+# Install our local CMA packages
+
+# Install our local nanoprobe packages
+install_nanoprobe_packages() {
+    install_local_packages $(assim_package_names | 
+        egrep 'assimilation-nano|sodium')
+}
+
+# Install the CMA on Ubuntu or Debian
+install_debian_cma() {
+    install_debian_cma_base
+    install_debian_neo4j
+}
+install_centos_cma() {
+    install_centos_cma_base
+    install_tarball_systemd_neo4j
+}
+install_fedora_cma() {
+    install_fedora_cma_base
+    install_tarball_systemd_neo4j
+}
+
+# Install the nanoprobe on Ubuntu or Debian
+install_debian_nanoprobe() {
+    install_debian_nano_base
+}
+# Install the nanoprobe on CentOS-flavored machines
+install_centos_nanoprobe() {
+    install_centos_nano_base
+}
+
+# Install the nanoprobe prereqs on Fedora
+install_fedora_nanoprobe() {
+    : "Do nothing more..."
+}
+
+install_suse_cma() {
+    install_suse_cma_base
+    install_tarball_systemd_neo4j
+}
+
+# Install the nanoprobe prereqs on SuSE
+install_suse_nanoprobe() {
+    : "Do nothing more..."
+}
+
+# Install the nanoprobe on whatever OS
+install_nanoprobe_prereqs() {
+    case $DISTRIB_MAPID in
+        ubuntu|debian)              install_debian_nanoprobe;;
+        centos|redhat|scientific|scientificfermi)
+                                    install_centos_nanoprobe;;
+        fedora)                     install_fedora_nanoprobe;;
+        suse|opensuse)              install_suse_nanoprobe;;
+    esac
+}
+# Install the nanoprobe on whatever OS
+install_nanoprobe() {
+    install_nanoprobe_prereqs
+    install_nanoprobe_packages
+}
+
+# Install the CMA
+install_cma() {
+    install_nano_config_for_cma # Before installing the nanoprobe...
+    install_nanoprobe_prereqs
+    case $DISTRIB_MAPID in
+        ubuntu|debian)              install_debian_cma;;
+        centos|redhat|scientific|scientificfermi)
+                                    install_centos_cma;;
+        fedora)                     install_fedora_cma;;
+        suse*)                      install_suse_cma;;
+    esac
+    restart_neo4j
+    sleep 10 # Wait for neo4j to start
+    install_local_packages $(assim_package_names)
+    init_database
+    stop_neo4j
+}
+
+create_neo4j_service_file() {
+    mkdir -p $(dirname ${NEO4J_SERVICEFILE})
+    logwork "Creating Neo4j service file in ${NEO4J_SERVICEFILE}"
+    cat <<-!NEO4J_SERVICE > ${NEO4J_SERVICEFILE}
+		[Unit]
+		Description = Neo4j Graph Database
+		After = network.target
+
+		[Service]
+		Type = simple
+        Environment = "NEO4J_CONF=${NEO4J_CONF}"
+		ExecStart = ${NEO4J_ROOTDIR}/bin/neo4j console
+		TimeoutStartSec = 120
+		TimeoutStopSec = 30
+		User = neo4j
+		Group = neo4j
+		LimitNOFILE=40000
+
+		[Install]
+		WantedBy = multi-user.target
+	!NEO4J_SERVICE
+}
+
+create_neo4j_initd_file() {
+    printf 'NEO4J_CONF=%s su --shell /bin/sh -m -c "%s $@" neo4j\n' \
+        "${NEO4J_CONF}" "/usr/share/neo4j/bin/neo4j" > /etc/init.d/neo4j
+    chmod 755 /etc/init.d/neo4j
+}
+
+# Install the Tarball (systemd) version of Neo4j
+install_tarball_systemd_neo4j() {
+    install_java
+    (
+    if
+        [ ! -L ${NEO4J_ROOTDIR} ]
+    then
+        logwork 'Adding neo4j user and group to the system.'
+        useradd  --system --shell /bin/false --no-create-home neo4j || true
+        groupadd --system neo4j || true
+    fi
+    cd $(dirname ${NEO4J_ROOTDIR})
+    logwork "Installing ${NEOTARURL} in $(pwd)/$NEOTARDIR"
+    wget -q -O ${NEOTARFILE} $NEOTARURL
+    tar zxf ${NEOTARFILE}
+    rm -f ${NEOTARFILE}
+    chown -R neo4j:neo4j ${NEOTARDIR}
+    #
+    # The cases here are:
+    #   There was a neo4j directory
+    #   There was no neo4j directory
+    #
+    #   For the case where there was a neo4j link or directory
+    #       data could be a link
+    #       data could be a directory
+    #
+    #   We want the result to be:
+    #       neo4j the new version of neo4j (formerly $NEOTARDIR)
+    #       ${NEOTARDIR}/data should be a symlink to ${NEODATA}
+    #
+    if
+        [ -d neo4j ]
+    then
+        if
+            [ -d neo4j/data -a ! -d "${NEODATA}" ]
+        then
+            logwork "Moving Neo4j data from neo4j/data to ${NEODATA}"
+            mv neo4j/data "${NEODATA}"
+        elif
+            olddir=$(readlink neo4j/data)
+            [ -L neo4j/data ] && [ "${olddir}" != "${NEODATA}" ]
+        then
+            logwork "Moving Neo4j data from ${olddir} to ${NEODATA}"
+            mv "${olddir}" "${NEODATA}"
+        fi
+        rm -fr neo4j
+        if
+            [ -d neo4j/conf ]
+        then
+            rm -fr ${NEOTARDIR}/conf
+            mv ${olddir}/conf ${NEO4J_CONF}
+            logwork "Moving Neo4j conf from ${olddir}/conf to ${NEO4J_CONF}"
+        elif
+            [ ! -d ${NEO4J_CONF} ]
+        then
+            logwork "Moving Neo4j conf from ${NEOTARDIR}/conf to ${NEO4J_CONF}"
+            mv ${NEOTARDIR}/conf ${NEO4J_CONF}
+        fi
+    else
+        logwork "Moving Neo4j conf from ${NEOTARDIR}/conf to ${NEO4J_CONF}"
+        mv ${NEOTARDIR}/conf ${NEO4J_CONF}
+        logwork "Moving ${NEOTARDIR} to $(pwd)/neo4j"
+        mv ${NEOTARDIR} neo4j
+    fi
+    create_neo4j_service_file
+    create_neo4j_initd_file
+    )
+}
+
+restart_neo4j() {
+    logwork '(re)starting Neo4j'
+    echo "Java version: $(java_version)"
+    if
+        use_systemd
+    then
+        # systemctl will fail inside Docker
+        systemctl restart neo4j || NEO4J_CONF=${NEO4J_CONF} ${NEO4J_ROOTDIR}/bin/neo4j console & \
+                                   NEOPID=$!
+    else
+        /etc/init.d/neo4j     restart
+    fi
+}
+stop_neo4j() {
+    logwork 'stopping Neo4j'
+    if
+        use_systemd
+    then
+        # systemctl will fail inside Docker
+        systemctl stop neo4j || kill ${NEOPID}
+    else
+        /etc/init.d/neo4j stop
+    fi
+}
+init_database() {
+    # The assimcli shell script even works in RHEL6...
+    if
+        [ ! -f "$CRYPTODIR/#CMA#00000.secret" ]
+    then
+        assimcli genkeys
+    fi
+    assimcli loadqueries
+    assimcli loadbp >/dev/null 2>&1 || true # old versions don't have this
+}
+
+#
+# Install nanoprobes on remote machines, copying over the public keys
+#
+remote_nano_install() {
+    RMTTMPDIR=/tmp/$(uname -n).$$.assiminstall
+    wget -q -O $TMPDIR/installme $INSTALLURL;
+    chmod 755 installme
+    TARBALL=/tmp/$(uname -n).cmapubkeys.tar
+    CHECKSUM=$(make_pubkey_tarball $TARBALL)
+    REMOTEINSTALL="set -e;
+        trap \"cd /; rm -fr $RMTTMPDIR $TARBALL\" 0;
+        mkdir --mode 700 $RMTTMPDIR && cd $RMTTMPDIR;
+        echo \"$CHECKSUM\"  | sha256sum --check --quiet;
+        sh -c \"tar -P -xf $TARBALL && chmod 700 $CRYPTODIR && /bin/sh ./installme $RELFLAG $LOGFLAG nanoprobe && chown assimilation:assimilation $CRYPTODIR\"
+        "
+    for system
+    do
+        echo "Installing nanoprobe on $system" >&2
+        scp -q -p $TARBALL ${REMOTERUNAS}$system:$TARBALL
+        ssh -t ${REMOTERUNAS}${system} "${REMOTESUDO} sh -c '$REMOTEINSTALL'"
+    done
+}
+
+# Make a tarball for us to use
+make_pubkey_tarball() {
+    $LOCALSUDO sh -c "tar -P -cf $1 installme $CRYPTODIR/*CMA*.pub" >&2
+    sha256sum  $1
+}
+
+init_install() {
+    > $WORKLOG
+    initial_setup
+    initial_checks
+    if
+        is_supported_release
+    then
+        : "Cool! we have packages for $DISTRIB_DESCRIPTION"
+    else
+        echo "Sorry, we don't have packages for $DISTRIB_DESCRIPTION" >&2
+        exit 1
+    fi
+    download_assim_packages
+}
+usage() {
+    name=$(basename $1)
+    cat <<-!USAGE
+	Usage: $name [flags] (cma|nanoprobe|test)
+	       $name [flags] remote remote-system ...
+
+	$name installs the $REL Assimilation release on the current machine
+	or a remote machine if remote is selected as the action.
+
+	For a local machine, you can install it as a CMA (collective management
+    authority) machine or as a nanoprobe-only (drone) machine.
+
+	A copy of the nanoprobe software is automatically installed on the CMA.
+
+	Nanoprobe-only systems will need a copy of the CMA's public keys for them
+    to be able to communicate with the CMA. These are automatically provided
+    when remote installation is selected.
+
+	The test argument tests the code for determining which OS you're running,
+    and also some other internal aspects of the code.  This option may produce
+    failure messages. This is normal.
+
+	Legal flags include:
+	    --rel=releasenumber - which release to install
+	    --prerel=releasenumber - which prerelease to install
+	    --runas=remote-ssh-user - which remote user to ssh to for remote
+	        installations ('remote' command only)
+	    --sudo=remote-sudo-command - what command to use as sudo for remote
+          installations ('remote' command only)
+
+	Special notes regarding remote installation:
+	 - you must have already installed a CMA system
+	 - the system you're running it from should be the CMA - or have a copy
+	    of the CMA's public keys from a prior installation.
+	 - you must either ssh as root to the destination machine or you have
+	    to be able sudo to root from the id you're ssh-ing as
+	 - we will perform an scp and an ssh, and run a script via sudo.
+	    this could mean up to 3 password prompts per machine installed.
+	!USAGE
+}
+
+if
+    [ $# -lt 1 -o $# -gt 4 ]
+then
+    usage "$0" "$@" >&2
+    exit 1
+fi
+LOGME=true
+while
+    case $1 in
+        --*)    true;;
+        *)      false;;
+    esac
+do
+    case $1 in
+        --startrsyslog) rsyslogd& >/dev/null 2>&1
+                        shift
+                        ;;
+
+        --rel=*)        REL=$(echo $1 | sed 's%.*=%%')
+                        RELFLAG="$1"
+                        shift
+                        ;;
+        --prerel=*)     REL=$(echo $1 | sed 's%.*=%%')
+                        RELFLAG="$1"
+                        BASEURL=$PRERELURL
+                        shift
+                        ;;
+        --runas=*)      REMOTERUNAS=$(echo $1 | sed 's%.*=%%')
+                        REMOTERUNAS="${REMOTERUNAS}@"
+                        shift
+                        ;;
+        --sudo=*)       REMOTESUDO=$(echo $1 | sed 's%.*=%%')
+                        shift
+                        ;;
+        --nolog)        LOGME=false
+                        LOGFLAG="$1"
+                        shift
+                        ;;
+
+        -*)             usage "$0" "$@"
+                        exit 1
+                        ;;
+
+    esac
+done
+
+if
+    [ -z "$RELFLAG" ]
+then
+    RELFLAG="--rel=$REL"
+fi
+
+TMPDIR=$(mktmpdir)
+cd $TMPDIR
+trap 'cd /; rm -fr ${TMPDIR}' 0
+case $1 in
+    cma|nanoprobe)
+            echo "Installing release $REL of Assimilation $1 on $(uname -n)"
+            init_install;
+            install_$1
+            echo "Installation complete. Actions logged in $WORKLOG."
+            test $LOGME = false || loginstall $1
+            ;;
+    remote)
+            trap 'cd /; rm -fr ${TMPDIR}; $LOCALSUDO rm -f ${TARBALL}' 0
+            shift
+            printf 'Performing remote installation of %s on: [%s]\n' "$REL" "$*"
+            remote_nano_install "$@"
+            ;;
+    test)   test_version_comparisons; test_os_versions;;
+    -h|--help)
+            usage "$0" "$@";;
+    *)      usage "$0" "$@">&2
+            exit 1
+esac

@@ -1,0 +1,53 @@
+{
+    "copyright": "Copyright(C) 2016 Assimilation Systems Limited",
+    "querytype": "PythonExec",
+    "subtype": "PythonDroneSubgraphQuery",
+    "descriptions": {
+        "en": {
+            "short":    "return entire graph",
+            "long":     "retrieve all nodes and all relationships"
+        }
+    },
+    "parameters": {
+        "hostname": {
+                "type": "list",
+                "listtype": {
+                    "type": "hostname"
+                },
+                "lang": {
+                    "en": {
+                        "short":    "starting host name(s)",
+                        "long":     "name of host(s) at center of returned subgraph"
+                    }
+                }
+	},
+        "nodetypes": {
+                "type": "list",
+                "listtype": {
+                    "type": "nodetype"
+                },
+                "lang": {
+                    "en": {
+                        "short":    "node types",
+                        "long":     "list of node types to include in the subgraph"
+                     }
+                }
+        },
+        "reltypes": {
+                "type": "list",
+                "listtype": {
+                    "type": "reltype"
+                },
+                "lang": {
+                    "en": {
+                        "short":    "relationship types",
+                        "long":     "list of relationship types to include in the subgraph"
+                     }
+                }
+        }
+    },
+    "cmdline": {
+        "en":	  "{\"nodes\":${nodes}, \"relationships\": ${relationships}}",
+        "script": "{\"nodes\":${nodes}, \"relationships\": ${relationships}}"
+    }
+}

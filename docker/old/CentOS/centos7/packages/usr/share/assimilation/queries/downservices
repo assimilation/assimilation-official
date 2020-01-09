@@ -1,0 +1,18 @@
+{
+    "cypher": "START monitor=node:MonitorAction('*:*')
+               WHERE monitor.isactive AND NOT monitor.isworking
+               MATCH (monitor)-[:monitoring]->(service)<-[:hosting]-(servicehost)
+               RETURN monitor, service, servicehost",
+    "copyright": "Copyright(C) 2013 Assimilation Systems Limited",
+    "descriptions": {
+        "en": {
+            "short":    "get 'down' services",
+            "long":     "retrieve full information about all monitors we know have failed"
+        }
+    },
+    "parameters": {},
+    "cmdline": {
+        "en": "${servicehost.designation}:${service.pathname} [${monitor.reason}]",
+        "script": "${servicehost.designation}	${service.pathname}	${monitor.reason}"
+    }
+}

@@ -1,0 +1,28 @@
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab number
+#
+# This file is part of the Assimilation Project.
+#
+# Author: Alan Robertson <alanr@unix.sh>
+# Copyright (C) 2013 - Assimilation Systems Limited
+#
+# Free support is available from the Assimilation Project community - http://assimproj.org
+# Paid support is available from Assimilation Systems Limited - http://assimilationsystems.com
+#
+# The Assimilation software is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+#
+#   Configuration for automatically monitoring rpcbind with its init script status operation.
+#   Note that some OSes might use a different name for the service.  In that case, this
+#   will need to be tweaked to match only the right OSes.
+#
+{
+    "class":    "lsb",
+    "type":     "rpcbind",
+    "classconfig": [
+        ["@basename()", "rpcbind$"],
+        ["$uid",         "root$"]
+	]
+}

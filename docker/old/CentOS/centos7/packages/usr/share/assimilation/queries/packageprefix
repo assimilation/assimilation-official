@@ -1,0 +1,26 @@
+{
+    "copyright": "Copyright(C) 2016 Assimilation Systems Limited",
+    "querytype": "PythonExec",
+    "subtype": "PythonPackagePrefixQuery",
+    "descriptions": {
+        "en": {
+            "short":    "get packages with prefix",
+            "long":     "get the list of packages starting with the given prefix"
+        }
+    },
+    "parameters": {
+        "prefix": {
+            "type": "string",
+            "lang": {
+                "en": {
+                    "short": "package prefix",
+                    "long":  "prefix of package name",
+                }
+            }
+        }
+    },
+    "cmdline": {
+        "en":     "${domain}:${drone.designation} ${package} ${version}  ${packagetype}",
+        "script": "${domain},${drone.designation},${package},${version},${packagetype}"
+    }
+}

@@ -1,0 +1,65 @@
+#!/bin/sh
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab number
+#
+# CMA docker startup script
+# We use Docker as a simulation for a data center - so these Docker instances are assumed
+# to be very much like real or virtual servers.
+#
+# It is the purpose of this script to make it really easy to set up the CMA and play with it
+# in a simulated data center,  not to give maximum flexibility or precisely follow the
+# Docker-centric view of the world
+#
+#
+#   We do three things:
+#       - start neo4j
+#       - start the CMA
+#       - start a nanoprobe
+#
+# This file is part of the Assimilation Project.
+#
+# Author: Alan Robertson <alanr@unix.sh>
+# Copyright (C) 2015 - Assimilation Systems Limited
+#
+# Free support is available from the Assimilation Project community - http://assimproj.org
+# Paid support is available from Assimilation Systems Limited - http://assimilationsystems.com
+#
+# The Assimilation software is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# The Assimilation software is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
+#
+#
+trap 'exit 0' 15
+trap 'set +e; /usr/sbin/nanoprobe -k; /usr/sbin/cma -k; /etc/init.d/neo4j-service stop' 0
+set -e
+/etc/init.d/rsyslog start
+/etc/init.d/neo4j-service start
+sleep 5
+/usr/sbin/cma
+if
+    sleep 2 && /usr/sbin/cma -s
+then
+    : The CMA started
+else
+    echo "CMA did not start.  Please check the system logs"
+    exit 1
+fi
+/usr/sbin/nanoprobe --dynamic
+if
+    sleep 1 && /usr/sbin/nanoprobe -s
+then
+    : Our nanoprobe started
+else
+    echo "Nanoprobe did not start.  Please check the system logs"
+    exit 1
+fi
+# Clean up zombies...
+while sleep 10; do wait; done

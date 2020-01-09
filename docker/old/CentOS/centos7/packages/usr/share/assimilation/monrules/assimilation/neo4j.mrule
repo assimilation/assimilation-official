@@ -1,0 +1,86 @@
+# vim: smartindent tabstop=4 shiftwidth=4 expandtab number
+#
+# This file is part of the Assimilation Project.
+#
+# Author: Alan Robertson <alanr@unix.sh>
+# Copyright (C) 2013 - Assimilation Systems Limited
+#
+# Free support is available from the Assimilation Project community - http://assimproj.org
+# Paid support is available from Assimilation Systems Limited - http://assimilationsystems.com
+#
+# The Assimilation software is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# The Assimilation software is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
+#
+#
+#   Configuration for automatically monitoring the Neo4j graph database with an OCF
+#   resource agent called "neo4j" provided by the "assimilation" provider.
+#
+#   Except for the comments, the syntax is pure JSON.  Note that this means that you have to
+#   double escape literal '.' characters in regular expressions
+#
+#   And don't forget that the final element in a JSON list or object is not followed by a comma
+#
+#
+#   How this works, is you need to tell us what we need to look for in the discovery data
+#   to help us realize that the service we're looking at is the service we know how to monitor.
+#
+#   We also have to know how to pick up parameters to give the monitoring code so
+#   it knows how to monitor the service.
+#
+#   In this case, we know it's our service IF
+#   The pathname of the binary ends in "/java"
+#   and	the last argument to this service is "org.neo4j.server.Bootstrapper"
+#
+#   To properly monitor this service we need to know what port and IP it's listening on
+#   and (somewhat gratuitiously) what it's home directory is.
+#
+#   An ip/port it's listening on is supplied to the monitoring agent as the parameter 'pportport',
+#   the neo4j home directory is supplied to it as the parameter 'neohome', and the name of
+#   the instance abbreviation (normally just "neo4j") is supplied to it as neo4j.
+#
+#   The 'expression-to-evaluate' below is how we figure out the values of these parameters
+#   or expressions to match against regular expressions
+#
+#   These expressions are evaluated in the context of the selected graph nodes:
+#       - the graph node for the service we've discovered
+#       - the graph node for the host that this service is running on
+#
+#   If either of these two has the information we need, and our expression language
+#   is powerful enough to pick it out, then we're golden!
+#
+#
+#   This sample uses the following built-in functions:
+#       basename    returns the basename of a path - defaults to the basename of the executable
+#       serviceport returns the lowest port this service is listening on
+#       serviceip   returns an IP address that it is listening on with serviceport()
+#       argequals   searches for an argument that looks like argument=something and returns
+#                   the something part.  In this case it looks for "-DNeo4j.home=something"
+#                   and then returns 'something'.
+#
+#   This example also looks for the node attribute 'argv' -- which is the name of the argument list
+#   given to the process when it starts.  The syntax [-1] means the last argument in the argument
+#   list.  'argv' is an attribute of the service graph node.
+#
+#
+{
+    "class":    "ocf",
+    "type":     "neo4j",
+    "provider": "assimilation",
+    "classconfig": [
+#       OCF parameter   expression-to-evaluate      regular expression
+        [null,          "@basename()",               "java$"],
+        [null,          "@argmatch(org\\.neo4j\\.server\\..*)", "..."],
+        ["ipport",      "@serviceipport()",          "..."],
+        ["?config_dir",  "@argequals(--config-dir)", "."]
+	]
+}
