@@ -134,13 +134,6 @@ def build_cmdargs(outfile, sourceroot, buildroot, libdir, libfiles):
     return cmdline
 
 
-def fixup_outfile(outfile):
-    """
-    This is for Python3 compatibility
-    """
-    return os.system("sed -i 's%except  *\([A-Za-z_][A-Za-z_]*\) *, *%except \1 as %g " + outfile)
-
-
 if len(sys.argv) < 6:
     sys.stderr.write("Usage: %s outfile sourceroot buildroot libdir libfile ...\n" % sys.argv[0])
     raise SystemExit(1)
@@ -151,7 +144,4 @@ buildroot = sys.argv[3]
 libdir = sys.argv[4]
 libfiles = sys.argv[5:]
 rc = os.system(build_cmdargs(outfile, sourceroot, buildroot, libdir, libfiles))
-if rc != 0:
-    sys.exit(rc)
-else:
-    sys.exit(fixup_outfile(outfile))
+sys.exit(rc)

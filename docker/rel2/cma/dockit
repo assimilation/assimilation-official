@@ -1,0 +1,27 @@
+#!/bin/sh -eu
+# vim:ts=4:sw=4:softtabstop=4:smarttab:expandtab
+DOCKER_TAG=$(grep -v '#' < docker-tag.txt | head -n1)
+QUIET=-q
+QUIET=
+SRC=$PWD/src
+mkdir -p ${SRC}
+cp -a ../getsigningkey.py ../hashes.csv ${SRC}
+(
+    cd ../../..;
+    FLAGS=-pdmu
+    find cma \( -path cma/.tox -prune -o -path cma/venv -prune \) -o \
+        -type f -a \( -name '*.py' -o -name '*require*' -o -name 'tox.ini' \) |
+        cpio ${FLAGS} ${SRC}
+    find include clientlib serverlib nanoprobe -name '*.[ch]' -type f |
+        cpio ${FLAGS} ${SRC}
+)
+cp -a ../nanoprobe/meson.build ${SRC}
+find . -print | sort
+printf "Building %s: " "$DOCKER_TAG"
+time docker build ${QUIET} -t ${DOCKER_TAG} . 2>&1 | tee -i build.out
+
+case ${1-nothing} in
+    *push*|*upload*) docker push ${DOCKER_TAG};;
+    nothing);;
+    *) echo "Don't know what option ${1} means...";;
+esac

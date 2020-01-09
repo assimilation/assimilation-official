@@ -6,7 +6,7 @@
 # This file is part of the Assimilation Project.
 #
 # Author: Alan Robertson <alanr@unix.sh>
-# Copyright (C) 2016 - Assimilation Systems Limited
+# Copyright (C) 2020 - Assimilation Systems Limited
 #
 # Free support is available from the Assimilation Project community
 #   - http://assimproj.org
