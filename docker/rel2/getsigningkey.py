@@ -94,7 +94,7 @@ def save_validated_key(url: str, csv_hash_file: str, directory: str = ".") -> No
     :return:None
     """
     hashes = get_csv_hashes(csv_hash_file)
-    url_key = get_signing_key_from_url(url)  # Always utf8 encoded
+    url_key = get_signing_key_from_url(url)
     if not check_key_against_checksums(url, url_key, hashes):
         print(f"Key at {url} does not match any known checksum.", file=sys.stderr)
         sys.exit(1)
