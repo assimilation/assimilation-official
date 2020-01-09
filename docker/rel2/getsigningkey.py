@@ -34,9 +34,10 @@ import sys
 import os
 from typing import List, Tuple
 import hashlib
-import requests
 import csv
+import requests
 
+# pylint: disable=invalid-name
 HashList = List[Tuple[str, str]]
 
 
