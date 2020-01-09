@@ -11,3 +11,7 @@ Here's how this container works:
  - It needs to dbus package installed before docker.io gets installed
  - It needs to have docker.io package installed
  - It needs to start as root and downgrade to non-root (assimilation) user id
+
+
+ Things I still need to do before this container is complete:
+  - Create AssimCtypes.py using ctypesgen...
