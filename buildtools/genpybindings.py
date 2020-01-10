@@ -30,6 +30,27 @@
 #  If not, see http://www.gnu.org/licenses/
 #
 #
+"""
+Generated with:
+/usr/local/bin/ctypesgen --no-macro-warnings --cpp=gcc -E -DCTYPESGEN -D__signed__=signed -U__HAVE_FLOAT32X -U__HAVE_FLOAT64X -DFLT64X_EPSILON=1.08420217248550443400745280086994171e-19 -o /tmp/src/cma/AssimCtypes.py
+--runtime-libdir /tmp/bin
+--compile-libdir /tmp/src/clientlib
+-I/tmp/src/include
+-L -lglib-2.0
+-l /usr/lib/.so
+-l libassimilationclient.so
+-l libsodium.so -I/usr/include/glib-2.0
+-I/usr/lib/x86_64-linux-gnu/glib-2.0/include
+-I/tmp/src/include
+-I/tmp/src/include
+/usr/include/glib-2.0/glib.h
+/tmp/src/include/address_family_numbers.h
+/tmp/src/include/resourcecmd.h
+/tmp/src/include/tlvhelper.h
+/tmp/src/include/authlistener.h
+/tmp/src/include/resourceocf.h /tmp/src/include/childprocess.h /tmp/src/include/seqnoframe.h /tmp/src/include/server_dump.h /tmp/src/include/jsondiscovery.h /tmp/src/include/resourcelsb.h /tmp/src/include/hbsender.h /tmp/src/include/cryptcurve25519.h /tmp/src/include/cstringframe.h /tmp/src/include/cmalib.h /tmp/src/include/misc.h /tmp/src/include/discovery.h /tmp/src/include/resourcequeue.h /tmp/src/include/gmainfd.h /tmp/src/include/tlv_valuetypes.h /tmp/src/include/cryptframe.h /tmp/src/include/netioudp.h /tmp/src/include/netio.h /tmp/src/include/netaddr.h /tmp/src/include/arpdiscovery.h /tmp/src/include/logsourcefd.h /tmp/src/include/packetdecoder.h /tmp/src/include/pcap_GSource.h /tmp/src/include/assimobj.h /tmp/src/include/fsqueue.h /tmp/src/include/nvpairframe.h /tmp/src/include/compressframe.h /tmp/src/include/reliableudp.h /tmp/src/include/generic_tlv_min.h /tmp/src/include/resourcenagios.h /tmp/src/include/proj_classes.h /tmp/src/include/configcontext.h /tmp/src/include/fsprotocol.h /tmp/src/include/frame.h /tmp/src/include/nanoprobe.h /tmp/src/include/pcap_min.h /tmp/src/include/unknownframe.h /tmp/src/include/listener.h /tmp/src/include/lldp.h /tmp/src/include/projectcommon.h /tmp/src/include/addrframe.h /tmp/src/include/frameset.h /tmp/src/include/hblistener.h /tmp/src/include/cdp.h /tmp/src/include/ipportframe.h /tmp/src/include/intframe.h /tmp/src/include/signframe.h /tmp/src/include/netgsource.h /tmp/src/include/switchdiscovery.h /tmp/src/include/frametypes.h /tmp/src/include/framesettypes.h
+
+"""
 import os, sys
 import ctypesgen
 
@@ -95,6 +116,8 @@ def build_cmdargs(outfile, sourceroot, buildroot, libdir, libfiles):
     # Our local libraries
     for lib in libfiles:
         args.append("-l")
+        if lib.endswith('/'):
+            raise RuntimeError(f"OOPS! Bad local libraries {libfiles}")
         args.append(lib + ".so")  # Obviously needs to change for windows - or so I think ;-)
     # -I flags for glib
     for iflag in glibincflags.split():
@@ -143,5 +166,10 @@ sourceroot = sys.argv[2]
 buildroot = sys.argv[3]
 libdir = sys.argv[4]
 libfiles = sys.argv[5:]
+print(f"#  Output file: {outfile}")
+print(f"#  Source root: {sourceroot}")
+print(f"#  Build root:  {buildroot}")
+print(f"#  Lib dir:     {libdir}")
+print(f"#  Lib files:   {libfiles}")
 rc = os.system(build_cmdargs(outfile, sourceroot, buildroot, libdir, libfiles))
 sys.exit(rc)

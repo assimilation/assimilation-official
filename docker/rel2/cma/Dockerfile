@@ -12,7 +12,7 @@ ENV LIBSODIUM_VERSION=1.0.18
 # Compile libsodium - because we want a recent version - ideally same as nanoprobe
 # @TODO: Validate the source tar ball signature
 #
-ENV SRCDIR /tmp/src
+ENV SRCDIR /root/src
 ADD src/getsigningkey.py src/hashes.csv ${SRCDIR}/
 WORKDIR ${SRCDIR}
 # Compile and install libsodium - trusting as little as possible ;-)
@@ -35,14 +35,13 @@ RUN apt-get install -y libglib2.0-dev libpcap-dev dbus
 #
 # Now get ready to build our libraries, etc...
 #
-ADD src/meson.build ${SRCDIR}/
-ADD src/genpybindings.py ${SRCDIR}/
+ADD src/meson.build src/genpybindings.py ${SRCDIR}/
 ADD src/cma/ ${SRCDIR}/cma/
 ADD src/include/ ${SRCDIR}/include/
 ADD src/clientlib/ ${SRCDIR}/clientlib/
 ADD src/serverlib/ ${SRCDIR}/serverlib/
 ADD src/nanoprobe/  ${SRCDIR}/nanoprobe/
-ENV BINDIR /tmp/bin
+ENV BINDIR /root/bin
 WORKDIR ${SRCDIR}
 RUN $PYCMD -m pip install meson ninja -r cma/requirements.txt
 RUN bash -c "time meson ${BINDIR}"
@@ -53,6 +52,7 @@ RUN cp -a libassimilationclient.so ${LIBDIR}/
 ENV ASSIMLIB ${LIBDIR}/libassimilationclient.so
 RUN ls -l ${LIBDIR}/libassimilationclient.so && sha256sum ${LIBDIR}libassimilationclient.so
 RUN apt-get install -y docker.io
+RUN cp ${BINDIR}/*.h ${SRCDIR}/include/
 # genpybindings.py outfile sourceroot buildroot libdir libfile ...
 #   outfile     name of file to put output into
 #   sourceroot  root of source directory tree
@@ -61,6 +61,9 @@ RUN apt-get install -y docker.io
 #   libfiles    list of library files that we might want to bind to (just one today)
 ENV ASSIMCTYPES ${SRCDIR}/cma/AssimCtypes.py
 ENV GENBIND ${PYCMD} ${SRCDIR}/genpybindings.py ${ASSIMCTYPES}
-ENV GENCMD $GENBIND $SRCDIR $SRCDIR $BINDIR $LIBDIR ${LIBDIR}/libassimilationclient.so
+ENV GENCMD $GENBIND $SRCDIR $SRCDIR $BINDIR libassimilationclient libsodium libpcap libglib-2.0
 RUN echo ${GENCMD}
 RUN ${GENCMD}
+WORKDIR ${SRCDIR}/cma
+# Things for development and testing...
+RUN apt-get install -y vim

@@ -52,12 +52,23 @@ static_deps = [
 ]
 
 config_data = configuration_data({
-    'PUBKEYSUFFIX': '".pub"',
-    'PRIVATEKEYSUFFIX': '".secret"',
-    'CMAADDR': '"224.0.2.5:1984"',
-    'NANOLISTENADDR': '"0.0.0.0:1984"',
-    'CMAUSERID': '"assimilation"',
-    'CMAINITFILE': '"/etc/cma.conf"',
+    # Things the C code needs
+    'PUBKEYSUFFIX': '.pub',
+    'PRIVATEKEYSUFFIX': '.secret',
+    'CMAADDR': '224.0.2.5:1984',
+    'NANOLISTENADDR': '0.0.0.0:1984',
+    'CMAUSERID': 'assimilation',
+    'CMAINITFILE': '/etc/cma.conf',
+    'VERSION_STRING': version,
+    'DIRDELIM': dirdelim,
+    'DISCOVERY_DIR': share + 'discovery_agents',
+    'CRYPTKEYDIR': crypto_dir,
+    # Things only the Python code needs
+    'BPINSTALL_DIR': best_practices,
+    'MONRULEINSTALL_DIR': monrules,
+    'NOTIFICATION_SCRIPT_DIR': notification_d,
+    'NEO4JCREDFILENAME': neo4j_creds,
+    'QUERYINSTALL_DIR': queries,
     # Are these header files present?
     'HAVE_UNISTD_H':    cc.has_header('unistd.h'),
     'HAVE_SYS_SOCKET_H': cc.has_header('sys/socket.h'),
@@ -92,23 +103,12 @@ config_data = configuration_data({
     'HAVE_UNAME': cc.has_function('uname'),
     }
 )
-# Things the C code needs
-config_data.set_quoted('VERSION_STRING', version)
-config_data.set_quoted('DIRDELIM', dirdelim)
-config_data.set_quoted('DISCOVERY_DIR', share + 'discovery_agents')
-config_data.set_quoted('CRYPTKEYDIR', crypto_dir)
-# Things only the Python code needs
-config_data.set_quoted('BPINSTALL_DIR', best_practices)
-config_data.set_quoted('MONRULEINSTALL_DIR', monrules)
-config_data.set_quoted('NOTIFICATION_SCRIPT_DIR', notification_d)
-config_data.set_quoted('NEO4JCREDFILENAME', neo4j_creds)
-config_data.set_quoted('QUERYINSTALL_DIR', queries)
 
 # Create project_common.h from project_common.h.in
 common = configure_file(input: 'include/projectcommon.h.in',
                         output: 'projectcommon.h',
                         configuration: config_data,
-                        format: 'cmake',
+                        format: 'cmake@',
                         )
 
 # Generate frametypes.h and framesettypes.h using cma/frameinfo.py

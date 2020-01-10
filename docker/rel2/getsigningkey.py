@@ -102,9 +102,11 @@ def save_validated_key(url: str, csv_hash_file: str, directory: str = ".") -> No
     #  YAY! It matched. Now save it away...
     path = os.path.join(directory, url.split("/")[-1])
     with open(path, "wb") as saved_key:
-        print(f"Saving {url} as {path}: {len(url_key)} bytes.")
+        sys.stderr.write(f" into {path}: {len(url_key)} bytes.\n")
         saved_key.write(url_key)
     sys.exit(0)
+
+
 
 
 if __name__ == "__main__":
@@ -126,6 +128,7 @@ if __name__ == "__main__":
         url = sys.argv[1]
         csv_file = sys.argv[2] if len(sys.argv) > 2 else "hashes.csv"
 
+        sys.stderr.write(f"Saving {url}")
         save_validated_key(url, csv_file)
 
     main()
