@@ -67,3 +67,4 @@ RUN ${GENCMD}
 WORKDIR ${SRCDIR}/cma
 # Things for development and testing...
 RUN apt-get install -y vim
+CMD ["python3.6", "cma.py", "--debug", "1", "--foreground"]
