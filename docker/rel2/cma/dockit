@@ -16,6 +16,7 @@ cp -a ../getsigningkey.py ../hashes.csv ${SRC}
         cpio ${FLAGS} ${SRC}
 )
 cp -a ../nanoprobe/meson.build ${SRC}
+cp -a ../../../buildtools/genpybindings.py ${SRC}
 printf "Building %s: " "$DOCKER_TAG"
 time docker build ${QUIET} -t ${DOCKER_TAG} . 2>&1 | tee -i build.out
 

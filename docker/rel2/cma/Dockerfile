@@ -36,6 +36,7 @@ RUN apt-get install -y libglib2.0-dev libpcap-dev dbus
 # Now get ready to build our libraries, etc...
 #
 ADD src/meson.build ${SRCDIR}/
+ADD src/genpybindings.py ${SRCDIR}/
 ADD src/cma/ ${SRCDIR}/cma/
 ADD src/include/ ${SRCDIR}/include/
 ADD src/clientlib/ ${SRCDIR}/clientlib/
@@ -48,6 +49,18 @@ RUN bash -c "time meson ${BINDIR}"
 WORKDIR ${BINDIR}
 RUN bash -c "time ninja install"
 ENV LIBDIR /usr/lib/
-RUN mv libassimilationclient.so ${LIBDIR}
+RUN cp -a libassimilationclient.so ${LIBDIR}/
+ENV ASSIMLIB ${LIBDIR}/libassimilationclient.so
 RUN ls -l ${LIBDIR}/libassimilationclient.so && sha256sum ${LIBDIR}libassimilationclient.so
 RUN apt-get install -y docker.io
+# genpybindings.py outfile sourceroot buildroot libdir libfile ...
+#   outfile     name of file to put output into
+#   sourceroot  root of source directory tree
+#   buildroot   root of build (binary) directory tree
+#   libdir      where the runtime libraries are located
+#   libfiles    list of library files that we might want to bind to (just one today)
+ENV ASSIMCTYPES ${SRCDIR}/cma/AssimCtypes.py
+ENV GENBIND ${PYCMD} ${SRCDIR}/genpybindings.py ${ASSIMCTYPES}
+ENV GENCMD $GENBIND $SRCDIR $SRCDIR $BINDIR $LIBDIR ${LIBDIR}/libassimilationclient.so
+RUN echo ${GENCMD}
+RUN ${GENCMD}
