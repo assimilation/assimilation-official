@@ -32,6 +32,8 @@ RUN ./configure prefix=/usr && bash -c "time make && time make check && make ins
 # Install other packages that
 RUN apt-get update >/dev/null 2>&1
 RUN apt-get install -y libglib2.0-dev libpcap-dev dbus
+# Things for development and testing...
+RUN apt-get install -y vim
 #
 # Now get ready to build our libraries, etc...
 #
@@ -65,6 +67,5 @@ ENV GENCMD $GENBIND $SRCDIR $SRCDIR $BINDIR libassimilationclient libsodium libp
 RUN echo ${GENCMD}
 RUN ${GENCMD}
 WORKDIR ${SRCDIR}/cma
-# Things for development and testing...
-RUN apt-get install -y vim
-CMD ["python3.6", "cma.py", "--debug", "1", "--foreground"]
+ADD startup.sh /root/startup.sh
+CMD ["/root/startup.sh"]
