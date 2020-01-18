@@ -11,6 +11,7 @@ get_source() {
     HERE=$(pwd)
     rm -fr src/
     mkdir -p ./src src/cma
+    cp -a ../getsigningkey.py ../hashes.csv ./src
     (
         cd ../../..
         echo "Copying 'C' source for Docker image..."
