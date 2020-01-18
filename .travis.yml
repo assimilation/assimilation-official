@@ -2,7 +2,7 @@ language: minimal
 
 env:
   global:
-    - VERSION=0.1.2
+    - VERSION=2.0.0
 
 stages:
   - name: lint
@@ -49,7 +49,8 @@ jobs:
 
 script:
   - echo "build binaries"
+  - pushd docker/rel2
+  - ./dockit
     # create dummy nanoprobe binary
   - mkdir /tmp/dummy
-  - echo "echo \"nanoprobe binary\"" > /tmp/dummy/nanoprobe
-  - chmod a+x /tmp/dummy/nanoprobe
+  - docker run -v /tmp/dummy:/copyout assimilationproject/nanoprobe:2.0.0 bash -c "cp nanoprobe /copyout"
