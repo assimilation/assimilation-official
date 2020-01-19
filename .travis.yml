@@ -7,14 +7,10 @@ env:
 stages:
   - name: lint
     if: branch = remove_to_enable
-
   - name: tests
     if: branch = remove_to_enable
-
   - name: "create packages"
-
   - name: "test packages"
-    if: branch = remove_to_enable
 
 jobs:
   include:
