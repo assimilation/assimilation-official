@@ -42,8 +42,8 @@ jobs:
       script:
         - echo "download packages"
         - echo "test them out"
-        - docker run centos bash -c "yum -y install wget && wget https://bintray.com/assimilation/rpm/rpm -O /etc/yum.repos.d/bintray-assimilation-rpm.repo && yum -y install nanoprobe && rpm -qa nanoprobe"
-        - docker run ubuntu bash -c "apt-get -y update && apt-get -y install ca-certificates gnupg && echo 'deb https://dl.bintray.com/assimilation/deb bionic universe' > /etc/apt/sources.list.d/bintray_assimilation.list && apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 379CE192D401AB61 && apt-get -y update && apt-get -y install nanoprobe && dpkg -l nanoprobe"
+        - docker run centos bash -c "yum -y install wget && wget https://bintray.com/assimilation/rpm/rpm -O /etc/yum.repos.d/bintray-assimilation-rpm.repo && yum -y install nanoprobe && rpm -qa nanoprobe && yum remove nanoprobe"
+        - docker run ubuntu bash -c "apt-get -y update && apt-get -y install ca-certificates gnupg && echo 'deb https://dl.bintray.com/assimilation/deb bionic universe' > /etc/apt/sources.list.d/bintray_assimilation.list && apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 379CE192D401AB61 && apt-get -y update && apt-get -y install nanoprobe && dpkg -l nanoprobe && apt-get -y remove nanoprobe"
 
 script:
   - echo "build binaries"
