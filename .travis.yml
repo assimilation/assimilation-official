@@ -2,19 +2,15 @@ language: minimal
 
 env:
   global:
-    - VERSION=0.1.2
+    - VERSION=2.0.0
 
 stages:
   - name: lint
     if: branch = remove_to_enable
-
   - name: tests
     if: branch = remove_to_enable
-
   - name: "create packages"
-
   - name: "test packages"
-    if: branch = remove_to_enable
 
 jobs:
   include:
@@ -32,8 +28,8 @@ jobs:
     - stage: "create packages"
       name: "create packages"
       after_success:
-        - docker build --build-arg VERSION -f ci/Dockerfiles/ubuntu1804_fpm.dockerfile -t ubuntu_fpm /tmp/dummy/
-        - docker build --build-arg VERSION -f ci/Dockerfiles/centos7_fpm.dockerfile -t centos_fpm /tmp/dummy/
+        - docker build --build-arg VERSION -f $TRAVIS_BUILD_DIR/ci/Dockerfiles/ubuntu1804_fpm.dockerfile -t ubuntu_fpm /tmp/dummy/
+        - docker build --build-arg VERSION -f $TRAVIS_BUILD_DIR/ci/Dockerfiles/centos7_fpm.dockerfile -t centos_fpm /tmp/dummy/
         - docker run -v /tmp/output:/output ubuntu_fpm bash -c "cp /workdir/*.deb /output"
         - docker run -v /tmp/output:/output centos_fpm bash -c "cp /workdir/*.rpm /output"
         - ls -al /tmp/output/*.deb /tmp/output/*.rpm
@@ -46,10 +42,13 @@ jobs:
       script:
         - echo "download packages"
         - echo "test them out"
+        - docker run centos bash -c "yum -y install wget && wget https://bintray.com/assimilation/rpm/rpm -O /etc/yum.repos.d/bintray-assimilation-rpm.repo && yum -y install nanoprobe && rpm -qa nanoprobe && yum -y remove nanoprobe"
+        - docker run ubuntu bash -c "apt-get -y update && apt-get -y install ca-certificates gnupg && echo 'deb https://dl.bintray.com/assimilation/deb bionic universe' > /etc/apt/sources.list.d/bintray_assimilation.list && apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 379CE192D401AB61 && apt-get -y update && apt-get -y install nanoprobe && dpkg -l nanoprobe && apt-get -y remove nanoprobe"
 
 script:
   - echo "build binaries"
+  - cd $TRAVIS_BUILD_DIR/docker/rel2
+  - ./dockit
     # create dummy nanoprobe binary
   - mkdir /tmp/dummy
-  - echo "echo \"nanoprobe binary\"" > /tmp/dummy/nanoprobe
-  - chmod a+x /tmp/dummy/nanoprobe
+  - docker run -v /tmp/dummy:/copyout assimilationproject/nanoprobe:2.0.0 bash -c "cp nanoprobe /copyout"
