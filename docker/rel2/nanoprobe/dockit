@@ -1,4 +1,4 @@
-#!/bin/bash -eu
+#!/bin/bash -eu -o pipefail
 # vim:ts=4:sw=4:softtabstop=4:smarttab:expandtab
 MESON_TAG=$(grep -v '#' < ../meson/docker-tag.txt | head -n1)
 DOCKER_TAG=$(grep -v '#' < docker-tag.txt | head -n1)

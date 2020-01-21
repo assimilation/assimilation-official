@@ -1,4 +1,4 @@
-#!/bin/sh -eu
+#!/bin/sh -eu -o pipefail
 # vim:ts=4:sw=4:softtabstop=4:smarttab:expandtab
 DOCKER_TAG=$(grep -v '#' < docker-tag.txt | head -n1)
 QUIET=-q
