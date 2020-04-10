@@ -339,8 +339,8 @@ def main():
 
     #   Input our monitoring rule templates
     #   They only exist in flat files and in memory - they aren't in the database
+    print(f"Loading monitoring rules from '{MONRULEINSTALL_DIR}'", file=sys.stderr)
     MonitoringRule.load_tree(MONRULEINSTALL_DIR)
-    print("Monitoring rules loaded from %s" % MONRULEINSTALL_DIR, file=sys.stderr)
 
     execobserver_constraints = {
         "nodetype": ["Drone", "IPaddrNode", "MonitorAction", "NICNode", "ProcessNode", "SystemNode"]
@@ -591,6 +591,7 @@ def process_main_exception(ex):
         filename = os.path.basename(filename)
         logger("%s.%s:%s: %s" % (filename, line, funcname, text))
     logger(f"======== End Main {type(ex).__name__} Exception Traceback ========")
+    raise ex
 
 
 if __name__ == "__main__":

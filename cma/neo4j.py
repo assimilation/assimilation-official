@@ -42,6 +42,7 @@ from typing import Optional, Union
 import os
 import sys
 import subprocess
+import socket
 from sys import stderr
 import docker
 import docker.errors
@@ -100,13 +101,18 @@ class NeoServer(object):
         start_time = time.time()
         command = ["/usr/bin/lsof", "-i", f"tcp:{port}"]
         for _ in range(max_loops):
-            try:
-                subprocess.check_call(command)
-                stderr.flush()
-            except subprocess.CalledProcessError:
-                time.sleep(sleep)
-            return True
+            if cls.is_tcp_port_open(int(port)):
+                return True
         return False
+
+    @staticmethod
+    def is_tcp_port_open(port: int):
+        try:
+            sock = socket.create_connection(("127.0.0.1", port), 1)
+            sock.close()
+        except socket.error:
+            return False
+
 
 
 class NeoDockerServer(NeoServer):

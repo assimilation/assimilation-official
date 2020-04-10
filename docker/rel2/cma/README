@@ -15,3 +15,8 @@ Here's how this container works:
 
  Things I still need to do before this container is complete:
   - Create AssimCtypes.py using ctypesgen...
+#
+# Need to create a 'cma' script that starts the container as follows:
+  - -v /var/run/docker.sock:/var/run/docker.sock
+  - -v /usr/share/assimilation:/usr/share/assimilation
+  - -v /var/lib/assimilation:/var/lib/assimilation

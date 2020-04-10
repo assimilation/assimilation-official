@@ -1,11 +1,25 @@
 #!/bin/bash
 # vim:ts=4:sw=4:softtabstop=4:smarttab:expandtab
 set -eu -o pipefail
+#
+#   This script builds a few different Docker subdirectories
+#    - meson - to build a Docker image useful for building other minimal (non-shared-text) objects
+#              using meson
+#    - nanoprobe: A docker image built on top of 'meson' which builds the nanoprobe
+#                 distro-independent and version independent mostly-non-shared-text nanoprobe
+#                 binary
+#
+#    - cma: The docker image containing a full-fledged running CMA
+#
+#   Permissible arguments are:
+#       (no arguments) - just build the docker images
+#       upload - upload our docker images to Docker hub
+#       push - same as upload
 for directory in meson nanoprobe
 do
     (
-        echo "================= Building $directory docker container ================="
-        cd $directory
+        echo "================= Building ${directory} docker container ================="
+        cd ${directory}
         ./dockit  "$@"
         echo ""
     )

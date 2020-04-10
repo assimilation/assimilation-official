@@ -21,14 +21,13 @@ version = '2.0.0'
 
 dirdelim = '/'
 share = '/usr/share/assimilation' + dirdelim
-crypto_dir = share + dirdelim + 'crypto.d'
+crypto_dir = share + 'crypto.d'
 neo4j_creds = crypto_dir + dirdelim + 'neo4j.creds'
 
 best_practices  = share + 'best_practices'
 queries  = share + 'queries'
 monrules  = share + 'monrules'
 notification_d = share + 'notification.d'
-neo4j_creds  = share + 'neo4j.creds'
 cc = meson.get_compiler('c')
 
 

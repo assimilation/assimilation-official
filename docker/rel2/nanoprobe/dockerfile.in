@@ -50,6 +50,7 @@ ADD meson.build /tmp/build/src/
 ADD src/cma/frameinfo.py /tmp/build/src/cma
 ENV PKG_CONFIG_PATH /usr/local/lib/pkgconfig/
 ADD src/ /tmp/build/src/
+RUN rm -f /tmp/build/src/include/projectcommon.h
 RUN time /usr/local/bin/meson /tmp/build/bin/
 WORKDIR /tmp/build/bin
 RUN time /usr/local/bin/ninja

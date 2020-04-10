@@ -35,10 +35,12 @@ import grp
 import inject
 import py2neo
 import neobolt.exceptions as NeoExceptions
+from AssimCtypes import NEO4JCREDFILENAME, CMAUSERID
 from neo4j import NeoDockerServer, NeoServer
 from store import Store
 from cmadb import CMAdb
-from AssimCtypes import NEO4JCREDFILENAME, CMAUSERID
+from hbring import HbRing
+from transaction import NetTransaction
 
 
 class Neo4jCreds(object):
@@ -76,8 +78,11 @@ class Neo4jCreds(object):
             time.sleep(0.1)
         if not self.neoserver.is_password_set():
             print("Neo4j does not currently have a password set", file=stderr)
-            if os.path.exists(self.neo4j_cred_filename):
+            if os.access(self.neo4j_cred_filename, os.R_OK):
+                self._log.info(f"We know neo4j password {self.neo4j_cred_filename}")
+                print("We currently know a password for neo4j")
                 print("We currently know a password for neo4j", file=stderr)
+                time.sleep(5)
                 self.name, self.auth = self._read_neo4j_credentials()
             else:
                 print("We currently DO NOT know a password for neo4j", file=stderr)
@@ -86,12 +91,25 @@ class Neo4jCreds(object):
             self.neoserver.set_initial_password(self.auth)
             self._save_credentials()
         else:
+            print("Neo4j currently HAS a password set", file=stderr)
             self.name, self.auth = self._read_neo4j_credentials()
+            if self.name is None or self.auth is None:
+                raise RuntimeError(f"Current Neo4j credentials"
+                                   f"[{self.neo4j_cred_filename}] are unknown.")
 
     def _read_neo4j_credentials(self):
         """Read the Neo4j credentials from our cache file..."""
-        with open(self.neo4j_cred_filename) as f:
-            return f.readline().strip(), f.readline().strip()
+        try:
+            with open(self.neo4j_cred_filename) as f:
+                return f.readline().strip(), f.readline().strip()
+        except PermissionError as oops:
+            print(f"Cannot read {self.neo4j_cred_filename}: Permission Denied. {oops}")
+            raise oops
+        except FileNotFoundError as oops:
+            return None, None
+        except OSError as oops:
+            print(f"Cannot read {self.neo4j_cred_filename}: {oops.__class__.__name__}: {oops}")
+            raise oops
 
     @staticmethod
     def randpass(length):
@@ -440,7 +458,7 @@ class CMAinit(object):
         CMAdb.io = io
         CMAdb.store = store
         self.db = db
-        self.store = store
+        self.store: Store = store
         self.io = io
         self.debug = debug
 
@@ -452,8 +470,6 @@ class CMAinit(object):
 
         CMAdb.use_network = use_network
         if not store.readonly:
-            from hbring import HbRing
-            from transaction import NetTransaction
 
             CMAdb.net_transaction = NetTransaction(io=io, encryption_required=encryption_required)
             # print("CMAdb:", CMAdb, file=sys.stderr)
