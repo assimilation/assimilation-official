@@ -59,6 +59,7 @@ from AssimCtypes import (
     struct__FrameSet,
     struct__GSList,
     struct__NetIO,
+    struct__ReliableUDP,
     g_slist_free,
     MALLOC,
     FRAMETYPE_SIG,
@@ -213,6 +214,7 @@ from frameinfo import FrameTypes, FrameSetTypes
 Frame_p = POINTER(struct__Frame)
 FrameSet_p = POINTER(struct__FrameSet)
 NetIO_p = POINTER(struct__NetIO)
+ReliableUDP_p = POINTER(struct__ReliableUDP)
 
 
 def u_string_at(s: bytes, size: int = -1) -> Optional[str]:
@@ -238,6 +240,7 @@ class cClass(object):
     AssimObj = POINTER(AssimCtypes.AssimObj)
     NetAddr = POINTER(AssimCtypes.NetAddr)
     NetIO = POINTER(AssimCtypes.NetIO)
+    ReliableUDP = POINTER(AssimCtypes.ReliableUDP)
     Frame = POINTER(AssimCtypes.Frame)
     AddrFrame = POINTER(AssimCtypes.AddrFrame)
     IntFrame = POINTER(AssimCtypes.IntFrame)
@@ -1727,16 +1730,16 @@ class pyCryptFrame(pyFrame):
             raise ValueError("Problem with key id %s or identity %s" % (key_id, identityname))
 
     @staticmethod
-    def get_identity(key_id):
+    def get_identity(key_id: str):
         """Return the identity associated with the given key id"""
         assert key_id is not None
-        cret = cryptframe_whois_key_id(str(key_id))
+        cret: Optional[bytes] = cryptframe_whois_key_id(key_id.encode('utf-8'))
         if not cret:
             return None
-        return str(cret)
+        return cret.decode('utf-8')
 
     @staticmethod
-    def get_dest_identity(destaddr):
+    def get_dest_identity(destaddr: str) -> Optional[str]:
         """Return the identity associated with this pyNetAddr"""
         key_id = pyCryptFrame.get_dest_key_id(destaddr)
         if key_id is None:
@@ -1744,21 +1747,21 @@ class pyCryptFrame(pyFrame):
         return pyCryptFrame.get_identity(key_id)
 
     @staticmethod
-    def get_dest_key_id(destaddr):
+    def get_dest_key_id(destaddr: str) -> Optional[str]:
         """Return the key_id associated with this pyNetAddr"""
-        cret = cryptframe_get_dest_key_id(destaddr._Cstruct)
+        cret: Optional[bytes] = cryptframe_get_dest_key_id(destaddr._Cstruct)
         if not cret:
             return None
-        return str(cret)
+        return cret.decode('utf-8')
 
     @staticmethod
-    def dest_set_key_id(destaddr, key_id):
+    def dest_set_key_id(destaddr: str, key_id: str):
         """Set the public key we should use when talking to the given destination
         address (including port).
         """
         if not destaddr._Cstruct or key_id is None:
             raise ValueError("illegal parameters")
-        if not cryptframe_set_dest_key_id(destaddr._Cstruct, str(key_id)):
+        if not cryptframe_set_dest_key_id(destaddr._Cstruct, key_id.encode('utf-8')):
             raise ValueError("Inappropriate key_id %s" % key_id)
 
 
@@ -2117,7 +2120,7 @@ class pyConfigContext(pyAssimObj):
     def getstring(self, name):
         """Return the string associated with "name\""""
         ret = self._Cstruct[0].getstring(self._Cstruct, name)
-        if ret:
+        if ret is not None:
             assert not isinstance(u_string_at(ret), bytes)
             return u_string_at(ret)
         raise IndexError("No such String value [%s]" % name)
@@ -2519,20 +2522,6 @@ class pyNetIO(pyAssimObj):
             base = base.baseclass
         return pySignFrame(0, Cstruct=cast(base.signframe(self._Cstruct), cClass.SignFrame))
 
-    def connstate(self, peeraddr, qid=DEFAULT_FSP_QID):
-        """Return the state of this connection - return value is one of the pyNetIO constants"""
-        fsproto = self._Cstruct[0]._protocol
-        return fsproto[0].connstate(fsproto, qid, peeraddr._Cstruct)
-
-    def connactive(self, peeraddr, qid=DEFAULT_FSP_QID):
-        """Return TRUE if this connection is active.
-        That is, if it's established and not in shutdown.
-        Note that the presence of timeouts doesn't make a connection inactive.
-        We can time out for days and still think the connection is active.
-        """
-        connstate = self.connstate(peeraddr, qid)
-        return connstate == pyNetIO.CONN_INIT or connstate == pyNetIO.CONN_UP
-
     def sendframesets(self, destaddr, framesetlist):
         """Send the (collection of) frameset(s) out on this pyNetIO"""
         if destaddr.port() == 0:
@@ -2637,16 +2626,37 @@ class pyReliableUDP(pyNetIOudp):
         self._Cstruct = None  # Keep error legs from complaining.
         if Cstruct is None:
             Cstruct = reliableudp_new(0, config._Cstruct, packetdecoder._Cstruct, rexmit_timer_uS)
+        else:
+            print(f"Relable__init__ from parameter: {Cstruct}", file=stderr)
         if not Cstruct:
             raise ValueError("Invalid parameters to pyReliableUDP constructor")
         pyNetIOudp.__init__(self, config, packetdecoder, Cstruct=Cstruct)
+        #
+        # At this point NetIO will have cast self._Cstruct as a NetIO object
+        # because most of the calls are NetIO calls. The few that are unique to
+        # ReliableUDP have to cast their arguments as ReliableUDP
+        #
+        print(f"Reliable__init__: CLASS OF {self._Cstruct} BASE: {type(self._Cstruct)}",
+              file=stderr)
 
     def log_conn(self, destaddr, qid=DEFAULT_FSP_QID):
         """Log connection status/info to system logs"""
-        base = self._Cstruct[0]
-        while not_this_exact_type(base, ReliableUDP):
-            base = base.baseclass
-        base.log_conn(self._Cstruct, qid, destaddr._Cstruct)
+        cstruct = cast(self._Cstruct, ReliableUDP_p)
+        cstruct[0].log_conn(self._Cstruct, qid, destaddr._Cstruct)
+
+    def connstate(self, peeraddr, qid=DEFAULT_FSP_QID):
+        """Return the state of this connection - return value is one of the pyNetIO constants"""
+        fsproto = cast(self._Cstruct, ReliableUDP_p)[0]._protocol
+        return fsproto[0].connstate(fsproto, qid, peeraddr._Cstruct)
+
+    def connactive(self, peeraddr, qid=DEFAULT_FSP_QID):
+        """Return TRUE if this connection is active.
+        That is, if it's established and not in shutdown.
+        Note that the presence of timeouts doesn't make a connection inactive.
+        We can time out for days and still think the connection is active.
+        """
+        connstate = self.connstate(peeraddr, qid)
+        return connstate == pyNetIO.CONN_INIT or connstate == pyNetIO.CONN_UP
 
 
 class CMAlib(object):
