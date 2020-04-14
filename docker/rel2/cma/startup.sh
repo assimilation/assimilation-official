@@ -41,6 +41,12 @@ fix_install() {
             chown "${OWNERSHIP}" "${dir}"
         fi
     done
+    chown $OWNERSHIP /usr/share/assimilation
+    for file in /usr/share/assimilation assim_json.sqlite assim_json.sqlite-journal
+    do
+        touch $file
+	chmod g+w $file
+    done
 }
 
 fix_install

@@ -150,7 +150,7 @@ class MessageDispatcher(object):
 
         sys.stdout.flush()
         print("MessageDispatcher exception [%s] occurred" % e, file=sys.stderr)
-        CMAdb.log.critical(
+        CMAdb.log.exception(
             "MessageDispatcher exception [%s] occurred while"
             " handling [%s] FrameSet from %s" % (e, fstypename, origaddr)
         )

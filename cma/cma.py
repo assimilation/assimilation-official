@@ -393,6 +393,9 @@ def main():
     io.setsendbufsize(1024 * 1024)  # Most of the traffic volume is inbound from discovery
     cmainit.CMAInjectables.set_config(configinfo)
     cmainit.CMAInjectables.default_cma_injection_configuration()
+    userinfo = pwd.getpwnam(opt.userid)
+    os.chown(config.get("SQLiteFile"), userinfo.pw_uid, userinfo.pw_gid)
+    os.chown(config.get("SQLiteFile") + '-journal', userinfo.pw_uid, userinfo.pw_gid)
     drop_privileges_permanently(opt.userid)
     try:
         cmainit.CMAinit(io, cleanoutdb=opt.erasedb, debug=(opt.debug > 0))

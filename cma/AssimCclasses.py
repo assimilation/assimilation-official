@@ -1905,11 +1905,11 @@ class pyFrameSet(pyAssimObj):
         # print('sender_key_id: TYPE(ret)', type(ret), 'ret', ret,
         #         'raw', ret.raw, 'data', ret.data, file=stderr)
         # print('sender_key_id: str(ret)', str(ret), type(str(ret)), not ret, file=stderr)
-        # print type(ret.raw), ret.raw, file=stderr)
         if not ret:
             # print('Returning None(!)', self.get_framesettype(), file=stderr)
             return None
-        pyret = u_string_at(ret.raw)
+        print('SENDER_KEY_ID:', type(ret), ret, file=stderr)
+        pyret = u_string_at(ret)
         # print('PYRET:', type(pyret), 'pyret:', pyret, file=stderr)
         return pyret
 
@@ -2642,7 +2642,7 @@ class pyReliableUDP(pyNetIOudp):
     def log_conn(self, destaddr, qid=DEFAULT_FSP_QID):
         """Log connection status/info to system logs"""
         cstruct = cast(self._Cstruct, ReliableUDP_p)
-        cstruct[0].log_conn(self._Cstruct, qid, destaddr._Cstruct)
+        cstruct[0].log_conn(cstruct, qid, destaddr._Cstruct)
 
     def connstate(self, peeraddr, qid=DEFAULT_FSP_QID):
         """Return the state of this connection - return value is one of the pyNetIO constants"""

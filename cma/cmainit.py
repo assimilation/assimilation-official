@@ -348,7 +348,7 @@ class CMAInjectables(object):
         """
         from invariant_data import PersistentJSON, SQLiteJSON
 
-        store_filename = config.get("SQLiteFile", "/tmp/assimilation.sqlite")
+        store_filename = config.get("SQLiteFile", "/var/lib/assimilation/assim_json.sqlite")
         store_dirname = os.path.dirname(store_filename)
         if not os.path.isdir(store_dirname):
             try:

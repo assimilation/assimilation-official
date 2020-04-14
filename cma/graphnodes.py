@@ -22,7 +22,7 @@
 """ This module defines the classes for most of our CMA nodes ...  """
 # Pylint is nuts here...
 # pylint: disable=C0411
-from __future__ import print_function
+from typing import Optional
 import re
 import time
 import hashlib
@@ -1269,7 +1269,9 @@ class JSONMapNode(GraphNode):
     JSONTYPE_FIELD = "discovertype"
 
     @inject.params(persistentjson="PersistentJSON")
-    def __init__(self, json=None, jhash=None, is_current=True, jsontype=None, persistentjson=None):
+    def __init__(self, json=None, jhash=None, is_current=True, jsontype=None, persistentjson=None,
+                 time_create_ms: Optional[str] = None, nodetype: str = 'JSONMapNode',
+                 time_create_iso8601=None, domain=None):
         """
         Constructor for JSONMapNode:
 
@@ -1304,6 +1306,8 @@ class JSONMapNode(GraphNode):
         self.jhash = jhash
         self.jsontype = jsontype
         self.is_current = is_current
+        self.create_time_ms = time_create_ms
+        self.nodetype = nodetype
         if (jsontype, jhash) not in persistentjson:
             persistentjson.put(jsontype, jhash, json)
 
