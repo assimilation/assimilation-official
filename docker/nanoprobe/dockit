@@ -26,7 +26,8 @@ get_C_and_python_source() {
     mkdir -p ./src src/cma
     cp -a ../getsigningkey.py ../hashes.csv ./src
     (
-        cd ../../..
+        set -euo pipefail
+        cd ../..
         echo "Copying 'C' source for Docker image..."
         find clientlib include serverlib nanoprobe -name '*.[ch]' -print | cpio -pdmu $HERE/src/
     cp cma/frameinfo.py $HERE/src/cma

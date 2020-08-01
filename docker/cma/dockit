@@ -28,7 +28,7 @@ cp -a ../meson/toolrequirements.txt ${SRCDIR}
 cp -a ../../../buildtools/genpybindings.py ${SRCDIR}
 printf "Building %s: " "$DOCKER_TAG"
 time docker build ${QUIET} -t ${DOCKER_TAG} . 2>&1 | tee -i build.out
-# rm -fr ${SRCDIR}
+rm -fr ${SRCDIR}
 
 case ${1-nothing} in
     *push*|*upload*) docker push ${DOCKER_TAG};;

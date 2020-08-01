@@ -5,9 +5,11 @@
 #
 from centos:6.10
 # A vintage version of CentOS
-ENV PYVERS 3.6.10
+ENV PYVERS 3.6.11
 ENV PYCMD python3.6
-# 3.6.10 is the latest version of 3.6, which is sufficient to run meson
+# 3.6.11 is the latest version of 3.6, which is sufficient to run meson
+# The reason why I stuck to 3.6 was because of a Python bug which left us dead in the water.
+# However, that's fixed now.
 RUN yum -y update
 RUN yum -y install epel-release
 RUN yum -y groupinstall "Development Tools"

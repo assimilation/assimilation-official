@@ -7,7 +7,7 @@ inject
 neobolt
 neotime
 netaddr
-py2neo>=4.0.0
+py2neo>=4.0.0,<5
 requests
 uuid
 version_utils
