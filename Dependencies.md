@@ -7,8 +7,12 @@ These include:
   - C libraries for the nanoprobe
   - The version of Neo4j docker container
 # Python Modules
-## For building the CMA
-## For building Meson
+## For building the CMA Container
+The CMA's direct dependencies are in ```cma/min-requirements.txt```.
+Fully specified requirements are in ```cma/requirements.txt```
+As an aside, it requires the libraries the nanoprobe is built with.
+Of special note is ctypesgen, which is used to generate Python bindings for calling functions in the nanoprobe libraries.
+## For building our Meson Container
 We use Meson and Ninja to build the nanoprobe. Towards this end, we create a meson docker container with everything we need.
 This is because we want to build a version of the nanoprobe which is usable everywhere. This mean building it in an old crufty version of CentOS
 with a newer version of Python.
@@ -29,17 +33,24 @@ build it, and there are none at runtime beyond glibc.
 The versions of libsodium and libpcap which we use are controlled by ```docker/nanoprobe/dockerfile.in```
 ## C libraries for the Nanoprobe
 These are the libraries the nanoprobe uses:
-### glib
-[Glib](https://wiki.gnome.org/Projects/GLib) is a C library (not the same as glibc or libc),
+### glib2
+[Glib2](https://wiki.gnome.org/Projects/GLib) is a C library (not the same as glibc or libc),
 which provides some higher-level constructs including an event loop and various handy datastructures - such as hash tables, linked lists and so on.
-In addition, it isolates us from platform differences. In theory, this should make a Windows port of the nanoprobe possible. _We use the version which comes
-with the version of CentOS that we used to build our Meson container._
+In addition, it isolates us from platform differences. In theory, this should make a Windows port of the nanoprobe possible.
+_We use the version of glib2 which comeswith the version of CentOS that we used to build our Meson container._
 ### zlib
-Zlib is a compression library. _We use the version which come with the version of CentOS we used to build our Meson container._
+Zlib is a compression library
+_We use the version which come with the version of CentOS we used to build our Meson container._
 ### libsodium
-[Libsodium](https://github.com/jedisct1/libsodium) is a cryptographic library. It compiles easily on any platform, since it's only system connection is to system entropy (randomness). We compile it from source. Available on every platform.
+[Libsodium](https://github.com/jedisct1/libsodium) is a cryptographic library.
+It compiles easily on any platform, since it's only system connection is to system entropy (randomness).
+_We compile it from source_.
+Available on every platform.
 ### libpcap (or windows equivalent)
 [Libpcap](https://www.tcpdump.org/) is a library for listening to packets. We use it to listen for CDP and LLDP packets - which are _not_ IP packets. It is part of the tcpdump project.
+_We compile it from source_.
+There is a different version of this code available for Windows.
+The Windows version of this library's future was somewhat in flux the last time I looked.
 # Neo4j container
 [Neo4j](https://neo4j.com/) is a graph database. We use it through a [container](https://hub.docker.com/_/neo4j) which they supply.
   
