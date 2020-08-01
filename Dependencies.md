@@ -11,7 +11,7 @@ These include:
 The CMA's direct dependencies are in ```cma/min-requirements.txt```.
 Fully specified requirements are in ```cma/requirements.txt```
 As an aside, it requires the libraries the nanoprobe is built with.
-Of special note is ctypesgen, which is used to generate Python bindings for calling functions in the nanoprobe libraries.
+Of special note is [ctypesgen](https://github.com/davidjamesca/ctypesgen), which is used to generate Python bindings for calling functions in the nanoprobe libraries.
 ## For building our Meson Container
 We use Meson and Ninja to build the nanoprobe. Towards this end, we create a meson docker container with everything we need.
 This is because we want to build a version of the nanoprobe which is usable everywhere. This mean building it in an old crufty version of CentOS
