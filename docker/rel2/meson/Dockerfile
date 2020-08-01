@@ -28,4 +28,5 @@ RUN cd /tmp/Python-${PYVERS} && ./configure --prefix=/usr/local --enable-shared 
 RUN echo "Getting pip" && curl --silent https://bootstrap.pypa.io/get-pip.py -o /tmp/get-pip.py
 RUN ${PYCMD} /tmp/get-pip.py # Install Pip
 # Install meson and ninja
+ADD toolrequirements.txt .
 RUN ${PYCMD} -m pip install pip --upgrade && ${PYCMD} -m pip install -r toolrequirements.txt
