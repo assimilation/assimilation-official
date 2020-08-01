@@ -18,12 +18,16 @@ WORKDIR ${SRCDIR}
 # Compile and install libsodium - trusting as little as possible ;-)
 ENV LIBSODIUM_BASEURL=https://download.libsodium.org/libsodium/releases/libsodium-
 ENV LIBSODIUM_URL=${LIBSODIUM_BASEURL}${LIBSODIUM_VERSION}.tar.gz
+ENV TARFILE libsodium-${LIBSODIUM_VERSION}.tar.gz
 ENV LIBSODIUM_SIG=${LIBSODIUM_URL}.sig
+ENV SIGFILE ${TARFILE}.sig
 ENV LIBSODIUM_SIGNING_KEY https://download.libsodium.org/jedi.gpg.asc
 RUN pip3 install requests                               # Needed for getsigningkey.py
 RUN ${PYCMD} getsigningkey.py ${LIBSODIUM_SIGNING_KEY}  # Fetch and validate signing key...
 RUN gpg --import $(basename $LIBSODIUM_SIGNING_KEY)     # Import validated signing key
-RUN wget --quiet ${LIBSODIUM_URL} ${LIBSODIUM_SIG}      # Get libsodium and its signature
+# RUN wget --quiet ${LIBSODIUM_URL} ${LIBSODIUM_SIG}      # Get libsodium and its signature
+RUN curl -s ${LIBSODIUM_URL} -o ${TARFILE} # Get libsodium tar file
+RUN curl -s ${LIBSODIUM_SIG} -o ${SIGFILE} # Get libsodium signature
 RUN gpg $(basename ${LIBSODIUM_SIG})                    # Validate libsodium tar ballDD
 # NOTE: This will give a warning about not knowing if this is a trusted signature. That's OK...
 RUN tar xzf $(basename ${LIBSODIUM_URL})                # untar and install...

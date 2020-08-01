@@ -17,10 +17,10 @@ set -eu -o pipefail
 #       push - same as upload
 for directory in meson nanoprobe
 do
-    (
-        echo "================= Building ${directory} docker container ================="
-        cd ${directory}
-        ./dockit  "$@"
-        echo ""
-    )
+    echo "================= Building ${directory} docker container ================="
+    cd ${directory}
+    ./dockit  "$@"
+    cd -
+    echo ""
 done | tee -i dockit.out
+echo "All directories built successfully." | tee -a dockit.out
