@@ -2,11 +2,11 @@
 Our build process is a bit odd and very containerish.
 The steps are as follows:
  1. Build a Meson/Ninja container (based on CentOS 6)
- 2. Build the nanoprobe, in a container based off our Meson/Ninja container. The only thing we keep from this container is the universal nanoprobe binary.
- 3. Build The CMA container. This is the container which we customers will eventually run.
+ 2. Build the nanoprobe, in a container based off our Meson/Ninja container. The only thing we retain from this container is the "universal" nanoprobe binary.
+ 3. Build the CMA container. This is the container which our customers will eventually run.
  
  So, in the end what customers run on their various systems throught their domain is:
-  - lots of copies of the nanoprobe binary, running nearly everywhere
+  - lots of copies of the "universal" nanoprobe binary, running nearly everywhere
   - a single instance of the CMA container
 # Dependencies
 There are several kinds of dependencies in this project.
