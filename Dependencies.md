@@ -69,9 +69,9 @@ The Windows version of this library's future was somewhat in flux the last time 
 The version and edition of Neo4j that we use is found in [```cma/cmainit.py```](https://github.com/assimilation/assimilation-official/blob/rel_2_dev/cma/cmainit.py) (```NEOVERSION``` and ```NEOEDITION```).
   
 # Summary of Key Files controlling Versions
-  - [```docker/meson/Dockerfile```](https://github.com/assimilation/assimilation-official/blob/rel_2_dev/docker/meson/Dockerfile): Controls for the version of Python used by Meson and Ninja, and the version of CentOS, and glibc used to build the nanoprobe.
+  - [```docker/meson/Dockerfile```](https://github.com/assimilation/assimilation-official/blob/rel_2_dev/docker/meson/Dockerfile): Controls for the version of Python used by Meson and Ninja, and the version of CentOS 0 which controls the version of glibc and zlib used to build the nanoprobe.
   - [```docker/meson/toolrequirements.txt```](https://github.com/assimilation/assimilation-official/blob/rel_2_dev/docker/meson/toolrequirements.txt): Controls the version of Meson and Ninja used to build the nanoprobe.
-  - [```docker/nanoprobe/dockerfile.in```](https://github.com/assimilation/assimilation-official/blob/rel_2_dev/nanoprobe/dockerfile.in): - Controls the version of libsodium and libpcap that the nanoprobe uses.
+  - [```docker/nanoprobe/dockerfile.in```](https://github.com/assimilation/assimilation-official/blob/rel_2_dev/nanoprobe/dockerfile.in): Controls the version of libsodium and libpcap that the nanoprobe uses.
   - [```cma/min-requirements.txt```](https://github.com/assimilation/assimilation-official/blob/rel_2_dev/cma/min-requirements.txt): Specifies direct dependencies of Python packages used by the CMA (with minimum version constraints).
   - [```cma/requirements.txt```](https://github.com/assimilation/assimilation-official/blob/rel_2_dev/cma/requirement.txt): Fully specified set of all packages used by the CMA directly and indirectly. Built from min-requirements.txt.
-  - [```cma/cmainit.py```](https://github.com/assimilation/assimilation-official/blob/rel_2_dev/cma/cmainit.py) controls the version and edition of Neo4j that we use at runtime.
+  - [```cma/cmainit.py```](https://github.com/assimilation/assimilation-official/blob/rel_2_dev/cma/cmainit.py): controls the version and edition of Neo4j that we use at runtime.
