@@ -53,5 +53,5 @@ There is a different version of this code available for Windows.
 The Windows version of this library's future was somewhat in flux the last time I looked.
 # Neo4j container
 [Neo4j](https://neo4j.com/) is a graph database. We use it through a [container](https://hub.docker.com/_/neo4j) which they supply.
-The version and edition of Neo4j that we use is found in cma/cmainit.py (```NEOVERSION``` and ```NEOEDITION```).
+The version and edition of Neo4j that we use is found in [```cma/cmainit.py```](https://github.com/assimilation/assimilation-official/blob/rel_2_dev/cma/cmainit.py) (```NEOVERSION``` and ```NEOEDITION```).
   
