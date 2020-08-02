@@ -1,8 +1,8 @@
 # Our Build Process
 Our build process is a bit odd and _very_ containerish - and fully reproducible (or so we believe). It's all triggered by the script ```docker/dockit``` - which in turn calls subsidiary dockit scripts to build the various containers. In the end, we want a single CMA container, and a single "universal" nanoprobe binary.
 The steps are as follows:
- 1. Build a Meson/Ninja container (based on CentOS 6) using ```docker/meson/dockit```.
- 2. Build the nanoprobe, in a container based off our Meson/Ninja container using ```docker/nanoprobe/dockit```. The only thing we retain from this container is the "universal" nanoprobe binary.
+ 1. Build a Meson/Ninja container (based on CentOS 6) using ```docker/meson/dockit```. This is a "throwaway" container.
+ 2. Build the nanoprobe, in a container based off our Meson/Ninja container using ```docker/nanoprobe/dockit```. The only thing we retain from this container is the "universal" nanoprobe binary. This is also a "throwaway" container.
  3. Build the CMA container using ```docker/cma/dockit```. This is the container which our customers will eventually run.
  
  So, in the end what customers run on their various systems throught their domain is:
@@ -11,7 +11,7 @@ The steps are as follows:
 # External Dependencies
 There are several kinds of dependencies in this project.
 The reason for documenting them here is so they can be kept up to date
-after I've forgotten where all these various version dependencies and bindings are.
+after I've forgotten where all these various version dependencies and bindings are - which time will probably best be measured in hours ;-).
 
 These include:
   - Python modules: for the CMA and for building the nanoprobe
@@ -42,14 +42,18 @@ build it, and there are none at runtime beyond glibc.
 The versions of libsodium and libpcap which we use are controlled by ```docker/nanoprobe/dockerfile.in```
 ## C libraries for the Nanoprobe
 These are the libraries the nanoprobe uses:
+### glibc
+[Glibc](https://www.gnu.org/software/libc/) is the GNU C library. It is the only library which we dynamically link to be referenced as a shared library.
+Every Linux machine has a version of glibc, which we will then use at runtime. This will work nicely, provided that the version of glibc installed on the target machine is
+no older than the one we built against. _All other libraries are statically linked_.
 ### glib2
 [Glib2](https://wiki.gnome.org/Projects/GLib) is a C library (not the same as glibc or libc),
 which provides some higher-level constructs including an event loop and various handy datastructures - such as hash tables, linked lists and so on.
 In addition, it isolates us from platform differences. In theory, this should make a Windows port of the nanoprobe possible.
-_We use the version of glib2 which comes with the version of CentOS that we used to build our Meson container._
+_We statically link against the version of glib2 which comes with the version of CentOS that we used to build our Meson container._
 ### zlib
 Zlib is a compression library
-_We use the version of zlib which comes with the version of CentOS we used to build our Meson container._
+_We statically link against the version of zlib which comes with the version of CentOS we used to build our Meson container._
 ### libsodium
 [Libsodium](https://github.com/jedisct1/libsodium) is a cryptographic library.
 It compiles easily on any platform, since it's only system connection is to system entropy (randomness).
@@ -65,7 +69,7 @@ The Windows version of this library's future was somewhat in flux the last time 
 The version and edition of Neo4j that we use is found in [```cma/cmainit.py```](https://github.com/assimilation/assimilation-official/blob/rel_2_dev/cma/cmainit.py) (```NEOVERSION``` and ```NEOEDITION```).
   
 # Summary of Key Files controlling Versions
-  - [```docker/meson/Dockerfile```](https://github.com/assimilation/assimilation-official/blob/rel_2_dev/docker/meson/Dockerfile): Controls for the version of Python used by Meson and Ninja.
+  - [```docker/meson/Dockerfile```](https://github.com/assimilation/assimilation-official/blob/rel_2_dev/docker/meson/Dockerfile): Controls for the version of Python used by Meson and Ninja, and the version of CentOS, and glibc used to build the nanoprobe.
   - [```docker/meson/toolrequirements.txt```](https://github.com/assimilation/assimilation-official/blob/rel_2_dev/docker/meson/toolrequirements.txt): Controls the version of Meson and Ninja used to build the nanoprobe.
   - [```docker/nanoprobe/dockerfile.in```](https://github.com/assimilation/assimilation-official/blob/rel_2_dev/nanoprobe/dockerfile.in): - Controls the version of libsodium and libpcap that the nanoprobe uses.
   - [```cma/min-requirements.txt```](https://github.com/assimilation/assimilation-official/blob/rel_2_dev/cma/min-requirements.txt): Specifies direct dependencies of Python packages used by the CMA (with minimum version constraints).
