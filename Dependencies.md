@@ -37,10 +37,10 @@ These are the libraries the nanoprobe uses:
 [Glib2](https://wiki.gnome.org/Projects/GLib) is a C library (not the same as glibc or libc),
 which provides some higher-level constructs including an event loop and various handy datastructures - such as hash tables, linked lists and so on.
 In addition, it isolates us from platform differences. In theory, this should make a Windows port of the nanoprobe possible.
-_We use the version of glib2 which comeswith the version of CentOS that we used to build our Meson container._
+_We use the version of glib2 which comes with the version of CentOS that we used to build our Meson container._
 ### zlib
 Zlib is a compression library
-_We use the version which come with the version of CentOS we used to build our Meson container._
+_We use the version of zlib which comes with the version of CentOS we used to build our Meson container._
 ### libsodium
 [Libsodium](https://github.com/jedisct1/libsodium) is a cryptographic library.
 It compiles easily on any platform, since it's only system connection is to system entropy (randomness).
@@ -53,4 +53,5 @@ There is a different version of this code available for Windows.
 The Windows version of this library's future was somewhat in flux the last time I looked.
 # Neo4j container
 [Neo4j](https://neo4j.com/) is a graph database. We use it through a [container](https://hub.docker.com/_/neo4j) which they supply.
+The version and edition of Neo4j that we use is found in cma/cmainit.py (```NEOVERSION``` and ```NEOEDITION```).
   
