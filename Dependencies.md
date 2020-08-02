@@ -1,3 +1,14 @@
+# Build Process
+Our build process is a bit odd and very containerish.
+The steps are as follows:
+ 1. Build a Meson/Ninja container (based on CentOS 6)
+ 2. Build the nanoprobe, in a container based off our Meson/Ninja container. The only thing we keep from this container is the universal nanoprobe binary.
+ 3. Build The CMA container. This is the container which we customers will eventually run.
+ 
+ So, in the end what customers run on their various systems throught their domain is:
+  - lots of copies of the nanoprobe binary, running nearly everywhere
+  - a single instance of the CMA container
+# Dependencies
 There are several kinds of dependencies in this project.
 The reason for documenting them here is so they can be kept up to date
 after I've forgotten where all these various version dependencies and bindings are.
@@ -44,14 +55,15 @@ _We use the version of zlib which comes with the version of CentOS we used to bu
 ### libsodium
 [Libsodium](https://github.com/jedisct1/libsodium) is a cryptographic library.
 It compiles easily on any platform, since it's only system connection is to system entropy (randomness).
-_We compile it from source_.
+_We compile it from source_. The version of libpcap we use is controlled by ```src/docker/nanoprobe/dockerfile.in```
 Available on every platform.
 ### libpcap (or windows equivalent)
 [Libpcap](https://www.tcpdump.org/) is a library for listening to packets. We use it to listen for CDP and LLDP packets - which are _not_ IP packets. It is part of the tcpdump project.
-_We compile it from source_.
+_We compile it from source_. The version of libpcap we use is controlled by ```src/docker/nanoprobe/dockerfile.in```
 There is a different version of this code available for Windows.
 The Windows version of this library's future was somewhat in flux the last time I looked.
 # Neo4j container
 [Neo4j](https://neo4j.com/) is a graph database. We use it through a [container](https://hub.docker.com/_/neo4j) which they supply.
 The version and edition of Neo4j that we use is found in [```cma/cmainit.py```](https://github.com/assimilation/assimilation-official/blob/rel_2_dev/cma/cmainit.py) (```NEOVERSION``` and ```NEOEDITION```).
   
+# Key Files controlling versions
