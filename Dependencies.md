@@ -1,9 +1,9 @@
-# Build Process
-Our build process is a bit odd and very containerish.
+# Our Build Process
+Our build process is a bit odd and _very_ containerish. It's all triggered by the script ```docker/dockit``` - which in turn calls subsidiary dockit scripts to build the various containers. In the end, we want a single CMA container, and a single "universal" nanoprobe binary.
 The steps are as follows:
- 1. Build a Meson/Ninja container (based on CentOS 6)
- 2. Build the nanoprobe, in a container based off our Meson/Ninja container. The only thing we retain from this container is the "universal" nanoprobe binary.
- 3. Build the CMA container. This is the container which our customers will eventually run.
+ 1. Build a Meson/Ninja container (based on CentOS 6) using ```docker/meson/dockit```.
+ 2. Build the nanoprobe, in a container based off our Meson/Ninja container using ```docker/nanoprobe/dockit```. The only thing we retain from this container is the "universal" nanoprobe binary.
+ 3. Build the CMA container using ```docker/cma/dockit```. This is the container which our customers will eventually run.
  
  So, in the end what customers run on their various systems throught their domain is:
   - lots of copies of the "universal" nanoprobe binary, running nearly everywhere
@@ -65,9 +65,9 @@ The Windows version of this library's future was somewhat in flux the last time 
 The version and edition of Neo4j that we use is found in [```cma/cmainit.py```](https://github.com/assimilation/assimilation-official/blob/rel_2_dev/cma/cmainit.py) (```NEOVERSION``` and ```NEOEDITION```).
   
 # Summary of Key Files controlling Versions
-  - [```docker/meson/Dockerfile```](https://github.com/assimilation/assimilation-official/blob/rel_2_dev/docker/meson/Dockerfile): Controls for the version of Python used by Meson and Ninja - )_
+  - [```docker/meson/Dockerfile```](https://github.com/assimilation/assimilation-official/blob/rel_2_dev/docker/meson/Dockerfile): Controls for the version of Python used by Meson and Ninja.
   - [```docker/meson/toolrequirements.txt```](https://github.com/assimilation/assimilation-official/blob/rel_2_dev/docker/meson/toolrequirements.txt): Controls the version of Meson and Ninja used to build the nanoprobe.
   - [```docker/nanoprobe/dockerfile.in```](https://github.com/assimilation/assimilation-official/blob/rel_2_dev/nanoprobe/dockerfile.in): - Controls the version of libsodium and libpcap that the nanoprobe uses.
-  - [```cma/min-requirements.txt```](https://github.com/assimilation/assimilation-official/blob/rel_2_dev/cma/min-requirements.txt): Specifies direct dependencies of Python packages used by the CMA (mostly without version specification).
-  - [```cma/requirements.txt```](https://github.com/assimilation/assimilation-official/blob/rel_2_dev/cma/requirement.txt): Fully specified set of all packages used by the CMA directly and indirectly. Built from min-requirements.txt
+  - [```cma/min-requirements.txt```](https://github.com/assimilation/assimilation-official/blob/rel_2_dev/cma/min-requirements.txt): Specifies direct dependencies of Python packages used by the CMA (with minimum version constraints).
+  - [```cma/requirements.txt```](https://github.com/assimilation/assimilation-official/blob/rel_2_dev/cma/requirement.txt): Fully specified set of all packages used by the CMA directly and indirectly. Built from min-requirements.txt.
   - [```cma/cmainit.py```](https://github.com/assimilation/assimilation-official/blob/rel_2_dev/cma/cmainit.py) controls the version and edition of Neo4j that we use at runtime.
