@@ -42,6 +42,9 @@ from cmadb import CMAdb
 from hbring import HbRing
 from transaction import NetTransaction
 
+NEOVERSION = "3.5.12"
+NEOEDITION = "enterprise"
+
 
 class Neo4jCreds(object):
     """Neo4j credentials object.
@@ -69,7 +72,7 @@ class Neo4jCreds(object):
         if filename is None:
             filename = NEO4JCREDFILENAME
         self.neo4j_cred_filename = filename
-        self.neoserver = NeoDockerServer(version="3.5.12", edition="enterprise",
+        self.neoserver = NeoDockerServer(version=NEOVERSION, edition=NEOEDITION,
                                          accept_license=True)
         self.neoserver.start()
         for _ in range(50):
