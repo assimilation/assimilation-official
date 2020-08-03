@@ -18,7 +18,7 @@ The steps are as follows:
 # External Dependencies
 There are several kinds of dependencies in this project.
 The reason for documenting them here is so they can be kept up to date
-after I've forgotten where all these various version dependencies and bindings are - which time will probably best be measured in hours ;-).
+after I've forgotten where all these various version dependencies and bindings are (best be measured in hours ;-) ).
 
 These include:
   - Python modules: for the CMA and for building the nanoprobe
