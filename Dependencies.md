@@ -18,11 +18,6 @@ These include:
   - C libraries for the nanoprobe
   - The version of Neo4j docker container
 # Python Modules
-## For building the CMA Container
-The CMA's direct dependencies are in ```cma/min-requirements.txt```.
-Fully specified requirements are in ```cma/requirements.txt```
-As an aside, it requires the libraries the nanoprobe is built with.
-Of special note is [ctypesgen](https://github.com/davidjamesca/ctypesgen), which is used to generate Python bindings for calling functions in the nanoprobe libraries.
 ## For building our Meson Container
 We use Meson and Ninja to build the nanoprobe. Towards this end, we create a meson docker container with everything we need.
 This is because we want to build a version of the nanoprobe which is usable everywhere. This mean building it in an old crufty version of CentOS
@@ -39,27 +34,33 @@ The nanoprobe is built on top of our Meson docker image - since Meson and Ninja 
 The version of Python used for this build is whatever version is in the Meson docker image we built before.
 In the end, we build a version of the nanoprobe which only relies on glibc. This means that all its dependencies are used to
 build it, and there are none at runtime beyond glibc.
-The versions of libsodium and libpcap which we use are controlled by ```docker/nanoprobe/dockerfile.in```
-## C libraries for the Nanoprobe
+The versions of libsodium and libpcap which we use are controlled by ```docker/nanoprobe/dockerfile.in``
+`
+## For building the CMA Container
+The CMA's direct dependencies are in ```cma/min-requirements.txt```.
+Fully specified requirements are in ```cma/requirements.txt```
+As an aside, it requires the libraries the nanoprobe is built with.
+Of special note is [ctypesgen](https://github.com/davidjamesca/ctypesgen), which is used to generate Python bindings for calling functions in the nanoprobe libraries.
+# C libraries for bilding the Nanoprobe
 These are the libraries the nanoprobe uses:
-### glibc
+## glibc
 [Glibc](https://www.gnu.org/software/libc/) is the GNU C library. It is the only library which we dynamically link to be referenced as a shared library.
 Every Linux machine has a version of glibc, which we will then use at runtime. This will work nicely, provided that the version of glibc installed on the target machine is
 no older than the one we built against. _All other libraries are statically linked_.
-### glib2
+## glib2
 [Glib2](https://wiki.gnome.org/Projects/GLib) is a C library (not the same as glibc or libc),
 which provides some higher-level constructs including an event loop and various handy datastructures - such as hash tables, linked lists and so on.
 In addition, it isolates us from platform differences. In theory, this should make a Windows port of the nanoprobe possible.
 _We statically link against the version of glib2 which comes with the version of CentOS that we used to build our Meson container._
-### zlib
+## zlib
 Zlib is a compression library
 _We statically link against the version of zlib which comes with the version of CentOS we used to build our Meson container._
-### libsodium
+## libsodium
 [Libsodium](https://github.com/jedisct1/libsodium) is a cryptographic library.
 It compiles easily on any platform, since it's only system connection is to system entropy (randomness).
 _We compile it from source_. The version of libpcap we use is controlled by ```src/docker/nanoprobe/dockerfile.in```
 Available on every platform.
-### libpcap (or windows equivalent)
+## libpcap (or windows equivalent)
 [Libpcap](https://www.tcpdump.org/) is a library for listening to packets. We use it to listen for CDP and LLDP packets - which are _not_ IP packets. It is part of the tcpdump project.
 _We compile it from source_. The version of libpcap we use is controlled by ```src/docker/nanoprobe/dockerfile.in```
 There is a different version of this code available for Windows.
