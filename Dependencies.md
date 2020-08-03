@@ -63,7 +63,7 @@ _We statically link against the version of zlib which comes with the version of 
 It compiles easily on any platform, since it's only system connection is to system entropy (randomness).
 _We compile it from source_. The version of libpcap we use is controlled by ```src/docker/nanoprobe/dockerfile.in```
 Compilable for every platform.
-It's worth noting that there is a miminal verison of libsodium ([libhydrogen](https://github.com/jedisct1/libhydrogen))under development for
+It's worth noting that there is a miminal verison of libsodium ([libhydrogen](https://github.com/jedisct1/libhydrogen)) under development for
 embedded systems.
 ## libpcap (or windows equivalent)
 [Libpcap](https://www.tcpdump.org/) is a library for listening to packets. We use it to listen for CDP and LLDP packets - which are _not_ IP packets. It is part of the tcpdump project.
@@ -73,7 +73,8 @@ There is a library providing this capability for Windows.
 The Windows version of this library's future was somewhat in flux the last time I looked.
 # Neo4j container
 [Neo4j](https://neo4j.com/) is a graph database. We use it through a [container](https://hub.docker.com/_/neo4j) which they supply.
-The version and edition of Neo4j that we use is found in [```cma/cmainit.py```](https://github.com/assimilation/assimilation-official/blob/rel_2_dev/cma/cmainit.py) (```NEOVERSION``` and ```NEOEDITION```).
+The version and edition of Neo4j that we use is found in
+[```cma/cmainit.py```](https://github.com/assimilation/assimilation-official/blob/rel_2_dev/cma/cmainit.py) (```NEOVERSION``` and ```NEOEDITION```).
   
 # Summary of Key Files controlling Versions
   - [```docker/meson/Dockerfile```](https://github.com/assimilation/assimilation-official/blob/rel_2_dev/docker/meson/Dockerfile): Controls for the version of Python used by Meson and Ninja, and the version of CentOS - which in turn specifies the version of glibc and zlib used to build the nanoprobe.
