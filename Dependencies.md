@@ -51,7 +51,7 @@ The CMA's direct dependencies are in ```cma/min-requirements.txt```.
 Fully specified requirements are in ```cma/requirements.txt```
 As an aside, it requires the libraries the nanoprobe is built with.
 Of special note is [ctypesgen](https://github.com/davidjamesca/ctypesgen), which is used to generate Python bindings for calling functions in the nanoprobe libraries.
-# C libraries for bilding the Nanoprobe
+# C libraries for building the Nanoprobe
 These are the libraries the nanoprobe uses:
 ## glibc
 [Glibc](https://www.gnu.org/software/libc/) is the GNU C library.
