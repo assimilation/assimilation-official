@@ -46,25 +46,30 @@ Of special note is [ctypesgen](https://github.com/davidjamesca/ctypesgen), which
 These are the libraries the nanoprobe uses:
 ## glibc
 [Glibc](https://www.gnu.org/software/libc/) is the GNU C library. It is the only library which we dynamically link to be referenced as a shared library.
-Every Linux machine has a version of glibc, which we will then use at runtime. This will work nicely, provided that the version of glibc installed on the target machine is
+Every Linux machine has a version of glibc, which we will then use at runtime.
+This will work nicely, provided that the version of glibc installed on the target machine is
 no older than the one we built against. _All other libraries are statically linked_.
 ## glib2
 [Glib2](https://wiki.gnome.org/Projects/GLib) is a C library (not the same as glibc or libc),
 which provides some higher-level constructs including an event loop and various handy datastructures - such as hash tables, linked lists and so on.
 In addition, it isolates us from platform differences. In theory, this should make a Windows port of the nanoprobe possible.
 _We statically link against the version of glib2 which comes with the version of CentOS that we used to build our Meson container._
+This library should compile for Windows, but suitable versions of the library for Windows are no longer available precompiled.
 ## zlib
 Zlib is a compression library
 _We statically link against the version of zlib which comes with the version of CentOS we used to build our Meson container._
 ## libsodium
-[Libsodium](https://github.com/jedisct1/libsodium) is a cryptographic library.
+[Libsodium](https://github.com/jedisct1/libsodium) is a cryptographic library. **We compile libsodium from source**.
 It compiles easily on any platform, since it's only system connection is to system entropy (randomness).
 _We compile it from source_. The version of libpcap we use is controlled by ```src/docker/nanoprobe/dockerfile.in```
-Available on every platform.
+Compilable for every platform.
+It's worth noting that there is a miminal verison of libsodium ([libhydrogen](https://github.com/jedisct1/libhydrogen))under development for
+embedded systems.
 ## libpcap (or windows equivalent)
 [Libpcap](https://www.tcpdump.org/) is a library for listening to packets. We use it to listen for CDP and LLDP packets - which are _not_ IP packets. It is part of the tcpdump project.
-_We compile it from source_. The version of libpcap we use is controlled by ```src/docker/nanoprobe/dockerfile.in```
-There is a different version of this code available for Windows.
+**We compile it from source**. The version of libpcap we use is controlled by ```src/docker/nanoprobe/dockerfile.in```.
+Although this library works on every UNIX-like systems, it is highly system dependent.
+There is a library providing this capability for Windows.
 The Windows version of this library's future was somewhat in flux the last time I looked.
 # Neo4j container
 [Neo4j](https://neo4j.com/) is a graph database. We use it through a [container](https://hub.docker.com/_/neo4j) which they supply.
