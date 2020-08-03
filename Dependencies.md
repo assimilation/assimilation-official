@@ -80,7 +80,7 @@ It's worth noting that there is a miminal verison of libsodium ([libhydrogen](ht
 embedded systems.
 ## libpcap (or windows equivalent)
 [Libpcap](https://www.tcpdump.org/) is a library for listening to packets.
-We use it to listen for CDP and LLDP packets - which are _not_ IP packets.
+We use it to listen for ARP, CDP and LLDP packets - which are _not_ IP packets.
 Libpcap is part of the tcpdump project.
 **We compile libpcap from source**.
 The version of libpcap we use is controlled by ```src/docker/nanoprobe/dockerfile.in```.
