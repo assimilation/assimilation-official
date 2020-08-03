@@ -24,8 +24,9 @@ We use Meson and Ninja to build the nanoprobe. Towards this end, we create a mes
 This is because we want to build a version of the nanoprobe which is usable everywhere. This mean building it in an old crufty version of CentOS
 with a newer version of Python (compiled from source).
 We want as old a version of Linux as we can still get, yet a relatively recent version of Python.
-Everthing for this is in **```docker/meson```**. ```docker/meson/toolrequirements.txt``` controls
-the versions of [meson](https://mesonbuild.com/) and [ninja](https://ninja-build.org/) we need to build this container.
+Everthing for this is in **```docker/meson```**.
+```docker/meson/toolrequirements.txt``` controls
+the versions of [meson](https://mesonbuild.com/) and [ninja](https://ninja-build.org/) we include in this container.
 This container is built on top of an old version of CentOS (currently 6.10).
 This means our fully bound nanoprobe will work on any system whose glibc is not older than the version of CentOS we built on.
 You can find the version of CentOS in ```docker/meson/Dockerfile```. This file also specifies the version of Python that we use to run Meson and Ninja..
@@ -35,8 +36,7 @@ The nanoprobe is built on top of our Meson docker image - since Meson and Ninja 
 The version of Python used for this build is whatever version is in the Meson docker image we built before.
 In the end, we build a version of the nanoprobe which only relies on glibc. This means that all its dependencies are used to
 build it, and there are none at runtime beyond glibc.
-The versions of libsodium and libpcap which we use are controlled by ```docker/nanoprobe/dockerfile.in``
-`
+The versions of libsodium and libpcap which we use are controlled by ```docker/nanoprobe/dockerfile.in```
 ## For building the CMA Container
 The CMA's direct dependencies are in ```cma/min-requirements.txt```.
 Fully specified requirements are in ```cma/requirements.txt```
