@@ -61,8 +61,8 @@ _We statically link against the version of zlib which comes with the version of 
 ## libsodium
 [Libsodium](https://github.com/jedisct1/libsodium) is a cryptographic library. **We compile libsodium from source**.
 It compiles easily on any platform, since it's only system connection is to system entropy (randomness).
-_We compile it from source_. The version of libpcap we use is controlled by ```src/docker/nanoprobe/dockerfile.in```
-Compilable for every platform.
+The version of libpcap we use is controlled by ```src/docker/nanoprobe/dockerfile.in```
+Libsodium is compilable for every platform.
 It's worth noting that there is a miminal verison of libsodium ([libhydrogen](https://github.com/jedisct1/libhydrogen)) under development for
 embedded systems.
 ## libpcap (or windows equivalent)
