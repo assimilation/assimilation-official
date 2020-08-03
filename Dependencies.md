@@ -21,13 +21,13 @@ These include:
 ## For building our Meson Container
 We use Meson and Ninja to build the nanoprobe. Towards this end, we create a meson docker container with everything we need.
 This is because we want to build a version of the nanoprobe which is usable everywhere. This mean building it in an old crufty version of CentOS
-with a newer version of Python.
+with a newer version of Python (compiled from source).
 We want as old a version of Linux as we can still get, yet a relatively recent version of Python.
 Everthing for this is in **```docker/meson```**. ```docker/meson/toolrequirements.txt``` contains
 the versions of [meson](https://mesonbuild.com/) and [ninja](https://ninja-build.org/) we need to build this container.
 This container is built on top of an old version of CentOS (currently 6.10).
 This means our fully bound nanoprobe will work on any system whose glibc is not older than the version of CentOS we built on.
-You can find the version of CentOS in ```docker/meson/Dockerfile```. This also contains the version of Python that we use.
+You can find the version of CentOS in ```docker/meson/Dockerfile```. This file also specifies the version of Python that we use to run Meson and Ninja..
 It must be >= 3.6. 
 ## For building the nanoprobe
 The nanoprobe is built on top of our Meson docker image - since Meson and Ninja are needed to build it.
