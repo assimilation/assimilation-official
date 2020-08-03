@@ -2,7 +2,7 @@
 Our build process is a bit odd and _very_ containerish - and fully reproducible (or so we believe). It's all triggered by the script ```docker/dockit``` - which in turn calls subsidiary dockit scripts to build the various containers. In the end, we want a single CMA container, and a single "universal" nanoprobe binary.
 The steps are as follows:
  1. Build a Meson/Ninja container (based on CentOS 6) using ```docker/meson/dockit```. This is a "throwaway" container.
- 2. Build the nanoprobe, in a container based off our Meson/Ninja container using ```docker/nanoprobe/dockit```. The only thing we retain from this container is the "universal" nanoprobe binary. This is also a "throwaway" container - once we extract the nanoprobe binary we've built.
+ 2. Build the nanoprobe, in a container based off our Meson/Ninja container using ```docker/nanoprobe/dockit```. The only thing we retain from this container is the "universal" nanoprobe binary. This is also a "throwaway" container - once we extract the nanoprobe binary we've built from it.
  3. Build the CMA container using ```docker/cma/dockit```. This is the container which our customers will eventually run.
  
  So, in the end what customers run on their various systems throught their domain is:
