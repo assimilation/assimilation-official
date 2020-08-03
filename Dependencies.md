@@ -8,7 +8,7 @@ The steps are as follows:
  So, in the end what customers run on their various systems throught their domain is:
   - lots of copies of the "universal" nanoprobe binary, running nearly everywhere
   - a single instance of the CMA container, which in turn runs and controls
-  - a single instance of a Neo3j container.
+  - a single instance of a Neo4j container.
 # External Dependencies
 There are several kinds of dependencies in this project.
 The reason for documenting them here is so they can be kept up to date
