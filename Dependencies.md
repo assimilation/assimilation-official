@@ -7,6 +7,7 @@ The steps are as follows:
  This is a "throwaway" container.
  2. Build the nanoprobe, in a container based off our Meson/Ninja container using ```docker/nanoprobe/dockit```.
  The only thing we retain from this container is the "universal" nanoprobe binary.
+ This is built by the the nanoprobe dockit script, and retained in the ```docker/nanoprobe``` directory.
  This is also a "throwaway" container - once we extract the nanoprobe binary we've built from it.
  3. Build the CMA container using ```docker/cma/dockit```.
  This is the container which our customers will eventually run.
