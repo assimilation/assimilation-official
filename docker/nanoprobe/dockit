@@ -41,6 +41,12 @@ printf "Building %s: " "$DOCKER_TAG"
 QUIET=-q
 QUIET=
 time docker build ${QUIET} -t ${DOCKER_TAG} . 2>&1 | tee -i build.out
+TARDIR=$(mktemp -d )
+docker run -v ${TARDIR}:/tmp/tar ${DOCKER_TAG} cp nanoprobe.tar.gz /tmp/tar
+tar xvzf  ${TARDIR}/nanoprobe.tar.gz 
+rm -fr $TARDIR
+echo "Checking integrity of nanoprobe binary"
+sha256sum --check sums # Make sure it's a clean copy
 
 case ${1-nothing} in
     *push*|*upload*) docker push ${DOCKER_TAG};;

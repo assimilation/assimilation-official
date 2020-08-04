@@ -54,4 +54,5 @@ RUN rm -f /tmp/build/src/include/projectcommon.h
 RUN time /usr/local/bin/meson /tmp/build/bin/
 WORKDIR /tmp/build/bin
 RUN time /usr/local/bin/ninja
-RUN sha256sum /tmp/build/bin/nanoprobe /tmp/build/bin/*.so /tmp/build/bin/*.a | tee sums
+RUN sha256sum nanoprobe | tee sums
+RUN tar czf nanoprobe.tar.gz nanoprobe sums 
