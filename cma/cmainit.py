@@ -42,7 +42,7 @@ from cmadb import CMAdb
 from hbring import HbRing
 from transaction import NetTransaction
 
-NEOVERSION = "3.5.12"
+NEOVERSION = "3.5.18"
 NEOEDITION = "enterprise"
 
 
@@ -506,16 +506,17 @@ class CMAinit(object):
         """
         qstring = "match (n) optional match (n)-[r]-() delete n,r"
 
-        # print("qstring is %s" % qstring, file=stderr)
+        print("qstring is %s" % qstring, file=stderr)
         start =time.time()
-        # print("delete_all: self.db is %s" % self.db, file=stderr)
+        print("delete_all: self.db is %s" % self.db, file=stderr)
         while True:
             try:
                 result = self.db.run(qstring)
                 # print(f"Waited {time.time()-start:.1f} seconds for neo4j to clean out database.")
                 break
             except NeoExceptions.ServiceUnavailable as oops:
-                pass
+                print("Waiting for Neo4j to come up...")
+                time.sleep(10)
         if CMAdb.debug:
             CMAdb.log.debug(
                 "Cypher query to delete all relationships"

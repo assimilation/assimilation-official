@@ -121,7 +121,7 @@ class NeoDockerServer(NeoServer):
     """
 
     edition_map = {"community": "", "enterprise": "-enterprise"}
-    good_versions = {"3"}
+    good_versions = {"3", "4"}
 
     initial_password_command = ["neo4j-admin", "set-initial-password"]
 
@@ -175,6 +175,7 @@ class NeoDockerServer(NeoServer):
                 "yes" if accept_license else "no"
             )
             assert accept_license
+        print(f"DIR: {dir(self)}")
 
         self.host = host
         self.root_directory = root_directory
@@ -390,7 +391,7 @@ class NeoDockerServer(NeoServer):
         :return:bool: True if password already set
         """
         name, _, extra = self._getpass()
-        extra = extra.strip()
+        extra = extra.strip() if extra else ""
         return name is not None and not extra
 
     def _unlink_auth_info(self):
@@ -463,7 +464,7 @@ if __name__ == "__main__":
         #  print(NeoDockerServer())
         #  print(NeoDockerServer(edition="enterprise", accept_license=True))
         # print(NeoDockerServer(edition="enterprise", version="3.5.0", accept_license=True))
-        neo4j = NeoDockerServer(edition="enterprise", version="3.5.6", accept_license=True)
+        neo4j = NeoDockerServer(edition="enterprise", version="4.1.1", accept_license=True)
         print("Now RUNNING:", neo4j)
         neo4j.start(restart_if_running=False)
         print("Is Neo4j running?", neo4j.is_running())

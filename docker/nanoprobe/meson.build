@@ -52,6 +52,8 @@ static_deps = [
 
 config_data = configuration_data({
     # Things the C code needs
+    'LICENSE_SHORT': 'GPLv3+',
+    'LICENSE_LONG': 'GNU Public License Version 3 or later',
     'PUBKEYSUFFIX': '.pub',
     'PRIVATEKEYSUFFIX': '.secret',
     'CMAADDR': '224.0.2.5:1984',
