@@ -5,11 +5,24 @@ script:
   - echo $TAVIS_OS_NAME
   - echo $TRAVIS_CPU_ARCH
   - uname -a
+  - cd /tmp
+  - wget https://github.com/borgified/assimilation-official/releases/download/test/nanoprobe
+  - echo "4be5fa9116cdf08a0eff3a60585af1832230df213f5fe734ea6f3c6ce8001640  nanoprobe" > nanoprobe.sha256sum
+  - sha256sum -c nanoprobe.sha256sum
+  - chmod +x nanoprobe
+  - ./nanoprobe
 
 jobs:
   include:
     - stage: test on different distributions
-      name: ubuntu precise 12.04
+      name: ubuntu 12.04
       dist: precise
     - stage: test on different distributions
-      name: ubuntu trusty 14.04
+      name: ubuntu 14.04
+      dist: trusty
+    - stage: test on different distributions
+      name: ubuntu 16.04
+      dist: xenial
+    - stage: test on different distributions
+      name: ubuntu 18.04
+      dist: bionic
