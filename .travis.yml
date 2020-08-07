@@ -2,11 +2,11 @@ language: minimal
 
 script:
   - echo $TRAVIS_DIST
-  - echo $TAVIS_OS_NAME
+  - echo $TRAVIS_OS_NAME
   - echo $TRAVIS_CPU_ARCH
   - uname -a
   - cd /tmp
-  - wget https://github.com/borgified/assimilation-official/releases/download/test/nanoprobe
+  - wget --quiet https://github.com/borgified/assimilation-official/releases/download/test/nanoprobe
   - echo "4be5fa9116cdf08a0eff3a60585af1832230df213f5fe734ea6f3c6ce8001640  nanoprobe" > nanoprobe.sha256sum
   - sha256sum -c nanoprobe.sha256sum
   - chmod +x nanoprobe
