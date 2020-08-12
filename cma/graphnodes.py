@@ -791,6 +791,18 @@ class Subnet(GraphNode):
         assert context is None or isinstance(context, str)
         assert not str(self).startswith("::/")
 
+    def __hash__(self) -> int:
+        """
+        Hash our Subnet. The name of a subnet is unique, and is the only thing used by __eq__
+        in comparisions.
+
+        So, it's perfectly legit to hash our name, so we can be put in sets or
+        appear as keys in dicts.
+
+        :return: int: hash of our name
+        """
+        return hash(self.name)
+
     @staticmethod
     def str_to_ip_cidr(ipaddr, cidrmask):
         """

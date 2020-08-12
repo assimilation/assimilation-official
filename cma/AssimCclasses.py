@@ -1908,7 +1908,7 @@ class pyFrameSet(pyAssimObj):
         if not ret:
             # print('Returning None(!)', self.get_framesettype(), file=stderr)
             return None
-        print('SENDER_KEY_ID:', type(ret), ret, file=stderr)
+        # print('SENDER_KEY_ID:', type(ret), ret, file=stderr)
         pyret = u_string_at(ret)
         # print('PYRET:', type(pyret), 'pyret:', pyret, file=stderr)
         return pyret
