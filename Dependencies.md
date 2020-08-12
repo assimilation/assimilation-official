@@ -99,6 +99,6 @@ The version and edition of Neo4j that we use is found in
   - [```docker/meson/toolrequirements.txt```](https://github.com/assimilation/assimilation-official/blob/rel_2_dev/docker/meson/toolrequirements.txt): Controls the version of Meson and Ninja used to build the nanoprobe.
   - [```docker/nanoprobe/dockerfile.in```](https://github.com/assimilation/assimilation-official/blob/rel_2_dev/docker/nanoprobe/dockerfile.in): Controls the version of libsodium and libpcap that the nanoprobe uses.
   - [```cma/min-requirements.txt```](https://github.com/assimilation/assimilation-official/blob/rel_2_dev/cma/min-requirements.txt): Specifies direct dependencies of Python packages used by the CMA (with minimal version constraints).
-  - [```cma/requirements.txt```](https://github.com/assimilation/assimilation-official/blob/rel_2_dev/cma/requirement.txt): Fully specified set of all packages used by the CMA directly and indirectly.
+  - [```cma/requirements.txt```](https://github.com/assimilation/assimilation-official/blob/rel_2_dev/cma/requirements.txt): Fully specified set of all packages used by the CMA directly and indirectly.
   Built from min-requirements.txt.
   - [```cma/cmainit.py```](https://github.com/assimilation/assimilation-official/blob/rel_2_dev/cma/cmainit.py): controls the version and edition of Neo4j that we use at runtime.
