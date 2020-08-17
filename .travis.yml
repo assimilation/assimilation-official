@@ -35,8 +35,6 @@ jobs:
 #    - stage: build
 #      name: nanoprobe
 #      dist: bionic
-#      env:
-#        VERSION: 2.0.0
 #      install:
 #        - cd /tmp
 #        - wget https://github.com/github/hub/releases/download/v2.14.2/hub-linux-amd64-2.14.2.tgz
@@ -54,6 +52,6 @@ jobs:
         - mkdir /tmp/package
         - cd /tmp/package
         - wget https://github.com/assimilation/assimilation-official/releases/download/v1.1.8-pre/nanoprobe
-        - docker build --build-arg VERSION -f $TRAVIS_BUILD_DIR/ci/Dockerfiles/ubuntu1804_fpm.dockerfile -t ubuntu_fpm /tmp/package/
+        - docker build --build-arg VERSION=2.0.0 -f $TRAVIS_BUILD_DIR/ci/Dockerfiles/ubuntu1804_fpm.dockerfile -t ubuntu_fpm /tmp/package/
         - docker run -v /tmp/package:/output ubuntu_fpm bash -c "cp /workdir/*.deb /output"
         - hub release edit -a "/tmp/package/*.deb" v1.1.8-pre
