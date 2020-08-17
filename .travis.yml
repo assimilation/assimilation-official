@@ -12,6 +12,12 @@ script:
   - chmod +x nanoprobe
   - ./nanoprobe
 
+stages:
+  - name: "test on different distributions"
+#  - name: build
+  - name: package
+
+
 jobs:
   include:
     - stage: test on different distributions
@@ -26,3 +32,28 @@ jobs:
     - stage: test on different distributions
       name: ubuntu 18.04
       dist: bionic
+#    - stage: build
+#      name: nanoprobe
+#      dist: bionic
+#      env:
+#        VERSION: 2.0.0
+#      install:
+#        - cd /tmp
+#        - wget https://github.com/github/hub/releases/download/v2.14.2/hub-linux-amd64-2.14.2.tgz
+#        - tar xvfz hub-linux-amd64-2.14.2.tgz
+#        - cd hub-linux-amd64-2.14.2/
+#        - sudo ./install
+#      script:
+#        - cd docker
+#        - ./dockit
+#        - docker run -v /tmp/package:/workdir -it assimilationproject/nanoprobe:2.0.0 bash -c "cp /tmp/build/bin/nanoprobe /workdir"
+#        - hub release edit -a "/tmp/package/nanoprobe#nanoprobe for linux" -m "fake release to test attaching binary" -m "test" v1.1.8-pre
+     - stage: package
+       name: debian
+       script:
+         - mkdir /tmp/package
+         - cd /tmp/package
+         - wget https://github.com/assimilation/assimilation-official/releases/download/v1.1.8-pre/nanoprobe
+         - docker build --build-arg VERSION -f $TRAVIS_BUILD_DIR/ci/Dockerfiles/ubuntu1804_fpm.dockerfile -t ubuntu_fpm /tmp/package
+         - docker run -v /tmp/package:/output ubuntu_fpm bash -c "cp /workdir/*.deb /output"
+         - hub release edit -a "/tmp/package/*.deb" v1.1.8-pre
