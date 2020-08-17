@@ -13,25 +13,25 @@ script:
   - ./nanoprobe
 
 stages:
-  - name: "test on different distributions"
+#  - name: "test on different distributions"
 #  - name: build
   - name: package
 
 
 jobs:
   include:
-    - stage: test on different distributions
-      name: ubuntu 12.04
-      dist: precise
-    - stage: test on different distributions
-      name: ubuntu 14.04
-      dist: trusty
-    - stage: test on different distributions
-      name: ubuntu 16.04
-      dist: xenial
-    - stage: test on different distributions
-      name: ubuntu 18.04
-      dist: bionic
+#    - stage: test on different distributions
+#      name: ubuntu 12.04
+#      dist: precise
+#    - stage: test on different distributions
+#      name: ubuntu 14.04
+#      dist: trusty
+#    - stage: test on different distributions
+#      name: ubuntu 16.04
+#      dist: xenial
+#    - stage: test on different distributions
+#      name: ubuntu 18.04
+#      dist: bionic
 #    - stage: build
 #      name: nanoprobe
 #      dist: bionic
