@@ -3,6 +3,7 @@ FROM ubuntu:18.04
 ARG DEBIAN_FRONTEND=noninteractive
 ARG VERSION
 
+ENV VERSION=$VERSION
 RUN apt-get -y update && apt-get -y install ruby ruby-dev build-essential
 RUN gem install --no-ri --no-rdoc fpm pleaserun
 
