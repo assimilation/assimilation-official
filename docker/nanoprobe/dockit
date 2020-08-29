@@ -35,6 +35,7 @@ get_C_and_python_source() {
     )
 }
 
+
 get_C_and_python_source
 generate_dockerfile
 printf "Building %s: " "$DOCKER_TAG"

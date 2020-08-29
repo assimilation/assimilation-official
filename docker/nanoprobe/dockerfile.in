@@ -54,5 +54,6 @@ RUN rm -f /tmp/build/src/include/projectcommon.h
 RUN time /usr/local/bin/meson /tmp/build/bin/
 WORKDIR /tmp/build/bin
 RUN time /usr/local/bin/ninja
-RUN sha256sum nanoprobe | tee sums
-RUN tar czf nanoprobe.tar.gz nanoprobe sums 
+RUN cp /usr/lib/libsodium.* /usr/lib/libpcap.* .
+RUN sha256sum nanoprobe libassimilation* libsodium.* libpcap.* | tee sums
+RUN tar czf nanoprobe.tar.gz nanoprobe libassimilation* libsodium.* libpcap.* sums
