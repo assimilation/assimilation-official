@@ -1,17 +1,5 @@
 language: minimal
 
-#script:
-#  - echo $TRAVIS_DIST
-#  - echo $TRAVIS_OS_NAME
-#  - echo $TRAVIS_CPU_ARCH
-#  - uname -a
-#  - cd /tmp
-#  - wget --quiet https://github.com/borgified/assimilation-official/releases/download/test/nanoprobe
-#  - echo "4be5fa9116cdf08a0eff3a60585af1832230df213f5fe734ea6f3c6ce8001640  nanoprobe" > nanoprobe.sha256sum
-#  - sha256sum -c nanoprobe.sha256sum
-#  - chmod +x nanoprobe
-#  - ./nanoprobe
-
 stages:
   - name: build
   - name: package
@@ -30,15 +18,15 @@ jobs:
     - stage: test on different distributions
       name: ubuntu 12.04
       dist: precise
-#    - stage: test on different distributions
-#      name: ubuntu 14.04
-#      dist: trusty
-#    - stage: test on different distributions
-#      name: ubuntu 16.04
-#      dist: xenial
-#    - stage: test on different distributions
-#      name: ubuntu 18.04
-#      dist: bionic
+    - stage: test on different distributions
+      name: ubuntu 14.04
+      dist: trusty
+    - stage: test on different distributions
+      name: ubuntu 16.04
+      dist: xenial
+    - stage: test on different distributions
+      name: ubuntu 18.04
+      dist: bionic
 #    - stage: build
 #      name: nanoprobe
 #      dist: bionic
