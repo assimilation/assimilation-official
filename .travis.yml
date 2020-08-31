@@ -48,10 +48,9 @@ jobs:
         - cd hub-linux-amd64-2.14.2/
         - sudo ./install
       script:
-        - cd docker
+        - cd $TRAVIS_BUILD_DIR/docker
         - ./dockit
         - docker run -v /tmp/package:/workdir -it assimilationproject/nanoprobe:2.0.0 bash -c "cp /tmp/build/bin/nanoprobe /workdir"
-        - cd $TRAVIS_BUILD_DIR
         - hub release edit -a "/tmp/package/nanoprobe#nanoprobe for linux" -m "fake release to test attaching binary" -m "test" v1.1.8-pre
     - stage: package
       name: debian
