@@ -27,39 +27,39 @@ jobs:
     - stage: test on different distributions
       name: ubuntu 18.04
       dist: bionic
-#    - stage: build
-#      name: nanoprobe
-#      dist: bionic
-#      install:
-#        - cd /tmp
-#        - wget --quiet https://github.com/github/hub/releases/download/v2.14.2/hub-linux-amd64-2.14.2.tgz
-#        - tar xvfz hub-linux-amd64-2.14.2.tgz
-#        - cd hub-linux-amd64-2.14.2/
-#        - sudo ./install
-#      script:
-#        - cd $TRAVIS_BUILD_DIR/docker
-#        - ./dockit
-#        - docker run -v /tmp/package:/workdir -it assimilationproject/nanoprobe:2.0.0 bash -c "cp /tmp/build/bin/nanoprobe /workdir"
-#        - cd $TRAVIS_BUILD_DIR && ci/scripts/attach_asset.sh /tmp/package nanoprobe v1.1.8-pre
-#    - stage: package
-#      name: debian
-#      install:
-#        - cd /tmp
-#        - wget --quiet https://github.com/github/hub/releases/download/v2.14.2/hub-linux-amd64-2.14.2.tgz
-#        - tar xvfz hub-linux-amd64-2.14.2.tgz
-#        - cd hub-linux-amd64-2.14.2/
-#        - sudo ./install
-#      script:
-#        - mkdir /tmp/package
-#        - cd /tmp/package
-#        - wget --quiet https://github.com/assimilation/assimilation-official/releases/download/v1.1.8-pre/nanoprobe
-#        - mkdir -p /tmp/package/usr/share/assimilation/discovery_agents
-#        - mkdir -p /tmp/package/usr/share/crypto.d
-#        - mkdir -p /tmp/package/usr/lib/ocf/resource.d/assimilation
-#        - cp $TRAVIS_BUILD_DIR/ocf/neo4j /tmp/package/usr/lib/ocf/resource.d/assimilation/
-#        - cp $TRAVIS_BUILD_DIR/legal/copyright /tmp/package/usr/share/assimilation/
-#        - cp $TRAVIS_BUILD_DIR/ci/scripts/fix.sh /tmp/package
-#        - rsync -a --exclude Windows $TRAVIS_BUILD_DIR/discovery_agents/ /tmp/package/usr/share/assimilation/discovery_agents/
-#        - docker build --build-arg VERSION=2.0.0 -f $TRAVIS_BUILD_DIR/ci/Dockerfiles/ubuntu1804_fpm.dockerfile -t ubuntu_fpm /tmp/package/
-#        - docker run -v /tmp/package:/output ubuntu_fpm bash -c "cp /workdir/*.deb /output"
-#        - cd $TRAVIS_BUILD_DIR && ci/scripts/attach_asset.sh /tmp/package nanoprobe_2.0.0_amd64.deb v1.1.8-pre
+    - stage: build
+      name: nanoprobe
+      dist: bionic
+      install:
+        - cd /tmp
+        - wget --quiet https://github.com/github/hub/releases/download/v2.14.2/hub-linux-amd64-2.14.2.tgz
+        - tar xvfz hub-linux-amd64-2.14.2.tgz
+        - cd hub-linux-amd64-2.14.2/
+        - sudo ./install
+      script:
+        - cd $TRAVIS_BUILD_DIR/docker
+        - ./dockit
+        - docker run -v /tmp/package:/workdir -it assimilationproject/nanoprobe:2.0.0 bash -c "cp /tmp/build/bin/nanoprobe /workdir"
+        - cd $TRAVIS_BUILD_DIR && ci/scripts/attach_asset.sh /tmp/package nanoprobe v1.1.8-pre
+    - stage: package
+      name: debian
+      install:
+        - cd /tmp
+        - wget --quiet https://github.com/github/hub/releases/download/v2.14.2/hub-linux-amd64-2.14.2.tgz
+        - tar xvfz hub-linux-amd64-2.14.2.tgz
+        - cd hub-linux-amd64-2.14.2/
+        - sudo ./install
+      script:
+        - mkdir /tmp/package
+        - cd /tmp/package
+        - wget --quiet https://github.com/assimilation/assimilation-official/releases/download/v1.1.8-pre/nanoprobe
+        - mkdir -p /tmp/package/usr/share/assimilation/discovery_agents
+        - mkdir -p /tmp/package/usr/share/crypto.d
+        - mkdir -p /tmp/package/usr/lib/ocf/resource.d/assimilation
+        - cp $TRAVIS_BUILD_DIR/ocf/neo4j /tmp/package/usr/lib/ocf/resource.d/assimilation/
+        - cp $TRAVIS_BUILD_DIR/legal/copyright /tmp/package/usr/share/assimilation/
+        - cp $TRAVIS_BUILD_DIR/ci/scripts/fix.sh /tmp/package
+        - rsync -a --exclude Windows $TRAVIS_BUILD_DIR/discovery_agents/ /tmp/package/usr/share/assimilation/discovery_agents/
+        - docker build --build-arg VERSION=2.0.0 -f $TRAVIS_BUILD_DIR/ci/Dockerfiles/ubuntu1804_fpm.dockerfile -t ubuntu_fpm /tmp/package/
+        - docker run -v /tmp/package:/output ubuntu_fpm bash -c "cp /workdir/*.deb /output"
+        - cd $TRAVIS_BUILD_DIR && ci/scripts/attach_asset.sh /tmp/package nanoprobe_2.0.0_amd64.deb v1.1.8-pre
