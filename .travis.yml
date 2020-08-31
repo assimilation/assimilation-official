@@ -1,28 +1,34 @@
 language: minimal
 
-script:
-  - echo $TRAVIS_DIST
-  - echo $TRAVIS_OS_NAME
-  - echo $TRAVIS_CPU_ARCH
-  - uname -a
-  - cd /tmp
-  - wget --quiet https://github.com/borgified/assimilation-official/releases/download/test/nanoprobe
-  - echo "4be5fa9116cdf08a0eff3a60585af1832230df213f5fe734ea6f3c6ce8001640  nanoprobe" > nanoprobe.sha256sum
-  - sha256sum -c nanoprobe.sha256sum
-  - chmod +x nanoprobe
-  - ./nanoprobe
+#script:
+#  - echo $TRAVIS_DIST
+#  - echo $TRAVIS_OS_NAME
+#  - echo $TRAVIS_CPU_ARCH
+#  - uname -a
+#  - cd /tmp
+#  - wget --quiet https://github.com/borgified/assimilation-official/releases/download/test/nanoprobe
+#  - echo "4be5fa9116cdf08a0eff3a60585af1832230df213f5fe734ea6f3c6ce8001640  nanoprobe" > nanoprobe.sha256sum
+#  - sha256sum -c nanoprobe.sha256sum
+#  - chmod +x nanoprobe
+#  - ./nanoprobe
 
 stages:
-#  - name: "test on different distributions"
-#  - name: build
+  - name: build
   - name: package
+  - name: "test on different distributions"
 
+script:
+  - wget --quiet https://github.com/assimilation/assimilation-official/releases/download/v1.1.8-pre/nanoprobe_2.0.0_amd64.deb
+  - dpkg -i nanoprobe_2.0.0_amd64.deb
+  - ls -al /usr/share/assimilation/copyright
+  - echo "4be5fa9116cdf08a0eff3a60585af1832230df213f5fe734ea6f3c6ce8001640  nanoprobe" > /tmp/nanoprobe.sha256sum
+  - cd /usr/bin && sha256sum -c /tmp/nanoprobe.sha256sum
 
 jobs:
   include:
-#    - stage: test on different distributions
-#      name: ubuntu 12.04
-#      dist: precise
+    - stage: test on different distributions
+      name: ubuntu 12.04
+      dist: precise
 #    - stage: test on different distributions
 #      name: ubuntu 14.04
 #      dist: trusty
@@ -32,20 +38,20 @@ jobs:
 #    - stage: test on different distributions
 #      name: ubuntu 18.04
 #      dist: bionic
-#    - stage: build
-#      name: nanoprobe
-#      dist: bionic
-#      install:
-#        - cd /tmp
-#        - wget https://github.com/github/hub/releases/download/v2.14.2/hub-linux-amd64-2.14.2.tgz
-#        - tar xvfz hub-linux-amd64-2.14.2.tgz
-#        - cd hub-linux-amd64-2.14.2/
-#        - sudo ./install
-#      script:
-#        - cd docker
-#        - ./dockit
-#        - docker run -v /tmp/package:/workdir -it assimilationproject/nanoprobe:2.0.0 bash -c "cp /tmp/build/bin/nanoprobe /workdir"
-#        - hub release edit -a "/tmp/package/nanoprobe#nanoprobe for linux" -m "fake release to test attaching binary" -m "test" v1.1.8-pre
+    - stage: build
+      name: nanoprobe
+      dist: bionic
+      install:
+        - cd /tmp
+        - wget https://github.com/github/hub/releases/download/v2.14.2/hub-linux-amd64-2.14.2.tgz
+        - tar xvfz hub-linux-amd64-2.14.2.tgz
+        - cd hub-linux-amd64-2.14.2/
+        - sudo ./install
+      script:
+        - cd docker
+        - ./dockit
+        - docker run -v /tmp/package:/workdir -it assimilationproject/nanoprobe:2.0.0 bash -c "cp /tmp/build/bin/nanoprobe /workdir"
+        - hub release edit -a "/tmp/package/nanoprobe#nanoprobe for linux" -m "fake release to test attaching binary" -m "test" v1.1.8-pre
     - stage: package
       name: debian
       install:
@@ -67,5 +73,4 @@ jobs:
         - rsync -a --exclude Windows $TRAVIS_BUILD_DIR/discovery_agents/ /tmp/package/usr/share/assimilation/discovery_agents/
         - docker build --build-arg VERSION=2.0.0 -f $TRAVIS_BUILD_DIR/ci/Dockerfiles/ubuntu1804_fpm.dockerfile -t ubuntu_fpm /tmp/package/
         - docker run -v /tmp/package:/output ubuntu_fpm bash -c "cp /workdir/*.deb /output"
-        # - cd $TRAVIS_BUILD_DIR && hub release edit -a /tmp/package/*.deb -m "fake release to test attaching binary" -m "test" v1.1.8-pre
         - cd $TRAVIS_BUILD_DIR && ci/scripts/attach_asset.sh /tmp/package nanoprobe_2.0.0_amd64.deb v1.1.8-pre
