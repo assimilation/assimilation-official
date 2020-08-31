@@ -18,6 +18,7 @@ stages:
   - name: "test on different distributions"
 
 script:
+  - cd /tmp/
   - wget --quiet https://github.com/assimilation/assimilation-official/releases/download/v1.1.8-pre/nanoprobe_2.0.0_amd64.deb
   - sudo dpkg -i nanoprobe_2.0.0_amd64.deb
   - ls -al /usr/share/assimilation/copyright
@@ -43,7 +44,7 @@ jobs:
 #      dist: bionic
 #      install:
 #        - cd /tmp
-#        - wget https://github.com/github/hub/releases/download/v2.14.2/hub-linux-amd64-2.14.2.tgz
+#        - wget --quiet https://github.com/github/hub/releases/download/v2.14.2/hub-linux-amd64-2.14.2.tgz
 #        - tar xvfz hub-linux-amd64-2.14.2.tgz
 #        - cd hub-linux-amd64-2.14.2/
 #        - sudo ./install
@@ -56,14 +57,14 @@ jobs:
 #      name: debian
 #      install:
 #        - cd /tmp
-#        - wget https://github.com/github/hub/releases/download/v2.14.2/hub-linux-amd64-2.14.2.tgz
+#        - wget --quiet https://github.com/github/hub/releases/download/v2.14.2/hub-linux-amd64-2.14.2.tgz
 #        - tar xvfz hub-linux-amd64-2.14.2.tgz
 #        - cd hub-linux-amd64-2.14.2/
 #        - sudo ./install
 #      script:
 #        - mkdir /tmp/package
 #        - cd /tmp/package
-#        - wget https://github.com/assimilation/assimilation-official/releases/download/v1.1.8-pre/nanoprobe
+#        - wget --quiet https://github.com/assimilation/assimilation-official/releases/download/v1.1.8-pre/nanoprobe
 #        - mkdir -p /tmp/package/usr/share/assimilation/discovery_agents
 #        - mkdir -p /tmp/package/usr/share/crypto.d
 #        - mkdir -p /tmp/package/usr/lib/ocf/resource.d/assimilation
