@@ -58,6 +58,13 @@ jobs:
         - mkdir /tmp/package
         - cd /tmp/package
         - wget https://github.com/assimilation/assimilation-official/releases/download/v1.1.8-pre/nanoprobe
+        - mkdir -p /tmp/package/usr/share/assimilation/discovery_agents
+        - mkdir -p /tmp/package/usr/share/crypto.d
+        - mkdir -p /tmp/package/usr/lib/ocf/resource.d/assimilation
+        - cp $TRAVIS_BUILD_DIR/ocf/neo4j /tmp/package/usr/lib/ocf/resource.d/assimilation/
+        - cp $TRAVIS_BUILD_DIR/legal/copyright /tmp/package/usr/share/assimilation/
+        - cp $TRAVIS_BUILD_DIR/ci/scripts/delete.sh /tmp/package
+        - rsync -a --exclude Windows $TRAVIS_BUILD_DIR/discovery_agents/ /tmp/package/usr/share/assimilation/discovery_agents/
         - docker build --build-arg VERSION=2.0.0 -f $TRAVIS_BUILD_DIR/ci/Dockerfiles/ubuntu1804_fpm.dockerfile -t ubuntu_fpm /tmp/package/
         - docker run -v /tmp/package:/output ubuntu_fpm bash -c "cp /workdir/*.deb /output"
         # - cd $TRAVIS_BUILD_DIR && hub release edit -a /tmp/package/*.deb -m "fake release to test attaching binary" -m "test" v1.1.8-pre
