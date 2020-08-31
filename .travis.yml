@@ -51,6 +51,7 @@ jobs:
         - cd docker
         - ./dockit
         - docker run -v /tmp/package:/workdir -it assimilationproject/nanoprobe:2.0.0 bash -c "cp /tmp/build/bin/nanoprobe /workdir"
+        - cd $TRAVIS_BUILD_DIR
         - hub release edit -a "/tmp/package/nanoprobe#nanoprobe for linux" -m "fake release to test attaching binary" -m "test" v1.1.8-pre
     - stage: package
       name: debian
