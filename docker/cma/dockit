@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -eu
 # vim:ts=4:sw=4:softtabstop=4:smarttab:expandtab:filetype=sh
 #
 #   Script to build a CMA Docker container
@@ -8,14 +8,16 @@
 #       upload - upload our docker image to Docker hub
 #       push - same as upload
 #
+set -eu -o pipefail
 DOCKER_TAG=$(grep -v '#' < docker-tag.txt | head -n1)
 QUIET=-q
 QUIET=
 SRCDIR=$PWD/src
 mkdir -p ${SRCDIR}
 cp -a ../getsigningkey.py ../hashes.csv ${SRCDIR}
+cp ../nanoprobe/lib*.so* ../nanoprobe/frame*types.h .
 (
-    cd ../../..;
+    cd ../..;
     FLAGS=-pdmu
     find cma \( -path cma/.tox -prune -o -path cma/venv -prune \) -o \
         -type f -a \( -name '*.py' -o -name '*require*' -o -name 'tox.ini' \) |
@@ -25,10 +27,11 @@ cp -a ../getsigningkey.py ../hashes.csv ${SRCDIR}
 )
 cp -a ../nanoprobe/meson.build ${SRCDIR}
 cp -a ../meson/toolrequirements.txt ${SRCDIR}
-cp -a ../../../buildtools/genpybindings.py ${SRCDIR}
+cp -a ../../buildtools/genpybindings.py ${SRCDIR}
 printf "Building %s: " "$DOCKER_TAG"
 time docker build ${QUIET} -t ${DOCKER_TAG} . 2>&1 | tee -i build.out
-rm -fr ${SRCDIR}
+
+# rm -fr ${SRCDIR}
 
 case ${1-nothing} in
     *push*|*upload*) docker push ${DOCKER_TAG};;

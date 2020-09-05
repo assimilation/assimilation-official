@@ -357,6 +357,7 @@ class Store(object):
         :param clsargs: arguments to the class constructor
         :return: object: as created by the 'cls' constructor
         """
+        self.debug = True
         if self.debug:
             print("LOAD OR CREATE: %s" % (str(clsargs)))
             self._log.debug("LOAD OR CREATE: %s" % (str(clsargs)))
@@ -365,10 +366,11 @@ class Store(object):
             if self.debug:
                 print("LOADED node[%s]: %s" % (str(clsargs), str(obj)))
             return obj
-        # print('NOT LOADED node[%s]: %s' % (str(clsargs), str(obj)))
+        print('NOT LOADED node[%s]: %s' % (str(clsargs), str(obj)))
         subj = self.callconstructor(cls, clsargs)
         assert subj is not None
         self._audit_weaknodes_clients()
+        print(f"LOAD clsargs WERE {clsargs}")
         self.register(subj)
         self._audit_weaknodes_clients()
         if AssimEvent.event_observation_enabled:
@@ -429,14 +431,20 @@ class Store(object):
         if self.debug or debug:
             print("Starting query %s(%s)" % (querystr, params), file=stderr)
         cursor = self.db.run(querystr, params)
+        print("db.run complete.", file=stderr)
         while cursor.forward():
-            yield self._construct_obj_from_node(cursor.current[0])
+            print("cursor.forward complete.", file=stderr)
+            item = self._construct_obj_from_node(cursor.current[0])
+            print("construct_obj_from_node complete.", file=stderr)
+            if self.debug or debug:
+                print(f"YIELDING result: {item}", file=stderr)
+            yield item
             count += 1
             if maxcount is not None and count >= maxcount:
                 if debug:
                     print("quitting on maxcount (%d)" % count, file=stderr)
                 break
-        if debug:
+        if self.debug or debug:
             print("quitting on end of query output (%d)" % count, file=stderr)
         return
 
@@ -999,19 +1007,27 @@ class Store(object):
         :return:
         """
         # self._log.debug('WEAK CLIENTS: %s' % str(self.weaknoderefs.keys()))
+        print("In audit_weaknodes_clients", file=stderr)
         for client in self.clients:
+            print(f"audit_weaknodes_clients: {type(client)}", file=stderr)
             if client.association.node_id is not None:
                 # self._log.debug('NODE ID for other: %s' % client.association.node_id)
+                print(f"client.association: {client.association}", file=stderr)
+                print(f"client.association.node_id: {client.association.node_id}", file=stderr)
                 if client.association.node_id in self.weaknoderefs:
+                    print(f"found client.association.node_id: {client.association.node_id}",
+                          file=stderr)
                     other = self.weaknoderefs[client.association.node_id]()
                     assert other is client
                 else:
+                    print(f"CLIENT {client.association.node_id} IS MISSING FROM WEAK", file=stderr)
                     # This seems to happen - even though it shouldn't...
                     # self._log.critical('CLIENT %s MISSING FROM WEAKNODES!!'
                     #                    % client.association.node_id)
                     pass
 
         complete_set = self.clients
+        # print(f"COMPLETE SET {complete_set}", file=stderr)
         for node_id, subj in self.weaknoderefs.items():
             subj = subj()
             if subj is not None and subj not in complete_set:
@@ -1055,8 +1071,8 @@ class Store(object):
         # print('REGISTERING class %s: %s / %s' % (subj.__class__, object.__str__(subj), str(subj)),
         #       file=stderr)
         key_values = self._get_key_values(subj.__class__, subj=subj)
-        # print ('DOING LOCALSEARCH WITH %s' % key_values, file=stderr)
-        # self._log.debug('DOING LOCALSEARCH WITH %s' % key_values)
+        print ('DOING LOCALSEARCH WITH %s' % key_values, file=stderr)
+        self._log.debug('DOING LOCALSEARCH WITH %s' % key_values)
         other = self._localsearch(subj.__class__, key_values)
         if other is subj:
             return
@@ -1070,11 +1086,19 @@ class Store(object):
                 "register-ing [%s] with node %s [node id:%s], %s"
                 % (type(subj), node, self.neo_node_id(node), type(node))
             )
+            print(
+                "register-ing [%s] with node %s [node id:%s], %s"
+                % (type(subj), node, self.neo_node_id(node), type(node)),
+                file=stderr
+            )
             self._log.debug("Clients of %s include: %s" % (self, str(self.clients)))
+            print("Clients of %s include: %s" % (self, str(self.clients)), file=stderr)
 
         if node is None:
+            print(f"CREATING NODE {subj}", file=stderr)
             self.execute_create_node(subj)
             node_id = subj.association.node_id
+            print(f"CREATED NODE {subj} with node id {node_id}", file=stderr)
         else:
             node_id = self.neo_node_id(node)
             subj.association.node_id = node_id
@@ -1088,8 +1112,9 @@ class Store(object):
                 weakling.__dict__,
                 file=stderr,
             )
+            print(f"NODE ATTEMPTING REGISTRATION: {type(subj)}: {subj}")
+            print("Calling audit_weaknodes_clients", file=stderr)
             self._audit_weaknodes_clients()
-
             raise ValueError("Node id %s already registered" % node_id)
         else:
             if self.debug:
@@ -1118,10 +1143,11 @@ class Store(object):
         :param subj:
         :return: None
         """
+        print(f"IN execute_create_node {subj}")
         assert isinstance(subj, self.graph_node)
         cypher = subj.association.cypher_create_node_query()
         cypher += "\n RETURN ID(%s)" % subj.association.variable_name
-        if self.debug:
+        if True or self.debug:
             print("CREATE CYPHER: %s" % cypher, file=stderr)
             self._log.info("CREATE CYPHER: %s" % cypher)
         node_id = self.db_transaction.evaluate(cypher)

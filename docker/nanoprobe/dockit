@@ -44,6 +44,7 @@ QUIET=
 time docker build ${QUIET} -t ${DOCKER_TAG} . 2>&1 | tee -i build.out
 TARDIR=$(mktemp -d )
 docker run -v ${TARDIR}:/tmp/tar ${DOCKER_TAG} cp nanoprobe.tar.gz /tmp/tar
+tar tzf ${TARDIR}/nanoprobe.tar.gz 
 tar xvzf  ${TARDIR}/nanoprobe.tar.gz 
 rm -fr $TARDIR
 echo "Checking integrity of nanoprobe binary"

@@ -31,7 +31,9 @@ discovery packets as they arrive.
 
 More details are documented in the DiscoveryListener class
 """
-import sys, hashlib
+import sys
+from sys import stderr
+import hashlib
 from monitoring import MonitoringRule, MonitorAction
 from systemnode import SystemNode
 from graphnodes import ProcessNode

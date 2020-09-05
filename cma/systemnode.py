@@ -375,9 +375,12 @@ class SystemNode(GraphNode):
         WHERE ID(self) = $id AND nic.ifname = $ifname
         RETURN nic
         """
-        return self.association.store.load_cypher_node(
+        nic = self.association.store.load_cypher_node(
             query, {"id": self.association.node_id, "ifname": ifname}
         )
+        if nic is None:
+            print(f"FAILING to find NIC ifname = {ifname} for {self}")
+        return nic
 
 
 @registergraphclass

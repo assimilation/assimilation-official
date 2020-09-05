@@ -13,7 +13,7 @@ ENV LIBSODIUM_VERSION=1.0.18
 # @TODO: Validate the source tar ball signature
 #
 ENV SRCDIR /usr/src/assimilation
-ADD src/getsigningkey.py src/hashes.csv ${SRCDIR}/
+ADD src/getsigningkey.py src/hashes.csv lib*.so* frame*types.h ${SRCDIR}/
 WORKDIR ${SRCDIR}
 # Compile and install libsodium - trusting as little as possible ;-)
 ENV LIBSODIUM_BASEURL=https://download.libsodium.org/libsodium/releases/libsodium-
@@ -45,17 +45,19 @@ RUN rm -f ${SRCDIR}/include/projectcommon.h
 ADD src/clientlib/ ${SRCDIR}/clientlib/
 ADD src/serverlib/ ${SRCDIR}/serverlib/
 ADD src/nanoprobe/  ${SRCDIR}/nanoprobe/
+ENV LIBDIR /usr/lib/
+ADD libpcap.* libsodium.* libassimilationclient.* ${LIBDIR}
 ENV BINDIR /root/bin
 WORKDIR ${SRCDIR}
 RUN $PYCMD -m pip install -r toolrequirements.txt -r cma/requirements.txt
+RUN $PYCMD -m pip freeze | tee cma/frozen.txt
 RUN bash -c "time meson ${BINDIR}"
 WORKDIR ${BINDIR}
-RUN bash -c "time ninja install"
-ENV LIBDIR /usr/lib/
-RUN cp -a libassimilationclient.so ${LIBDIR}/
+# RUN bash -c "time ninja install"
+# RUN cp -a libassimilationclient.so ${LIBDIR}/
 ENV ASSIMLIB ${LIBDIR}/libassimilationclient.so
-RUN ls -l ${LIBDIR}/libassimilationclient.so && sha256sum ${LIBDIR}libassimilationclient.so
 RUN cp ${BINDIR}/*.h ${SRCDIR}/include/
+RUN mv ${SRCDIR}/frame*types.h ${SRCDIR}/include/
 # genpybindings.py outfile sourceroot buildroot libdir libfile ...
 #   outfile     name of file to put output into
 #   sourceroot  root of source directory tree
@@ -65,8 +67,9 @@ RUN cp ${BINDIR}/*.h ${SRCDIR}/include/
 ENV ASSIMCTYPES ${SRCDIR}/cma/AssimCtypes.py
 ENV GENBIND ${PYCMD} ${SRCDIR}/genpybindings.py ${ASSIMCTYPES}
 ENV GENCMD $GENBIND $SRCDIR $SRCDIR $BINDIR libassimilationclient libsodium libpcap libglib-2.0
+RUN echo $RANDOM
 RUN echo ${GENCMD}
-RUN ${GENCMD}
+RUN ${GENCMD} 2>&1 | egrep -v '/usr/include/|Undef "NULL"'
 WORKDIR ${SRCDIR}/cma
 ADD startup.sh /root/startup.sh
 RUN mkdir -p /var/run

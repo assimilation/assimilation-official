@@ -1,2 +1,2 @@
 # Tag for CMA build image
-assimilationproject/cma:2.0.0
+assimilationproject/cma:1.99.0
