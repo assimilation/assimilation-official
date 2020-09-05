@@ -16,7 +16,7 @@ TAG=$3
 
 RELEASE_EXISTS=$(hub release | grep v${DOCKER_TAG})
 if [ "$RELEASE_EXISTS" == "" ]; then
-  hub release create "v${DOCKER_TAG}"
+  hub release create -m test "v${DOCKER_TAG}"
 fi
 
 # check if the release at <tag> already has this asset. if so we have to delete it first, then we can upload.
