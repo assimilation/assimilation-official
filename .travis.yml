@@ -1,8 +1,8 @@
 language: minimal
 
 env:
-  - DOCKER_IMAGE=$(grep -v '#' < $TRAVIS_BUILD_DIR/docker/nanoprobe/docker-tag.txt | head -n1)
-  - DOCKER_TAG=${DOCKER_IMAGE#assimilationproject/nanoprobe:}
+  DOCKER_IMAGE=$(grep -v '#' < $TRAVIS_BUILD_DIR/docker/nanoprobe/docker-tag.txt | head -n1)
+  DOCKER_TAG=${DOCKER_IMAGE#assimilationproject/nanoprobe:}
 
 stages:
   - name: build
