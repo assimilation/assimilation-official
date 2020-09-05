@@ -1,14 +1,18 @@
 language: minimal
 
+env:
+  - DOCKER_IMAGE=$(grep -v '#' < $TRAVIS_BUILD_DIR/docker/nanoprobe/docker-tag.txt | head -n1)
+  - DOCKER_TAG=${DOCKER_IMAGE#assimilationproject/nanoprobe:}
+
 stages:
   - name: build
   - name: package
   - name: "test on different distributions"
 
 script:
-  - cd /tmp/
-  - wget --quiet https://github.com/assimilation/assimilation-official/releases/download/v1.1.8-pre/nanoprobe_2.0.0_amd64.deb
-  - sudo dpkg -i nanoprobe_2.0.0_amd64.deb
+  - cd /tmp
+  - wget --quiet "https://github.com/assimilation/assimilation-official/releases/download/v${DOCKER_TAG}/nanoprobe_${DOCKER_TAG}_amd64.deb"
+  - sudo dpkg -i nanoprobe_${DOCKER_TAG}_amd64.deb
   - ls -al /usr/share/assimilation/copyright
   - echo "f61256347729a1cfb9d08968dc2aa77fc8e0e5a9a70cf137806b3f9e0024cf56  nanoprobe" > /tmp/nanoprobe.sha256sum
   - cd /usr/bin && sha256sum -c /tmp/nanoprobe.sha256sum
@@ -39,8 +43,8 @@ jobs:
       script:
         - cd $TRAVIS_BUILD_DIR/docker
         - ./dockit
-        - docker run -v /tmp/package:/workdir -it assimilationproject/nanoprobe:2.0.0 bash -c "cp /tmp/build/bin/nanoprobe /workdir"
-        - cd $TRAVIS_BUILD_DIR && ci/scripts/attach_asset.sh /tmp/package nanoprobe v1.1.8-pre
+        - docker run -v /tmp/package:/workdir -it $DOCKER_IMAGE bash -c "cp /tmp/build/bin/nanoprobe /workdir"
+        - cd $TRAVIS_BUILD_DIR && ci/scripts/attach_asset.sh /tmp/package nanoprobe "v${DOCKER_TAG}"
     - stage: package
       name: debian
       install:
@@ -52,7 +56,7 @@ jobs:
       script:
         - mkdir /tmp/package
         - cd /tmp/package
-        - wget --quiet https://github.com/assimilation/assimilation-official/releases/download/v1.1.8-pre/nanoprobe
+        - wget --quiet "https://github.com/assimilation/assimilation-official/releases/download/v${DOCKER_TAG}/nanoprobe"
         - mkdir -p /tmp/package/usr/share/assimilation/discovery_agents
         - mkdir -p /tmp/package/usr/share/crypto.d
         - mkdir -p /tmp/package/usr/lib/ocf/resource.d/assimilation
@@ -60,6 +64,6 @@ jobs:
         - cp $TRAVIS_BUILD_DIR/legal/copyright /tmp/package/usr/share/assimilation/
         - cp $TRAVIS_BUILD_DIR/ci/scripts/fix.sh /tmp/package
         - rsync -a --exclude Windows $TRAVIS_BUILD_DIR/discovery_agents/ /tmp/package/usr/share/assimilation/discovery_agents/
-        - docker build --build-arg VERSION=2.0.0 -f $TRAVIS_BUILD_DIR/ci/Dockerfiles/ubuntu1804_fpm.dockerfile -t ubuntu_fpm /tmp/package/
+        - docker build --build-arg VERSION=$DOCKER_TAG -f $TRAVIS_BUILD_DIR/ci/Dockerfiles/ubuntu1804_fpm.dockerfile -t ubuntu_fpm /tmp/package/
         - docker run -v /tmp/package:/output ubuntu_fpm bash -c "cp /workdir/*.deb /output"
-        - cd $TRAVIS_BUILD_DIR && ci/scripts/attach_asset.sh /tmp/package nanoprobe_2.0.0_amd64.deb v1.1.8-pre
+        - cd $TRAVIS_BUILD_DIR && ci/scripts/attach_asset.sh /tmp/package "nanoprobe_${DOCKER_TAG}_amd64.deb" "v${DOCKER_TAG}"
