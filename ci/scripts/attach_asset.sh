@@ -11,7 +11,15 @@ PATH_TO_FILE=$1
 FILE=$2
 TAG=$3
 
-# first we need to check if the release at <tag> already has this asset. if so we have to delete it first, then we can upload.
+
+# check if the release exists, if not, create it
+
+RELEASE_EXISTS=$(hub release | grep v${DOCKER_TAG})
+if [ "$RELEASE_EXISTS" == "" ]; then
+  hub release create "v${DOCKER_TAG}"
+fi
+
+# check if the release at <tag> already has this asset. if so we have to delete it first, then we can upload.
 
 ASSETS=$(hub api repos/assimilation/assimilation-official/releases | jq -r --arg TAG "$TAG" --arg FILE "$FILE" '.[]|select(.tag_name==$TAG)|.assets[]|select(.name==$FILE)|[.name,.url]|@tsv')
 
