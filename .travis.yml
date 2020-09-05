@@ -10,7 +10,7 @@ script:
   - wget --quiet https://github.com/assimilation/assimilation-official/releases/download/v1.1.8-pre/nanoprobe_2.0.0_amd64.deb
   - sudo dpkg -i nanoprobe_2.0.0_amd64.deb
   - ls -al /usr/share/assimilation/copyright
-  - echo "4be5fa9116cdf08a0eff3a60585af1832230df213f5fe734ea6f3c6ce8001640  nanoprobe" > /tmp/nanoprobe.sha256sum
+  - echo "f61256347729a1cfb9d08968dc2aa77fc8e0e5a9a70cf137806b3f9e0024cf56  nanoprobe" > /tmp/nanoprobe.sha256sum
   - cd /usr/bin && sha256sum -c /tmp/nanoprobe.sha256sum
 
 jobs:
