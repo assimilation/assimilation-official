@@ -395,7 +395,10 @@ def main():
     cmainit.CMAInjectables.default_cma_injection_configuration()
     userinfo = pwd.getpwnam(opt.userid)
     os.chown(config.get("SQLiteFile"), userinfo.pw_uid, userinfo.pw_gid)
-    os.chown(config.get("SQLiteFile") + '-journal', userinfo.pw_uid, userinfo.pw_gid)
+    try:
+        os.chown(config.get("SQLiteFile") + '-journal', userinfo.pw_uid, userinfo.pw_gid)
+    except FileNotFoundError:
+        pass
     drop_privileges_permanently(opt.userid)
     try:
         cmainit.CMAinit(io, cleanoutdb=opt.erasedb, debug=(opt.debug > 0))
