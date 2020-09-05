@@ -13,8 +13,9 @@ TAG=$3
 
 
 # check if the release exists, if not, create it
-
+set +e
 RELEASE_EXISTS=$(hub release | grep v${DOCKER_TAG})
+set -e
 if [ "$RELEASE_EXISTS" == "" ]; then
   hub release create -m test "v${DOCKER_TAG}"
 fi
