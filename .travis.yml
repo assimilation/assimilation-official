@@ -12,10 +12,10 @@ stages:
 script:
   - cd /tmp
   - wget --quiet "https://github.com/assimilation/assimilation-official/releases/download/v${DOCKER_TAG}/nanoprobe_${DOCKER_TAG}_amd64.deb"
+  - wget --quiet "https://github.com/assimilation/assimilation-official/releases/download/v${DOCKER_TAG}/sums"
   - sudo dpkg -i nanoprobe_${DOCKER_TAG}_amd64.deb
   - ls -al /usr/share/assimilation/copyright
-  - echo "f61256347729a1cfb9d08968dc2aa77fc8e0e5a9a70cf137806b3f9e0024cf56  nanoprobe" > /tmp/nanoprobe.sha256sum
-  - cd /usr/bin && sha256sum -c /tmp/nanoprobe.sha256sum
+  - cd /usr/bin && sha256sum -c /tmp/sums
 
 jobs:
   include:
@@ -44,7 +44,9 @@ jobs:
         - cd $TRAVIS_BUILD_DIR/docker
         - ./dockit
         - docker run -v /tmp/package:/workdir -it $DOCKER_IMAGE bash -c "cp /tmp/build/bin/nanoprobe /workdir"
+        - docker run -v /tmp/package:/workdir -it $DOCKER_IMAGE bash -c "cp /tmp/build/bin/sums /workdir"
         - cd $TRAVIS_BUILD_DIR && ci/scripts/attach_asset.sh /tmp/package nanoprobe "v${DOCKER_TAG}"
+        - cd $TRAVIS_BUILD_DIR && ci/scripts/attach_asset.sh /tmp/package sums "v${DOCKER_TAG}"
     - stage: package
       name: debian
       install:
