@@ -15,7 +15,8 @@ script:
   - wget --quiet "https://github.com/assimilation/assimilation-official/releases/download/v${DOCKER_TAG}/sums"
   - sudo dpkg -i nanoprobe_${DOCKER_TAG}_amd64.deb
   - ls -al /usr/share/assimilation/copyright
-  - cd /usr/bin && sha256sum -c /tmp/sums
+  - grep nanoprobe /tmp/sums > /tmp/sums.nanoprobe
+  - cd /usr/bin && sha256sum -c /tmp/sums.nanoprobe
 
 jobs:
   include:
