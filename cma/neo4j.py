@@ -402,8 +402,7 @@ class NeoDockerServer(NeoServer):
             try:
                 os.unlink(file)
                 print(f"neo4j auth {file} deleted.", file=stderr)
-            except OSError as fail:
-                print(f"COULD NOT DELETE Neo4J AUTH INFO: {file}: {fail}")
+            except FileNotFoundError as fail:
                 pass
 
     def set_initial_password(self, initial_password, force=False):
@@ -417,7 +416,7 @@ class NeoDockerServer(NeoServer):
         """
 
         if self.is_password_set():
-            raise TypeError("Initial password already set.")
+            raise RuntimeError("Initial password already set.")
         command = self.initial_password_command
         command.append(initial_password)
         output: bytes
@@ -425,7 +424,7 @@ class NeoDockerServer(NeoServer):
         self._unlink_auth_info()
         rc, output = self.container.exec_run(command, user=self.uid_flag)
         output = output.decode('utf8').strip()
-        print(output)
+        print(f"Command: {command} output: {output}")
         if rc != 0:
             subprocess.check_call(["docker", "ps"])
             raise RuntimeError(f"Could not set initial password[{rc}]: {output}")

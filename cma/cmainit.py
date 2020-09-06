@@ -181,6 +181,8 @@ class Neo4jCreds(object):
             f.write("%s\n%s\n" % (self.name, self.auth))
         self._log.info("_save_credentials(): Updated Neo4j credentials cached in %s." %
                        self.neo4j_cred_filename)
+        print("_save_credentials(): Updated Neo4j credentials cached in %s."
+              % self.neo4j_cred_filename)
 
     def __str__(self, filename=None):
         """We return the current assimilation Neo4j credentials (login, password) as a string
@@ -287,7 +289,6 @@ class CMAInjectables(object):
         url = "http:/127.0.0.1:7474"
         url = "bolt://localhost:7687"
 
-
         trycount = 0
         NeoServer.wait_for_port("bolt")
         while True:
@@ -304,10 +305,10 @@ class CMAInjectables(object):
                 #     secure=True, bolt_port=7687
                 # )
                 neodatabase = py2neo.Database(url)
-                # print("DATABASE", neodatabase)
-                # print("GRAPH", neodatabase.default_graph)
-                # print('CONFIG', neodatabase.config)
-                # print("Constructing neodb:", file=stderr)
+                print("IN SETUP_DB: DATABASE", neodatabase)
+                print('DIR:', dir(neodatabase))
+                print(f"NAME: {neo_credentials.name} AUTH: {neo_credentials.auth}", file=stderr)
+                print("Constructing neodb:", file=stderr)
                 neodb = py2neo.Graph(
                     url,
                     user=neo_credentials.name,
@@ -318,10 +319,7 @@ class CMAInjectables(object):
                     bolt_port=9999,
                     secure=False,
                 )
-                # print(f"Built neodb: {neodb}", file=stderr)
-                # address = register_server(*uris, **settings)
-                # neodb = neodatabase.default_graph
-                # print("CONSTRUCTED neodb", neodb, file=stderr)
+                print(f"Built neodb: {neodb}", file=stderr)
                 # Neo4j started.  All is well with the world.
                 break
             except (RuntimeError, IOError, ConnectionResetError, py2neo.GraphError) as exc:
