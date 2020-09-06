@@ -515,6 +515,7 @@ def drop_privileges_permanently(userid):
     Either we need to be started as root or as 'userid' or this function
     will fail and exit the program.
     """
+    return
     userinfo = pwd.getpwnam(userid)
     if userinfo is None:
         raise (OSError('Userid "%s" is unknown.' % userid))

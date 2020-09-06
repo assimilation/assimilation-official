@@ -380,6 +380,7 @@ class NeoDockerServer(NeoServer):
                         return bad_return
                     fields = line.split(":", 2)
                     if fields[0].lower() == name:
+                        print(f"PASSWORD INFO {self.auth_file_name}:", fields)
                         return fields
         except (IOError, ValueError):
             pass
@@ -392,14 +393,17 @@ class NeoDockerServer(NeoServer):
         """
         name, _, extra = self._getpass()
         extra = extra.strip() if extra else ""
-        return name is not None and not extra
+        print("PASSWORD NAME, EXTRA:", repr(name), repr(extra))
+        return name and extra
 
     def _unlink_auth_info(self):
         for file in (self.auth_file_name, self.roles_file_name):
+            print(f"FILE NAME: '{file}'")
             try:
                 os.unlink(file)
                 print(f"neo4j auth {file} deleted.", file=stderr)
-            except OSError:
+            except OSError as fail:
+                print(f"COULD NOT DELETE Neo4J AUTH INFO: {file}: {fail}")
                 pass
 
     def set_initial_password(self, initial_password, force=False):
@@ -412,20 +416,7 @@ class NeoDockerServer(NeoServer):
         :return: bool: True if it succeeded, False if not...
         """
 
-        name, auth, extra = self._getpass()
-        if extra is not None:
-            extra = extra.strip()
-            name = None
-        if extra or force:
-            try:
-                self.start()
-                self._unlink_auth_info()
-                assert True and self.is_running()
-            except OSError as oops:
-                print(f"GOT OSError{oops}", file=stderr)
-                pass
-
-        if name is not None and not extra:
+        if self.is_password_set():
             raise TypeError("Initial password already set.")
         command = self.initial_password_command
         command.append(initial_password)
