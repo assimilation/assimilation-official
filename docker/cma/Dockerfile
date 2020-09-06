@@ -39,7 +39,6 @@ RUN apt-get update && apt-get install -y libglib2.0-dev libpcap-dev dbus docker.
 # Now get ready to build our libraries, etc...
 #
 ADD src/meson.build src/genpybindings.py src/toolrequirements.txt ${SRCDIR}/
-ADD src/cma/ ${SRCDIR}/cma/
 ADD src/include/ ${SRCDIR}/include/
 RUN rm -f ${SRCDIR}/include/projectcommon.h
 ADD src/clientlib/ ${SRCDIR}/clientlib/
@@ -49,8 +48,10 @@ ENV LIBDIR /usr/lib/
 ADD libpcap.* libsodium.* libassimilationclient.* ${LIBDIR}
 ENV BINDIR /root/bin
 WORKDIR ${SRCDIR}
+ADD src/cma/requirements.txt ${SRCDIR}/cma/
 RUN $PYCMD -m pip install -r toolrequirements.txt -r cma/requirements.txt
-RUN $PYCMD -m pip freeze | tee cma/frozen.txt
+RUN $PYCMD -m pip freeze --all | tee cma/frozen.txt
+ADD src/cma/frameinfo.py ${SRCDIR}/cma/
 RUN bash -c "time meson ${BINDIR}"
 WORKDIR ${BINDIR}
 # RUN bash -c "time ninja install"
@@ -67,10 +68,10 @@ RUN mv ${SRCDIR}/frame*types.h ${SRCDIR}/include/
 ENV ASSIMCTYPES ${SRCDIR}/cma/AssimCtypes.py
 ENV GENBIND ${PYCMD} ${SRCDIR}/genpybindings.py ${ASSIMCTYPES}
 ENV GENCMD $GENBIND $SRCDIR $SRCDIR $BINDIR libassimilationclient libsodium libpcap libglib-2.0
-RUN echo $RANDOM
 RUN echo ${GENCMD}
 RUN ${GENCMD} 2>&1 | egrep -v '/usr/include/|Undef "NULL"'
 WORKDIR ${SRCDIR}/cma
+ADD src/cma/ ${SRCDIR}/cma/
 ADD startup.sh /root/startup.sh
 RUN mkdir -p /var/run /usr/share/assimilation/notification.d
 CMD ["/root/startup.sh"]
