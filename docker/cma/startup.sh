@@ -12,13 +12,29 @@ DEFAULT_MODE=0755
 shares="/dev/log /var/run/docker.sock /var/lib/assimilation /var/run/assimilation"
 
 make_user() {
+  set -x
+  if
+    grep '^assimilation:' /etc/group >/dev/null
+  then
+    : OK assimilation group
+  else
+    addgroup --gid $ASSIM_GID assimilation
+  fi
+  if
+    grep '^docker:' /etc/group >/dev/null
+  then
+    : OK docker group
+  else
+    addgroup --gid $DOCKER_GID docker
+  fi
   if
     grep '^assimilation:' /etc/passwd >/dev/null
   then
     : COOL!
   else
-    addgroup --gid $ASSIM_GID assimilation
     adduser --system --uid $ASSIM_UID --gid $ASSIM_GID --no-create-home assimilation
+    adduser assimilation docker
+    adduser root docker
   fi
 }
 
@@ -38,6 +54,7 @@ fix_install() {
         OK) ;;
         *)  exit 1;;
     esac
+    make_user
 
     dirs="/usr/share/assimilation $DEFAULT_MODE
     /var/lib/assimilation/neo4j $DEFAULT_MODE
@@ -55,7 +72,6 @@ fix_install() {
             chown "${OWNERSHIP}" "${dir}"
         fi
     done
-    make_user
     chown $OWNERSHIP /usr/share/assimilation
     for file in /usr/share/assimilation assim_json.sqlite assim_json.sqlite-journal
     do

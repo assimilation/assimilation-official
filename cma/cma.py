@@ -520,10 +520,10 @@ def drop_privileges_permanently(userid):
         raise (OSError('Userid "%s" is unknown.' % userid))
     newuid = userinfo.pw_uid
     newgid = userinfo.pw_gid
-    auxgroups = supplementary_groups_for_user(userid)[1]
+    auxgroups = set(supplementary_groups_for_user(userid)[1])
     # Need to set supplementary groups, then group id then user id in that order.
     try:
-        os.setgroups(auxgroups)
+        os.setgroups(sorted(auxgroups))
         os.setgid(newgid)
         os.setuid(newuid)
     except OSError:
@@ -541,17 +541,11 @@ def drop_privileges_permanently(userid):
             'Could not set user/group ids to user "%s" [uid:%s, gid:%s].'
             % (userid, os.getuid(), os.getgid())
         )
-    # Checking groups is a little more complicated - order is potentially not preserved...
-    # This also allows for the case where there might be dups (which shouldn't happen?)
-    curgroups = os.getgroups()
-    for elem in auxgroups:
-        if elem not in curgroups:
-            raise OSError('Could not set auxiliary groups for user "%s"' % userid)
-    for elem in curgroups:
-        # I don't think the default gid is supposed to be in the current group list...
-        # but it is in my tests...  It should be harmless...
-        if elem not in auxgroups and elem != newgid:
-            raise OSError('Could not set auxiliary groups for user "%s"' % userid)
+    curgroups = set(os.getgroups())
+    if curgroups != auxgroups:
+        raise OSError(f'Could not set auxiliary groups for user "{userid}"'
+                      f'{sorted(curgroups)} vs {sorted(auxgroups)}')
+    print(f"Curent user information: {newuid}::{newgid}::{sorted(curgroups)}")
     # Hurray!  Everything worked!
 
 
