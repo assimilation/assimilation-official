@@ -1213,7 +1213,8 @@ class pyNetAddr(pyAssimObj):
         base = self._Cstruct[0]
         while not_this_exact_type(base, NetAddr):
             base = base.baseclass
-        cstringret = cast(base.canonStr(self._Cstruct), c_char_p)
+        # cstringret = cast(base.canonStr(self._Cstruct), c_char_p)
+        cstringret = base.canonStr(self._Cstruct)
         ret = u_string_at(cstringret)
         g_free(cstringret)
         return ret

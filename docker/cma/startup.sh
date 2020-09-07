@@ -82,4 +82,4 @@ fix_install() {
 
 fix_install
 export PYTHONPATH=$PWD
-exec python ./cma.py --debug ${CMADEBUG} --foreground
+exec python ./cma.py "$@" --debug ${CMADEBUG} --foreground

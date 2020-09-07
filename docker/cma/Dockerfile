@@ -71,7 +71,8 @@ ENV GENCMD $GENBIND $SRCDIR $SRCDIR $BINDIR libassimilationclient libsodium libp
 RUN echo ${GENCMD}
 RUN ${GENCMD} 2>&1 | egrep -v '/usr/include/|Undef "NULL"'
 WORKDIR ${SRCDIR}/cma
-ADD src/cma/ ${SRCDIR}/cma/
 RUN mkdir -p /var/run /usr/share/assimilation/notification.d
+RUN echo '/root/startup.sh "$@"' > /usr/local/bin/s; chmod 755 /usr/local/bin/s
 CMD ["/root/startup.sh"]
 ADD startup.sh /root/startup.sh
+ADD src/cma/ ${SRCDIR}/cma/

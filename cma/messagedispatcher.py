@@ -71,7 +71,10 @@ class MessageDispatcher(object):
             with self.store.db.begin(autocommit=False) as self.store.db_transaction, NetTransaction(
                 self.io, encryption_required=self.encryption_required
             ) as CMAdb.net_transaction:
+                print(f"STARTING ACTION: {frameset.fstypestr()}", file=sys.stderr)
                 self._try_dispatch_action(origaddr, frameset)
+                print(f"END OF ACTION: {frameset.fstypestr()}", file=sys.stderr)
+            print(f"END OF DB TRANSACTION: {frameset.fstypestr()}", file=sys.stderr)
             if (self.dispatchcount % 100) == 1:
                 self._check_memory_usage()
         # W0703 == Too general exception catching...
@@ -89,18 +92,21 @@ class MessageDispatcher(object):
             # pylint: disable=W0703
             except Exception as e2:
                 CMAdb.log.critical("Database transaction retry failed: %s" % str(e2))
-        # print('TRANSACTIONs COMMITTED!', file=sys.stderr)
-        if CMAdb.debug:
+        print('TRANSACTIONs COMMITTED!', file=sys.stderr)
+        if True or CMAdb.debug:
             fstypename = FrameSetTypes.get(frameset.get_framesettype())[0]
             CMAdb.log.debug(
                 "MessageDispatcher - ACKing %s message from %s" % (fstypename, origaddr)
             )
         # We want to ack the packet even in the failed case - retries are unlikely to help
         # and we need to avoid getting stuck in a loop retrying it forever...
+        print('ACKING MESSAGE', file=sys.stderr)
         self.io.ackmessage(origaddr, frameset)
+        print('MESSAGE ACKED', file=sys.stderr)
         if not self.store.db_transaction.finished:
             CMAdb.log.critical("MessageDispatcher: DB transaction NOT committed!")
             self.store.db_transaction.finish()
+        print('DISPATCH DONE', file=sys.stderr)
 
     # [R0912:MessageDispatcher._try_dispatch_action] Too many branches (13/12)
     # pylint: disable=R0912
@@ -149,7 +155,7 @@ class MessageDispatcher(object):
         fstypename = FrameSetTypes.get(fstype)[0]
 
         sys.stdout.flush()
-        print("MessageDispatcher exception [%s] occurred" % e, file=sys.stderr)
+        print(f"MessageDispatcher exception [{type(e).__name__}:{e}] occurred", file=sys.stderr)
         CMAdb.log.exception(
             "MessageDispatcher exception [%s] occurred while"
             " handling [%s] FrameSet from %s" % (e, fstypename, origaddr)
@@ -161,11 +167,16 @@ class MessageDispatcher(object):
         CMAdb.log.info(
             "======== Begin %s Message %s Exception Traceback ========" % (fstypename, e)
         )
+        print(f"======== Begin {fstypename} Message {e} Exception Traceback ========",
+              file=sys.stderr)
         for tb in tblist:
             (filename, line, funcname, text) = tb
             filename = os.path.basename(filename)
             CMAdb.log.info("%s.%s:%s: %s" % (filename, line, funcname, text))
+            print(f"{filename}.{line}:{funcname}: {text}", file=sys.stderr)
         CMAdb.log.info("======== End %s Message %s Exception Traceback ========" % (fstypename, e))
+        print(f"======== End {fstypename} Message {e} Exception Traceback ========",
+              file=sys.stderr)
         if CMAdb.store is not None:
             CMAdb.log.critical("Aborting Neo4j transaction %s" % CMAdb.store)
             CMAdb.store.abort()
