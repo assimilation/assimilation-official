@@ -72,6 +72,6 @@ RUN echo ${GENCMD}
 RUN ${GENCMD} 2>&1 | egrep -v '/usr/include/|Undef "NULL"'
 WORKDIR ${SRCDIR}/cma
 ADD src/cma/ ${SRCDIR}/cma/
-ADD startup.sh /root/startup.sh
 RUN mkdir -p /var/run /usr/share/assimilation/notification.d
 CMD ["/root/startup.sh"]
+ADD startup.sh /root/startup.sh

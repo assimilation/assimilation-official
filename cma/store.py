@@ -1176,16 +1176,17 @@ class Store(object):
         :param autocommit:
         :return:
         """
-        oops: Optional[Exception] = None
+        save_oops: Optional[Exception] = None
         for _ in range(20):
             try:
                 self.db_transaction = self.db.begin(autocommit=autocommit)
                 oops = None
                 break
             except ServiceUnavailable as oops:
+                save_oops = oops
                 time.sleep(.5)
-        if oops is not None:
-            raise oops
+        if save_oops is not None:
+            raise save_oops
         return self.db_transaction
 
     def commit(self):
