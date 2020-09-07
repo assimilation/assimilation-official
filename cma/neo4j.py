@@ -419,9 +419,9 @@ class NeoDockerServer(NeoServer):
             raise RuntimeError("Initial password already set.")
         command = self.initial_password_command
         command.append(initial_password)
-        output: bytes
-        # print(f"Running {command} in self.container")
+        print(f"Running {command} in self.container")
         self._unlink_auth_info()
+        output: bytes
         rc, output = self.container.exec_run(command, user=self.uid_flag)
         output = output.decode('utf8').strip()
         print(f"Command: {command} output: {output}")
