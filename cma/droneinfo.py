@@ -134,6 +134,7 @@ class Drone(SystemNode):
                 CMAdb.store.relate(
                     self, CMAconsts.REL_bprulefor, rule, properties={"bp_class": rule.bp_class}
                 )
+        print(f"PRIMARY IP for {self}: {repr(self.primary_ip_addr)})")
 
     def gen_current_bp_rules(self):
         """Return a generator producing all the best practice rules
@@ -362,6 +363,10 @@ class Drone(SystemNode):
         So, we need to create a forward link from partner1 to us and from us to partner2 (if any)
         """
         ouraddr = pyNetAddr(self.select_ip(), port=self.port)
+        print(f"OURADDR: {ouraddr}", file=sys.stderr)
+        print(f"PARTNER1: {partner1}", file=sys.stderr)
+        print(f"PARTNER2: {partner2}", file=sys.stderr)
+        print(f"PARTNER1.select_ip: {partner1.select_ip(ring)}", file=sys.stderr)
         partner1addr = pyNetAddr(partner1.select_ip(ring), port=partner1.port)
         if partner2 is not None:
             partner2addr = pyNetAddr(partner2.select_ip(ring), port=partner2.port)
@@ -496,12 +501,13 @@ class Drone(SystemNode):
     def add(
         designation,
         reason,
+        primary_ip_addr,
         status="up",
         port=None,
         domain=CMAconsts.globaldomain,
-        primary_ip_addr=None,
     ):
         """Add a drone to our set unless it is already there."""
+        assert primary_ip_addr is not None
         drone = CMAdb.store.load_or_create(
             Drone,
             domain=domain,

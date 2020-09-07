@@ -461,24 +461,33 @@ class DispatchJSDISCOVERY(DispatchTarget):
 
     def dispatch(self, origaddr, frameset):
         fstype = frameset.get_framesettype()
-        if CMAdb.debug:
+        if True or CMAdb.debug:
             CMAdb.log.debug(
                 "DispatchJSDISCOVERY: received [%s] FrameSet from [%s]"
                 % (FrameSetTypes.get(fstype)[0], repr(origaddr))
             )
+            print("DispatchJSDISCOVERY: received [%s] FrameSet from [%s]"
+                  % (FrameSetTypes.get(fstype)[0], repr(origaddr)), file=sys.stderr)
         sysname = None
+        print("ITERATING...")
+        print(f"ITERATING OVER frameset: {frameset}")
         for frame in frameset.iter():
+            print(f"LOOKING AT FRAME: {frame}")
             frametype = frame.frametype()
+            print(f"LOOKING AT FRAMEtype: {frametype}")
             if frametype == FrameTypes.HOSTNAME:
+                print(f"LOOKING AT HOSTNAME:")
                 sysname = frame.getstr()
-            if frametype == FrameTypes.JSDISCOVER:
+                print(f"LOOKING AT HOSTNAME: {sysname}")
+            elif frametype == FrameTypes.JSDISCOVER:
+                print(f"Dispatch JSDISCOVER from {origaddr}:{sysname}", file=sys.stderr)
                 json = frame.getstr()
                 jsonconfig = pyConfigContext(init=json)
-                # print 'JSON received: ', json
+                print('JSON received: ', json, file=sys.stderr)
                 if sysname is None:
                     sysname = jsonconfig.getstring("host")
                 drone = self.droneinfo.find(sysname)
-                # print('FOUND DRONE for %s IS: %s' % (sysname, drone), file=sys.stderr)
+                print('FOUND DRONE for %s IS: %s' % (sysname, drone), file=sys.stderr)
                 # print('LOGGING JSON FOR DRONE for %s IS: %s' % (drone, json), file=sys.stderr)
                 child = drone.find_child_system_from_json(jsonconfig)
                 # if child is not drone:
@@ -486,6 +495,9 @@ class DispatchJSDISCOVERY(DispatchTarget):
                 #            %   (str(child), json), file=sys.stderr)
                 child.logjson(origaddr, json)
                 sysname = None
+                print(f"END Dispatch JSDISCOVER from {origaddr}")
+            else:
+                print(f"UNHANDLED FRAMETYPE: {frametype}")
 
 
 @DispatchTarget.register

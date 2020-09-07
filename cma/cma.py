@@ -122,6 +122,8 @@ from AssimCclasses import pyCompressFrame, pyCryptCurve25519, pyCryptFrame
 from cmaconfig import ConfigFile
 from bestpractices import BestPractices
 
+sys.stdout = sys.stderr
+
 SUPPORTED_PYTHON_VERSIONS = ("3.6","3.7", "3.8")
 SUPPORTED_PY2NEO_VERSIONS = (4,)
 

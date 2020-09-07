@@ -94,6 +94,7 @@ class SystemNode(GraphNode):
 
     def logjson(self, origaddr, jsontext):
         """Process and save away JSON discovery data."""
+        print(f"Starting _logjson for {origaddr}")
         assert self.association.node_id is not None
         jsonobj = pyConfigContext(jsontext)
         if "instance" not in jsonobj or "data" not in jsonobj:
@@ -113,6 +114,7 @@ class SystemNode(GraphNode):
                 )
         self._process_json(origaddr, jsonobj, discoverychanged)
         self[dtype] = jsontext  # This is stored in separate nodes for performance
+        print(f"Ending _logjson for {origaddr}")
 
     def __iter__(self):
         """Iterate over our child JSON attribute names"""
@@ -194,7 +196,7 @@ class SystemNode(GraphNode):
         # print('ATTRIBUTE DELETION:', name, file=stderr)
         jsonnode = self.get(name, None)
         try:
-            delattr(self, unicode(self.HASH_PREFIX + name))
+            delattr(self, self.HASH_PREFIX + name)
         except AttributeError:
             raise IndexError("No such JSON attribute [%s]." % name)
         if jsonnode is None:
@@ -269,9 +271,11 @@ class SystemNode(GraphNode):
     def _process_json(self, origaddr, jsonobj, discoverychanged):
         """Pass the JSON data along to interested discovery plugins (if any)"""
         dtype = jsonobj["discovertype"]
+        if True or CMAdb.debug:
+            CMAdb.log.debug(f"Processing JSON for discovery type [{dtype}] from {origaddr}")
+            print(f"Processing JSON for discovery type [{dtype}] from {origaddr} "
+                  f"Changed? {discoverychanged}", file=stderr)
         foundone = False
-        if CMAdb.debug:
-            CMAdb.log.debug("Processing JSON for discovery type [%s]" % dtype)
         for prio in range(0, len(SystemNode._JSONprocessors)):
             if dtype in SystemNode._JSONprocessors[prio]:
                 foundone = True
@@ -281,7 +285,9 @@ class SystemNode(GraphNode):
                     proc = cls(
                         CMAdb.config, CMAdb.net_transaction, self._store, self._log, CMAdb.debug
                     )
+                    print(f"PROCESSING JSON {dtype} from {origaddr} with {proc}", file=stderr)
                     proc.processpkt(self, origaddr, jsonobj, discoverychanged)
+                    print(f"DONE PROCESSING JSON {dtype} from {origaddr} with {proc}", file=stderr)
         if foundone:
             CMAdb.log.info(
                 "Processed %schanged %s JSON data from %s into graph."

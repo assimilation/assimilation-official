@@ -239,18 +239,42 @@ class TestpyNetAddr(TestCase):
         ipv6 = pyNetAddr((0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 192, 0, 2, 128))
         self.assertEqual(str(ipv6), "::ffff:192.0.2.128")
 
+    def test_ipv6_repr(self):
+        "Test the str() function for ipv6 - worth a separate test."
+        if DEBUG:
+            print("===============test_ipv6_repr(pyNetAddrTest)", file=stderr)
+        ipv6 = pyNetAddr((0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0))
+        self.assertEqual(repr(ipv6), "::")
+        ipv6 = pyNetAddr((0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0o01))
+        self.assertEqual(repr(ipv6), "::1")
+        ipv6 = pyNetAddr((0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0o01, 0o02))
+        self.assertEqual(repr(ipv6), "::102")
+        ipv6 = pyNetAddr((0, 0, 0, 1, 0, 2, 0, 3, 0, 4, 0, 5, 0, 6, 0, 7))
+        self.assertEqual(repr(ipv6), "0:1:2:3:4:5:6:7")
+        ipv6 = pyNetAddr((0, 0, 0, 0, 0, 2, 0, 3, 0, 4, 0, 5, 0, 6, 0, 7))
+        self.assertEqual(repr(ipv6), "::2:3:4:5:6:7")
+        # Example below is from http://en.wikipedia.org/wiki/IPv6_address
+        # Note that we now convert it into the equivalent IPv4 address as
+        # suggested: ::ffff:192.0.2.128
+        ipv6 = pyNetAddr((0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 192, 0, 2, 128))
+        self.assertEqual(repr(ipv6), "192.0.2.128")
+
     def test_ipv4_strinit(self):
         "Test constructing ipv4 addresses from strings."
         if DEBUG:
             print("===============test_ipv4_strinit(pyNetAddrTest)", file=stderr)
         ipv4 = pyNetAddr("1.2.3.4")
         self.assertEqual(str(ipv4), "1.2.3.4")
+        self.assertEqual(repr(ipv4), "1.2.3.4")
         ipv4 = pyNetAddr("1.2.3.5")
         self.assertEqual(str(ipv4), "1.2.3.5")
+        self.assertEqual(repr(ipv4), "1.2.3.5")
         ipv4 = pyNetAddr("1.2.3.4:80")
         self.assertEqual(str(ipv4), "1.2.3.4:80")
+        self.assertEqual(repr(ipv4), "1.2.3.4:80")
         ipv4 = pyNetAddr("1.2.3.5:80")
         self.assertEqual(str(ipv4), "1.2.3.5:80")
+        self.assertEqual(repr(ipv4), "1.2.3.5:80")
         try:
             pyNetAddr("1.2.ff.5")
         except ValueError:

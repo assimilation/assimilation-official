@@ -168,7 +168,7 @@ class Store(object):
                 acomma = ", "
             ret += ",\n\t%10s: %s" % (attr, s)
         ret += "\n%s\n" % self.fmt_dirty_attrs()
-        ret += "\n\tweaknoderefs: %s" % self.weaknoderefs
+        # ret += "\n\tweaknoderefs: %s" % self.weaknoderefs
 
         ret += "\n\tstats: %s" % self.stats
         ret += "\n}"
@@ -257,8 +257,11 @@ class Store(object):
         for attr in clsobj.meta_key_attributes():
             if hasattr(subj, attr):
                 result[attr] = getattr(subj, attr)
-            else:
+            elif attr in clsargs:
                 result[attr] = clsargs[attr]
+            else:
+                print(f"get_key_values: {clsobj}:{dir(clsobj)}: {clsargs}", file=stderr)
+                print(f"get_key_values: EXPECTED {attr}", file=stderr)
         return result
 
     @staticmethod
@@ -359,9 +362,10 @@ class Store(object):
         """
         self.debug = True
         if self.debug:
-            print("LOAD OR CREATE: %s" % (str(clsargs)))
+            print("LOAD OR CREATE: %s" % (str(clsargs)), file=stderr)
             self._log.debug("LOAD OR CREATE: %s" % (str(clsargs)))
         obj = self.load(cls, **clsargs)
+        print(f"LOAD/CREATE OBJECT: {obj}")
         if obj is not None:
             if self.debug:
                 print("LOADED node[%s]: %s" % (str(clsargs), str(obj)))
@@ -429,7 +433,7 @@ class Store(object):
         if params is None:
             params = {}
         if self.debug or debug:
-            print("Starting query %s(%s)" % (querystr, params), file=stderr)
+            print("load_cypher_nodes: Starting query %s(%s)" % (querystr, params), file=stderr)
         cursor = self.db.run(querystr, params)
         print("db.run complete.", file=stderr)
         while cursor.forward():
@@ -1007,20 +1011,21 @@ class Store(object):
         :return:
         """
         # self._log.debug('WEAK CLIENTS: %s' % str(self.weaknoderefs.keys()))
-        print("In audit_weaknodes_clients", file=stderr)
+        # print("In audit_weaknodes_clients", file=stderr)
         for client in self.clients:
-            print(f"audit_weaknodes_clients: {type(client)}", file=stderr)
+            # print(f"audit_weaknodes_clients: {type(client)}", file=stderr)
             if client.association.node_id is not None:
                 # self._log.debug('NODE ID for other: %s' % client.association.node_id)
-                print(f"client.association: {client.association}", file=stderr)
-                print(f"client.association.node_id: {client.association.node_id}", file=stderr)
+                # print(f"client.association: {client.association}", file=stderr)
+                # print(f"client.association.node_id: {client.association.node_id}", file=stderr)
                 if client.association.node_id in self.weaknoderefs:
-                    print(f"found client.association.node_id: {client.association.node_id}",
-                          file=stderr)
+                    # print(f"found client.association.node_id: {client.association.node_id}",
+                    #       file=stderr)
                     other = self.weaknoderefs[client.association.node_id]()
                     assert other is client
                 else:
-                    print(f"CLIENT {client.association.node_id} IS MISSING FROM WEAK", file=stderr)
+                    # print(f"CLIENT {client.association.node_id} IS MISSING FROM WEAK",
+                    # file=stderr)
                     # This seems to happen - even though it shouldn't...
                     # self._log.critical('CLIENT %s MISSING FROM WEAKNODES!!'
                     #                    % client.association.node_id)
@@ -1091,11 +1096,11 @@ class Store(object):
                 % (type(subj), node, self.neo_node_id(node), type(node)),
                 file=stderr
             )
-            self._log.debug("Clients of %s include: %s" % (self, str(self.clients)))
-            print("Clients of %s include: %s" % (self, str(self.clients)), file=stderr)
+            # self._log.debug("Clients of %s include: %s" % (self, str(self.clients)))
+            # print("Clients of %s include: %s" % (self, str(self.clients)), file=stderr)
 
         if node is None:
-            print(f"CREATING NODE {subj}", file=stderr)
+            print(f"CREATING NODE {str({node})[:100]}", file=stderr)
             self.execute_create_node(subj)
             node_id = subj.association.node_id
             print(f"CREATED NODE {subj} with node id {node_id}", file=stderr)
@@ -1180,7 +1185,6 @@ class Store(object):
         for _ in range(20):
             try:
                 self.db_transaction = self.db.begin(autocommit=autocommit)
-                oops = None
                 break
             except ServiceUnavailable as oops:
                 save_oops = oops

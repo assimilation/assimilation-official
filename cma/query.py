@@ -507,7 +507,7 @@ class ClientQuery(GraphNode):
         """Return the value of a relationship type - if valid"""
         reltypes = set()
         for attr in dir(CMAconsts):
-            if attr.startswith("REL_") and isinstance(getattr(CMAconsts, attr), (str, unicode)):
+            if attr.startswith("REL_") and isinstance(getattr(CMAconsts, attr), str)):
                 reltypes.add(attr[4:])
                 reltypes.add(getattr(CMAconsts, attr))
         if reltype not in reltypes:
@@ -595,12 +595,12 @@ def grab_category_scores(categories=None, domains=None, debug=False, store=None)
     if domains is None:
         cypher = """MATCH(drone:Class_Drone) RETURN drone"""
     else:
-        domains = (domains,) if isinstance(domains, (str, unicode)) else list(domains)
+        domains = (domains,) if isinstance(domains, str) else list(domains)
         cypher = "MATCH( drone:Class_Drone) WHERE drone.domain IN %s RETURN drone" % str(
             list(domains)
         )
     if categories is not None:
-        categories = (categories,) if isinstance(categories, (str, unicode)) else list(categories)
+        categories = (categories,) if isinstance(categories, str) else list(categories)
 
     bpobj = BestPractices(CMAdb.config, CMAdb.io, debug=debug)
     dtype_totals = {}  # scores organized by (domain, category, discovery-type)
@@ -1230,7 +1230,7 @@ class PythonPackageQuery(PythonJSONtoNodeQuery):
 
 def reltype_expr(reltypes):
     """Create a Cypher query expression for (multiple) relationship types"""
-    if isinstance(reltypes, (str, unicode)):
+    if isinstance(reltypes, str):
         reltypes = (reltypes,)
     relationship_expression = ""
     delim = ""
@@ -1258,7 +1258,7 @@ class PythonDroneSubgraphQuery(PythonExec):
         nodetypes = params["nodetypes"]
         reltypes = params["reltypes"]
         designation = params["hostname"]
-        if isinstance(designation, (str, unicode)):
+        if isinstance(designation, str):
             designation = [designation]
         designation_s = str(designation)
         relstr = reltype_expr(reltypes)

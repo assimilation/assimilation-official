@@ -31,7 +31,7 @@ discovery packets as they arrive.
 
 More details are documented in the DiscoveryListener class
 """
-from __future__ import print_function
+from typing import Dict
 import re
 from sys import stderr
 import os
@@ -142,8 +142,9 @@ class NetconfigDiscoveryListener(DiscoveryListener):
         :param ifinfo: dict-like: Interface information
         :return: str: scope value
         """
-        if ifinfo["virtual"]:
+        if ifinfo.get("virtual"):
             return drone.designation
+        print(f"SCOPE FROM {ifinfo}")
         return "_GLOBAL_"
 
     def guess_net_segment(self, system, if_info):
@@ -185,7 +186,8 @@ class NetconfigDiscoveryListener(DiscoveryListener):
 
         primaryifname = None
         net_segments = {}
-        newmacs = {}  # Newmacs is a list of NICNode objects found/created by this discovery
+        newmacs: Dict[str, NICNode] = {}  # Newmacs is a list of NICNode objects found/created by
+        # this discovery
         #                 indexed by MAC address
         for ifname in data.keys():  # List of interfaces just below the data section
             ifinfo = data[ifname]
@@ -200,7 +202,7 @@ class NetconfigDiscoveryListener(DiscoveryListener):
             )
             if newnic is None:
                 scope = self.determine_scope_from_ifinfo(drone, ifinfo)
-                newnic = self.store.load_or_create(
+                newnic: NICNode = self.store.load_or_create(
                     NICNode,
                     domain=drone.domain,
                     scope=scope,
@@ -240,8 +242,7 @@ class NetconfigDiscoveryListener(DiscoveryListener):
 
         primaryip = None
 
-        for macaddr in newmacs.keys():
-            mac = newmacs[macaddr]
+        for macaddr, mac in newmacs.items():
             ifname = mac.ifname
             # print ('MAC IS', str(mac), file=stderr)
             # print ('DATA IS:', str(data), file=stderr)
@@ -261,7 +262,9 @@ class NetconfigDiscoveryListener(DiscoveryListener):
                 # print('PROCESSING IP %s' % ip, file=stderr)
                 iponly, cidrmask = ip.split("/")
                 netaddr = pyNetAddr(iponly).toIPv6()
-                subnet_context = drone.designation if mac.virtual else "__GLOBAL__"
+
+                print("MAC", dir(mac))
+                subnet_context = mac.scope
                 #   This is a more forgiving/generous subnet finding algorithm than load_or_create
                 subnet = Subnet.find_subnet(
                     self.store,
