@@ -1100,7 +1100,7 @@ class Store(object):
             # print("Clients of %s include: %s" % (self, str(self.clients)), file=stderr)
 
         if node is None:
-            print(f"CREATING NODE {str({node})[:100]}", file=stderr)
+            print(f"CREATING NODE {str(node)[:100]}", file=stderr)
             self.execute_create_node(subj)
             node_id = subj.association.node_id
             print(f"CREATED NODE {subj} with node id {node_id}", file=stderr)

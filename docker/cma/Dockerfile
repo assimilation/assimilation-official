@@ -3,10 +3,10 @@
 #   Container to be used to build static binary images using Meson+Ninja
 #   As far as OS versions, the older the better (as long as security bugs are still patched)
 #
-# 3.6.10 is the latest version of 3.6. Later releases broke ctypes :-(
-from python:3.6.10-buster
-ENV PYVERS 3.6.10
-ENV PYCMD python3.6
+# 3.6.10 is the latest version of 3.6. Later releases broke ctypes :-( -- then fixed it :-D
+from python:3.8.5-buster
+ENV PYVERS 3.8.5
+ENV PYCMD python3.8
 ENV LIBSODIUM_VERSION=1.0.18
 #
 # Compile libsodium - because we want a recent version - ideally same as nanoprobe

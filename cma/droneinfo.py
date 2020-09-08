@@ -482,10 +482,8 @@ class Drone(SystemNode):
             print("DESIGNATION2 (%s) = %s" % (designation, desigstr), file=sys.stderr)
             print("QUERY (%s) = %s" % (designation, Drone.IPownerquery_1), file=sys.stderr)
         if CMAdb.debug:
-            raise RuntimeError(
-                "drone.find(%s) (%s) (%s) => returning None"
-                % (str(designation), desigstr, type(designation))
-            )
+            print(f"drone.find({designation}) ({desigstr}) ({type(designation)}) => returning None",
+                  file=sys.stderr)
             # tblist = traceback.extract_stack()
             # tblist = traceback.extract_tb(trace, 20)
             # CMAdb.log.info('======== Begin missing IP Traceback ========')

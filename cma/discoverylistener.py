@@ -218,7 +218,7 @@ class NetconfigDiscoveryListener(DiscoveryListener):
         # Now compare the two sets of MAC addresses (old and new) and update the "old" MAC
         # address with info from the new discovery and deleting any MAC addresses that
         # we don't have any more...
-        for macaddr in currmacs.keys():
+        for macaddr in list(currmacs.keys()):
             currmac = currmacs[macaddr]
             if macaddr in newmacs:
                 # This MAC may need updating
@@ -244,10 +244,15 @@ class NetconfigDiscoveryListener(DiscoveryListener):
 
         for macaddr, mac in newmacs.items():
             ifname = mac.ifname
-            # print ('MAC IS', str(mac), file=stderr)
+            print (f'processpkt: Discovery MAC {ifname}:{macaddr} IS {mac}', file=stderr)
             # print ('DATA IS:', str(data), file=stderr)
             # print ('IFNAME IS', str(ifname), file=stderr)
-            iptable = data[str(ifname)]["ipaddrs"]
+            if ifname not in data or "ipaddrs" not in data[ifname]:
+                print(f"processpkt: MAC {macaddr} interface {repr(ifname)} not found in {data}",
+                      file=stderr)
+                print(f"INTERFACE {repr(ifname)} IGNORED for Drone {drone}", file=stderr)
+                continue
+            iptable = data[ifname]["ipaddrs"]
             currips = {}
             iplist = self.store.load_related(mac, CMAconsts.REL_ipowner)
             for ip in iplist:

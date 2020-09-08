@@ -666,7 +666,11 @@ class SQLiteInstance(object):
             "CREATE TABLE %s(hash varchar unique, integer current default 1, data varchar);"
             % self.table_name(table)
         )
-        self.execute(sql)
+        try:
+            self.execute(sql)
+        except sqlite3.OperationalError as op_err:
+            if not 'already exists' in str(op_err).lower():
+                raise
         self.hash_tables.add(table)
 
     def put(self, table: str, datahash: str, data: str):

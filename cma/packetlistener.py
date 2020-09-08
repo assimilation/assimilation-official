@@ -268,7 +268,8 @@ class PacketListener(object):
 
             for frameset in framesetlist:
                 if CMAdb.debug:
-                    CMAdb.log.debug("FrameSet Gotten ([%s]: [%s])" % (str(fromaddr), frameset))
+                    CMAdb.log.debug("FrameSet Gotten ([%s]: [%s])" % (str(fromaddr),
+                                                                      str(frameset)[:1024]))
                 self.enqueue_frameset(frameset, fromaddr)
 
     def queueanddispatch(self):
