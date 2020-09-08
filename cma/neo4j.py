@@ -342,7 +342,7 @@ class NeoDockerServer(NeoServer):
             self.container = self.docker_client.containers.get(self.host)
             if self.debug:
                 self.debug_msg(f"Container {self.container.short_id} is {self.container.status}"
-                       f" {self.host}")
+                               f" {self.host}")
             return self.container.status == "running"
         except docker.errors.NotFound:
             return False

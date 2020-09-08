@@ -36,8 +36,6 @@ from sys import stderr
 import gc
 import AssimCtypes
 from AssimCtypes import (
-    gboolean,
-    gint,
     POINTER,
     String,
     cast,
@@ -48,7 +46,6 @@ from AssimCtypes import (
     c_char_p,
     byref,
     memmove,
-    c_int,
     c_uint,
     g_free,
     GSList,
@@ -67,7 +64,6 @@ from AssimCtypes import (
     AssimObj,
     NetAddr,
     SeqnoFrame,
-    ReliableUDP,
     frame_new,
     addrframe_new,
     nvpairframe_new,
@@ -228,6 +224,12 @@ def u_string_at(s: bytes, size: int = -1) -> Optional[str]:
     # print('s_at_type', type(s_at), file=sys.stderr)
     assert isinstance(s_at, bytes)
     return s_at.decode("utf8") if s_at is not None else None
+
+
+def u_string_free(s: c_char_p) -> Optional[str]:
+    result = u_string_at(s)
+    g_free(s)
+    return result
 
 
 # pylint: disable=R0903
@@ -1668,7 +1670,7 @@ class pyNVpairFrame(pyFrame):
         return u_string_at(self._Cstruct[0].name)
 
     def value(self):
-        """Return the name portion of a pyNVpairFrame"""
+        """Return the value portion of a pyNVpairFrame"""
         return u_string_at(self._Cstruct[0].value)
 
 
