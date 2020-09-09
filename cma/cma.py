@@ -396,7 +396,10 @@ def main():
     cmainit.CMAInjectables.set_config(configinfo)
     cmainit.CMAInjectables.default_cma_injection_configuration()
     userinfo = pwd.getpwnam(opt.userid)
-    os.chown(config.get("SQLiteFile"), userinfo.pw_uid, userinfo.pw_gid)
+    try:
+        os.chown(config.get("SQLiteFile"), userinfo.pw_uid, userinfo.pw_gid)
+    except FileNotFoundError:
+        pass
     try:
         os.chown(config.get("SQLiteFile") + '-journal', userinfo.pw_uid, userinfo.pw_gid)
     except FileNotFoundError:

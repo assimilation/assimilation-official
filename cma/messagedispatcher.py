@@ -123,12 +123,16 @@ class MessageDispatcher(object):
             self.dispatchtable[fstype].dispatch(origaddr, frameset)
         else:
             self.default.dispatch(origaddr, frameset)
+        print("DISPATCH COMPLETED", file=sys.stderr)
         dispatchend = datetime.now()
-        if self.logtimes:
+        if True or self.logtimes:
             CMAdb.log.info(
                 "Initial dispatch time for %s frameset: %s" % (fstype, dispatchend - dispatchstart)
             )
+            print("Initial dispatch time for %s frameset: %s"
+                  % (fstype, dispatchend - dispatchstart), file=sys.stderr)
         if CMAdb.debug:
+            print("PERFORMING RING AUDIT", file=sys.stderr)
             # This is a VERY expensive call...
             # Good thing we only do it when debug is enabled...
             CMAdb.TheOneRing.AUDIT()
@@ -142,6 +146,7 @@ class MessageDispatcher(object):
             CMAdb.log.info(
                 "Total dispatch time for %s frameset: %s" % (fstype, dispatchend - dispatchstart)
             )
+        print("TRY DISPATCH ACTION RETURNING", file=sys.stderr)
 
     @staticmethod
     def _process_exception(e, origaddr, frameset):

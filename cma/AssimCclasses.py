@@ -36,8 +36,6 @@ from sys import stderr
 import gc
 import AssimCtypes
 from AssimCtypes import (
-    gboolean,
-    gint,
     POINTER,
     String,
     cast,
@@ -48,7 +46,6 @@ from AssimCtypes import (
     c_char_p,
     byref,
     memmove,
-    c_int,
     c_uint,
     g_free,
     GSList,
@@ -67,7 +64,6 @@ from AssimCtypes import (
     AssimObj,
     NetAddr,
     SeqnoFrame,
-    ReliableUDP,
     frame_new,
     addrframe_new,
     nvpairframe_new,
@@ -228,6 +224,12 @@ def u_string_at(s: bytes, size: int = -1) -> Optional[str]:
     # print('s_at_type', type(s_at), file=sys.stderr)
     assert isinstance(s_at, bytes)
     return s_at.decode("utf8") if s_at is not None else None
+
+
+def u_string_free(s: c_char_p) -> Optional[str]:
+    result = u_string_at(s)
+    g_free(s)
+    return result
 
 
 # pylint: disable=R0903
@@ -1668,7 +1670,7 @@ class pyNVpairFrame(pyFrame):
         return u_string_at(self._Cstruct[0].name)
 
     def value(self):
-        """Return the name portion of a pyNVpairFrame"""
+        """Return the value portion of a pyNVpairFrame"""
         return u_string_at(self._Cstruct[0].value)
 
 
@@ -2010,11 +2012,22 @@ class pyPacketDecoder(pyAssimObj):
         fs_gslistint = base.pktdata_to_framesetlist(
             self._Cstruct, cast(pktlocation[0], cClass.guint8), cast(pktlocation[1], cClass.guint8)
         )
+        # How does the framesetlist relate to the packet data? Is it a pointer to inside the packet
+        # data? Or is it simply a new FrameSetList object?
+        # fslist_to_pyfs_array() disposes of the s_list, while keeping the framesets
         return pyPacketDecoder.fslist_to_pyfs_array(fs_gslistint)
 
     @staticmethod
     def fslist_to_pyfs_array(listheadint):
-        """Converts a GSList of FrameSets to a python array of pyFrameSets"""
+        """
+        Converts a GSList of FrameSets to a python array of pyFrameSets
+        It frees the FrameSetList (GSList) it is passed as a parameter using g_slist_free().
+        This does _not_ free the objects being pointed to by the list.
+        https://developer.gnome.org/glib/stable/glib-Singly-Linked-Lists.html#g-slist-free
+
+        The docs allude to a case where the list head might be dangling. I don't _think_
+        that this is our case (?).
+        """
         fs_gslist = cast(listheadint, cClass.GSList)
         frameset_list = []
         curfs = fs_gslist
@@ -2585,16 +2598,20 @@ class pyNetIO(pyAssimObj):
         base = self._Cstruct[0]
         while not hasattr(base, "recvframesets"):
             base = base.baseclass
+        # Create a dummy IPaddr "shell"
         netaddrint = netaddr_ipv4_new(create_string_buffer(4), 101)
         netaddr = cast(netaddrint, cClass.NetAddr)
         netaddr[0].baseclass.unref(netaddr)  # We're about to replace it...
         # Basically we needed a pointer to pass, and this seemed like a good way to do it...
         # Maybe it was -- maybe it wasn't...  It's a pretty expensive way to get this effect...
         fs_gslistint = base.recvframesets(self._Cstruct, byref(netaddr))
+        # recvframesets gave us that 'netaddr' for us to dispose of - there are no other refs
+        # to it so we should NOT 'CCref' it.  It's a new object - not a pointer to an old one.
+        # fslist_to_pyfs_array will dispose of the underlying frameset list.
+        # The underlying frames themselves will not be freed - they wind up
+        # being pointed to by the result of fslist_to_pyfs_array...
         fslist = pyPacketDecoder.fslist_to_pyfs_array(fs_gslistint)
         if netaddr and len(fslist) > 0:
-            # recvframesets gave us that 'netaddr' for us to dispose of - there are no other refs
-            # to it so we should NOT 'CCref' it.  It's a new object - not a pointer to an old one.
             address = pyNetAddr(None, Cstruct=netaddr)
         else:
             address = None
