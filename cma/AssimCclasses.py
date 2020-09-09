@@ -2014,7 +2014,7 @@ class pyPacketDecoder(pyAssimObj):
         )
         # How does the framesetlist relate to the packet data? Is it a pointer to inside the packet
         # data? Or is it simply a new FrameSetList object?
-        # FIXME: IS THIS BEING DONE CORRECTLY?
+        # fslist_to_pyfs_array() disposes of the s_list, while keeping the framesets
         return pyPacketDecoder.fslist_to_pyfs_array(fs_gslistint)
 
     @staticmethod
