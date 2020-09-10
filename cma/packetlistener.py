@@ -280,9 +280,11 @@ class PacketListener(object):
     def queueanddispatch(self):
         "Queue and dispatch all available framesets in priority order"
         while True:
+            print("Calling read_all_available", file=sys.stderr)
             self._read_all_available()
+            print("About to Dequeue FrameSet from read_all_available", file=sys.stderr)
             fromaddr, frameset = self.dequeue_a_frameset()
-            print("Dequeueing FrameSet from ([%s], [%s])" % (str(fromaddr), str(frameset)),
+            print("Dequeueed FrameSet from ([%s], [%s])" % (str(fromaddr), str(frameset)),
                   file=sys.stderr)
             if fromaddr is None:
                 # print >> stderr, ('FROMADDR IS NONE IN QUEUEANDDISPATCH')
