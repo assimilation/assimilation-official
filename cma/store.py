@@ -399,8 +399,11 @@ class Store(object):
         if self.debug:
             print("load_related cypher:", query, file=stderr)
         cursor = self.db.run(query)
+        print(f"load_related cypher: {cursor}")
         while cursor.forward():
+            print(f"Yielding node : {cursor.current[0]}")
             yield self._construct_obj_from_node(cursor.current[0])
+        print("returning from load_related_cypher")
 
     def load_in_related(self, subj, rel_type, obj=None, attrs=None):
         """

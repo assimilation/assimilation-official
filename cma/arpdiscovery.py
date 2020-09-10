@@ -182,7 +182,8 @@ class ArpDiscoveryListener(DiscoveryListener):
         device_name = jsonobj["device"]
         device = drone.find_nic(device_name)
         if device is None:
-            raise ValueError(f"Cannot find NIC '{device_name}' for drone {drone}")
+            print(f"********************Cannot find NIC '{device_name}' for drone {drone}"))
+            return
         mac_ip_table = {}
         # Group the IP addresses by MAC address - inverting the map
         for ip, mac in data.items():

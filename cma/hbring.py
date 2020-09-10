@@ -313,6 +313,7 @@ class HbRing(GraphNode):
 
     def AUDIT(self):
         """Audit our ring to see if it's well-formed"""
+        print("STARTING RING AUDIT", file=stderr)
         listmembers = {}
         ringmembers = {}
         mbrcount = 0
@@ -343,6 +344,7 @@ class HbRing(GraphNode):
             assert drone in ringmembers
         for drone in ringmembers:
             assert drone in listmembers
+        print("FINISHING RING AUDIT", file=stderr)
 
     def __str__(self):
         ret = 'Ring("%s"' % self.name
