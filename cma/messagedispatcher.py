@@ -68,6 +68,7 @@ class MessageDispatcher(object):
             # The __enter__ functions are called in the order given, but the exits are called in the
             # opposite order they're listed. The exits are what commit the transactions...
             # As a result, the idempotent NetTransaction is committed first...
+            print("Starting new transaction", file=sys.stderr)
             with self.store.db.begin(autocommit=False) as self.store.db_transaction, NetTransaction(
                 self.io, encryption_required=self.encryption_required
             ) as CMAdb.net_transaction:

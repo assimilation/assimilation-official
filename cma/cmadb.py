@@ -22,7 +22,7 @@
 """
 This module defines our CMAdb class and so on...
 """
-from __future__ import print_function
+from typing import Any
 import os
 import sys
 from sys import stderr
@@ -40,11 +40,12 @@ class CMAdb(object):
     """Class defining our Neo4J database."""
 
     nodename = os.uname()[1]
-    debug = False
+    debug = True
     net_transaction = None
     log = None
     store = None
     config = {}
+    TheOneRing: Any
     globaldomain = "global"
     underdocker = None
     # versions we know we can't work with...

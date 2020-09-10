@@ -22,7 +22,6 @@
 """
 This file is all about the Rings - we implement rings.
 """
-from __future__ import print_function
 from sys import stderr
 from cmadb import CMAdb
 from graphnodes import GraphNode, registergraphclass
@@ -30,7 +29,7 @@ from graphnodes import GraphNode, registergraphclass
 
 @registergraphclass
 class HbRing(GraphNode):
-    "Class defining the behavior of a heartbeat ring."
+    """Class defining the behavior of a heartbeat ring."""
     SWITCH = 1
     SUBNET = 2
     THEONERING = 3  # And The One Ring to rule them all...
@@ -54,7 +53,7 @@ class HbRing(GraphNode):
 
     @classmethod
     def meta_key_attributes(cls):
-        "Return our key attributes in order of decreasing significance"
+        """Return our key attributes in order of decreasing significance"""
         return ["name", "domain"]
 
     def post_db_init(self):
@@ -88,7 +87,7 @@ class HbRing(GraphNode):
         """Find (one or) two partners for this drone to heartbeat with.
         We _should_ do this in such a way that we don't continually beat on the
         same nodes in the ring as we insert new nodes into the ring."""
-        drone = drone  # Eventually we'll use this argument...
+        _drone = drone  # Eventually we'll use this argument...
         partners = None
         if self._insertpoint1 is not None:
             partners = list()
@@ -98,7 +97,7 @@ class HbRing(GraphNode):
         return partners
 
     def join(self, drone):
-        "Add this drone to our ring"
+        """Add this drone to our ring"""
         assert drone.association.node_id is not None
         if CMAdb.debug:
             CMAdb.log.debug(
@@ -235,7 +234,7 @@ class HbRing(GraphNode):
             self._insertpoint2 = None
             # No other database links to remove
             if CMAdb.debug:
-                CMAdb.log.debug("Last Drone %s has now left the building..." % (drone))
+                CMAdb.log.debug("Last Drone %s has now left the building..." % drone)
             # self.dump_ring_in_order('RING AFTER DELETION(1)', drone)
             return
 
@@ -314,6 +313,7 @@ class HbRing(GraphNode):
 
     def AUDIT(self):
         """Audit our ring to see if it's well-formed"""
+        print("STARTING RING AUDIT", file=stderr)
         listmembers = {}
         ringmembers = {}
         mbrcount = 0
@@ -344,6 +344,7 @@ class HbRing(GraphNode):
             assert drone in ringmembers
         for drone in ringmembers:
             assert drone in listmembers
+        print("FINISHING RING AUDIT", file=stderr)
 
     def __str__(self):
         ret = 'Ring("%s"' % self.name

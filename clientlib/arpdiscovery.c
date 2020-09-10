@@ -267,9 +267,9 @@ _arpdiscovery_dispatch(GSource_pcap_t* gsource, ///<[in] Gsource object causing 
 	} else {
 		// If the IP address is already there, see if the MAC address is the same.  
 		// If so, then we do not need to add it again.
-		DEBUGMSG3("IP Address FOUND in ConfigContext table: %s", v6string);
+		DEBUGMSG4("IP Address FOUND in ConfigContext table: %s", v6string);
 		if ( ! theMAC->equal(theMAC, sha_netaddr) ) {
-			DEBUGMSG3(" ... but MAC address is different: %s", v6string);
+			DEBUGMSG3("ARP FOUND ... but MAC address is different: %s", v6string);
 			self->ArpMapData->setaddr(self->ArpMapData, v6string, sha_netaddr);
 		}
 	}

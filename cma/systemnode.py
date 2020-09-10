@@ -271,17 +271,19 @@ class SystemNode(GraphNode):
     def _process_json(self, origaddr, jsonobj, discoverychanged):
         """Pass the JSON data along to interested discovery plugins (if any)"""
         dtype = jsonobj["discovertype"]
-        if True or CMAdb.debug:
+        if CMAdb.debug:
             CMAdb.log.debug(f"Processing JSON for discovery type [{dtype}] from {origaddr}")
             print(f"Processing JSON for discovery type [{dtype}] from {origaddr} "
                   f"Changed? {discoverychanged}", file=stderr)
         foundone = False
         for prio in range(0, len(SystemNode._JSONprocessors)):
+            print(f'JSON PRIO[{prio}]')
             if dtype in SystemNode._JSONprocessors[prio]:
                 foundone = True
                 classes = SystemNode._JSONprocessors[prio][dtype]
-                # print('PROC[%s][%s] = %s' % (prio, dtype, str(classes)), file=stderr)
+                print('PROC[%s][%s] = %s' % (prio, dtype, str(classes)), file=stderr)
                 for cls in classes:
+                    CMAdb.log.debug(f"Processing JSON for discovery type [{dtype}] with {cls}")
                     proc = cls(
                         CMAdb.config, CMAdb.net_transaction, self._store, self._log, CMAdb.debug
                     )
@@ -297,6 +299,8 @@ class SystemNode(GraphNode):
             CMAdb.log.info(
                 "Stored %s JSON data from %s without processing." % (dtype, self.designation)
             )
+
+        CMAdb.log.debug(f"Finished Processing JSON for discovery type [{dtype}]")
 
     @staticmethod
     def add_json_processor(clstoadd):

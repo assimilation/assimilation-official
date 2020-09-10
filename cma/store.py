@@ -121,7 +121,7 @@ class Store(object):
     do anything special for this case at the moment.
     """
 
-    debug = False
+    debug = True
     log = None
 
     # @inject.params(db='py2neo.Graph', log='logging.Logger')
@@ -399,8 +399,11 @@ class Store(object):
         if self.debug:
             print("load_related cypher:", query, file=stderr)
         cursor = self.db.run(query)
+        print(f"load_related cypher: {cursor}")
         while cursor.forward():
+            print(f"Yielding node : {cursor.current[0]}")
             yield self._construct_obj_from_node(cursor.current[0])
+        print("returning from load_related_cypher")
 
     def load_in_related(self, subj, rel_type, obj=None, attrs=None):
         """
@@ -484,21 +487,27 @@ class Store(object):
         if self.debug:
             print("load_cypher_query: %s" % querystr, file=stderr)
         cursor = self.db.run(querystr, params)
+        print(f"Cypher cursor: {cursor}", file=stderr)
         tuple_class = None
         while cursor.forward():
+            print(f"Cypher cursor forward... {cursor}", file=stderr)
             yieldval = []
             current = cursor.current
+            print(f"Cypher cursor current... {current}", file=stderr)
             # print('CURRENT.keys[%s]: cursor.current.keys(): %s'
             #       % (type(current), str(current.keys())))
             for elem in current:
                 yieldval.append(self._yielded_value(elem))
             if tuple_class is None:
                 tuple_class = collections.namedtuple("CypherQueryResult", " ".join(current.keys()))
+            print(f"Cypher yielding... {yieldval}", file=stderr)
             yield tuple_class(*yieldval)
             # yield yieldval
             count += 1
             if maxcount is not None and count >= maxcount:
+                print(f"Cypher returning on maxcount...", file=stderr)
                 return
+        print(f"Cypher returning...", file=stderr)
 
     def _yielded_value(self, value):
         """
