@@ -103,12 +103,17 @@ class NetTransaction(object):
         :param traceback:
         :return: None
         """
+        print(f"__EXIT__ OF TRANSACTION {exception_type}, {value}, {traceback}")
         if exception_type is None:
+            print("Committing Network transaction")
             self.commit_trans()
+            print("Network transaction committed.")
             return True
         else:
+            print("ABORTING Network transaction")
             self.abort_trans()
-            return None
+            print("Network transaction ABORTED.")
+            return True
 
     def __str__(self):
         """

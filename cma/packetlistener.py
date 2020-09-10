@@ -253,32 +253,37 @@ class PacketListener(object):
     def _read_all_available(self):
         "Read All available framesets into our queue system"
         while True:
+            print("Calling io.recvframesets()", file=sys.stderr)
             (fromaddr, framesetlist) = self.io.recvframesets()
             # print >> stderr, ("Got FrameSet from str([%s], [%s])"
             #                       % (str(fromaddr), repr(fromaddr)))
+            print(f"Returned from io.recvframesets({fromaddr})", file=sys.stderr)
             if fromaddr is None:
                 break
             else:
                 fromstr = repr(fromaddr)
+                print(f"io.recvframesets gave({fromstr})", file=sys.stderr)
                 if CMAdb.debug:
                     CMAdb.log.debug(
                         "_read_all_available: Received FrameSet from str([%s], [%s])"
                         % (str(fromaddr), fromstr)
                     )
-
+            print(f"io.recvframesets Got FSList({framesetlist})", file=sys.stderr)
             for frameset in framesetlist:
+                print(f"io.recvframesets Got FS({frameset})", file=sys.stderr)
                 if CMAdb.debug:
                     CMAdb.log.debug("FrameSet Gotten ([%s]: [%s])" % (str(fromaddr),
                                                                       str(frameset)[:1024]))
                 self.enqueue_frameset(frameset, fromaddr)
+        print(f"Returning from read_all_available", file=sys.stderr)
 
     def queueanddispatch(self):
         "Queue and dispatch all available framesets in priority order"
         while True:
             self._read_all_available()
             fromaddr, frameset = self.dequeue_a_frameset()
-            # print >> stderr, ("Dequeueing FrameSet from ([%s], [%s])"
-            #                       % (str(fromaddr), str(frameset)))
+            print("Dequeueing FrameSet from ([%s], [%s])" % (str(fromaddr), str(frameset)),
+                  file=sys.stderr)
             if fromaddr is None:
                 # print >> stderr, ('FROMADDR IS NONE IN QUEUEANDDISPATCH')
                 return

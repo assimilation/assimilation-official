@@ -81,5 +81,9 @@ fix_install() {
 }
 
 fix_install
+export G_MESSAGES_DEBUG=all
+export G_SLICE=always-malloc
+export G_ENABLE_DIAGNOSTIC=1
+export MALLOC_CHECK_=2
 export PYTHONPATH=$PWD
 exec python ./cma.py "$@" --debug ${CMADEBUG} --foreground

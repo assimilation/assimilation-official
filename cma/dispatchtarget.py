@@ -45,7 +45,7 @@ class DispatchTarget(object):
     dispatchtable = {}
 
     def __init__(self):
-        "Constructor for base class DispatchTarget"
+        """Constructor for base class DispatchTarget"""
         from droneinfo import Drone
 
         self.droneinfo = Drone  # Get around Import loops...
@@ -53,8 +53,7 @@ class DispatchTarget(object):
         self.config = None
 
     def dispatch(self, origaddr, frameset):
-        "Dummy dispatcher for base class DispatchTarget - for unhandled pyFrameSets"
-        self = self  # Make pylint happy...
+        """Dummy dispatcher for base class DispatchTarget - for unhandled pyFrameSets"""
         fstype = frameset.get_framesettype()
         CMAdb.log.info(
             "Received unhandled FrameSet of type [%s] from [%s]"
@@ -69,7 +68,7 @@ class DispatchTarget(object):
             print("\tframe type [%s]: [%s]" % (FrameTypes.get(frametype)[1], str(frame)))
 
     def setconfig(self, io, config):
-        "Save away our IO object and our configuration"
+        """Save away our IO object and our configuration"""
         self.io = io
         self.config = config
 
@@ -91,33 +90,35 @@ class DispatchTarget(object):
 
 @DispatchTarget.register
 class DispatchHBDEAD(DispatchTarget):
-    "DispatchTarget subclass for handling incoming HBDEAD FrameSets."
+    """DispatchTarget subclass for handling incoming HBDEAD FrameSets."""
 
     def dispatch(self, origaddr, frameset):
-        "Dispatch function for HBDEAD FrameSets"
+        """Dispatch function for HBDEAD FrameSets"""
         # fromdrone = self.droneinfo.find(origaddr)
         # fstype = frameset.get_framesettype()
         # CMAdb.log.warning("DispatchHBDEAD: received [%s] FrameSet from [%s] [%s]"
-        #%      (FrameSetTypes.get(fstype)[0], str(origaddr), fromdrone.designation))
+        #  %      (FrameSetTypes.get(fstype)[0], str(origaddr), fromdrone.designation))
         for frame in frameset.iter():
             frametype = frame.frametype()
+            addr = frame.getnetaddr()
             if frametype == FrameTypes.IPPORT:
-                deaddrone = self.droneinfo.find(frame.getnetaddr())
+                deaddrone = self.droneinfo.find(addr)
+                if deaddrone is None:
+                    CMAdb.log.warning(f"DispatchHBDEAD: Unknown Drone@{addr} marked dead.")
+                    return
                 if deaddrone.status == "up":
-                    CMAdb.log.warning(
-                        "DispatchHBDEAD: Drone@%s is dead(%s)" % (frame.getnetaddr(), deaddrone)
-                    )
+                    CMAdb.log.warning( f"DispatchHBDEAD: Drone@{addr} is dead({deaddrone})")
                     if CMAdb.debug:
-                        CMAdb.log.debug("DispatchHBDEAD: [%s] is the guy who died!" % deaddrone)
-                deaddrone.death_report("dead", "HBDEAD packet received", origaddr, frameset)
+                        CMAdb.log.debug(f"DispatchHBDEAD: [{deaddrone}] is the guy who died!")
+                    deaddrone.death_report("dead", "HBDEAD packet received", origaddr, frameset)
 
 
 @DispatchTarget.register
 class DispatchHBSHUTDOWN(DispatchTarget):
-    "DispatchTarget subclass for handling incoming HBSHUTDOWN FrameSets."
+    """DispatchTarget subclass for handling incoming HBSHUTDOWN FrameSets."""
 
     def dispatch(self, origaddr, frameset):
-        "Dispatch function for HBSHUTDOWN FrameSets"
+        """Dispatch function for HBSHUTDOWN FrameSets"""
         fstype = frameset.get_framesettype()
         fsname = FrameSetTypes.get(fstype)[0]
         for frame in frameset.iter():
@@ -150,7 +151,7 @@ class DispatchHBSHUTDOWN(DispatchTarget):
 # pylint: disable=R0914,R0912
 @DispatchTarget.register
 class DispatchSTARTUP(DispatchTarget):
-    "DispatchTarget subclass for handling incoming STARTUP FrameSets."
+    """DispatchTarget subclass for handling incoming STARTUP FrameSets."""
 
     def dispatch(self, origaddr, frameset):
         json = None
@@ -163,7 +164,8 @@ class DispatchSTARTUP(DispatchTarget):
         keysize = None
 
         # print ("DispatchSTARTUP: received [%s] FrameSet from [%s]"
-        #%       (FrameSetTypes.get(fstype)[0], addrstr), file=sys.stderr)
+        # %       (FrameSetTypes.get(fstype)[0], addrstr), file=sys.stderr)
+        sysname = "<UndefinedSystem>"
         if CMAdb.debug:
             CMAdb.log.debug(
                 "DispatchSTARTUP: received [%s] FrameSet from [%s]"
@@ -192,7 +194,7 @@ class DispatchSTARTUP(DispatchTarget):
             elif frametype == FrameTypes.JSDISCOVER:
                 json = frame.getstr()
                 # print('GOT JSDISCOVER JSON: [%s] (strlen:%s,framelen:%s)' \
-                #% (json, len(json), frame.framelen(), file=sys.stderr)
+                # % (json, len(json), frame.framelen(), file=sys.stderr)
             elif frametype == FrameTypes.KEYID:
                 keyid = frame.getstr()
             elif frametype == FrameTypes.PUBKEYCURVE25519:
@@ -457,7 +459,7 @@ class DispatchHBBACKALIVE(DispatchTarget):
 
 @DispatchTarget.register
 class DispatchJSDISCOVERY(DispatchTarget):
-    "DispatchTarget subclass for handling incoming JSDISCOVERY FrameSets."
+    """DispatchTarget subclass for handling incoming JSDISCOVERY FrameSets."""
 
     def dispatch(self, origaddr, frameset):
         fstype = frameset.get_framesettype()
@@ -502,7 +504,7 @@ class DispatchJSDISCOVERY(DispatchTarget):
 
 @DispatchTarget.register
 class DispatchSWDISCOVER(DispatchTarget):
-    "DispatchTarget subclass for handling incoming SWDISCOVER FrameSets."
+    """DispatchTarget subclass for handling incoming SWDISCOVER FrameSets."""
 
     def dispatch(self, origaddr, frameset):
         fstype = frameset.get_framesettype()
@@ -546,7 +548,7 @@ class DispatchSWDISCOVER(DispatchTarget):
 
 @DispatchTarget.register
 class DispatchRSCOPREPLY(DispatchTarget):
-    "DispatchTarget subclass for handling incoming RSCOPREPLY FrameSets."
+    """DispatchTarget subclass for handling incoming RSCOPREPLY FrameSets."""
     GOODTOBAD = 1
     BADTOGOOD = 2
 
@@ -571,8 +573,8 @@ class DispatchRSCOPREPLY(DispatchTarget):
 
 @DispatchTarget.register
 class DispatchCONNSHUT(DispatchTarget):
-    "Class for handling (ignoring) CONNSHUT packets"
+    """Class for handling (ignoring) CONNSHUT packets"""
 
     def dispatch(self, origaddr, frameset):
-        origaddr = origaddr
-        frameset = frameset
+        _origaddr = origaddr
+        _frameset = frameset
