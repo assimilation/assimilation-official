@@ -1,16 +1,22 @@
 language: minimal
 
+env:
+  DOCKER_IMAGE=$(grep -v '#' < $TRAVIS_BUILD_DIR/docker/nanoprobe/docker-tag.txt | head -n1)
+  DOCKER_TAG=${DOCKER_IMAGE#assimilationproject/nanoprobe:}
+
+stages:
+  - name: build
+  - name: package
+  - name: "test on different distributions"
+
 script:
-  - echo $TRAVIS_DIST
-  - echo $TRAVIS_OS_NAME
-  - echo $TRAVIS_CPU_ARCH
-  - uname -a
   - cd /tmp
-  - wget --quiet https://github.com/borgified/assimilation-official/releases/download/test/nanoprobe
-  - echo "4be5fa9116cdf08a0eff3a60585af1832230df213f5fe734ea6f3c6ce8001640  nanoprobe" > nanoprobe.sha256sum
-  - sha256sum -c nanoprobe.sha256sum
-  - chmod +x nanoprobe
-  - ./nanoprobe
+  - wget --quiet "https://github.com/assimilation/assimilation-official/releases/download/v${DOCKER_TAG}/nanoprobe_${DOCKER_TAG}_amd64.deb"
+  - wget --quiet "https://github.com/assimilation/assimilation-official/releases/download/v${DOCKER_TAG}/sums"
+  - sudo dpkg -i nanoprobe_${DOCKER_TAG}_amd64.deb
+  - ls -al /usr/share/assimilation/copyright
+  - grep nanoprobe /tmp/sums > /tmp/sums.nanoprobe
+  - cd /usr/bin && sha256sum -c /tmp/sums.nanoprobe
 
 jobs:
   include:
@@ -26,3 +32,41 @@ jobs:
     - stage: test on different distributions
       name: ubuntu 18.04
       dist: bionic
+    - stage: build
+      name: nanoprobe
+      dist: bionic
+      install:
+        - cd /tmp
+        - wget --quiet https://github.com/github/hub/releases/download/v2.14.2/hub-linux-amd64-2.14.2.tgz
+        - tar xvfz hub-linux-amd64-2.14.2.tgz
+        - cd hub-linux-amd64-2.14.2/
+        - sudo ./install
+      script:
+        - cd $TRAVIS_BUILD_DIR/docker
+        - ./dockit
+        - docker run -v /tmp/package:/workdir -it $DOCKER_IMAGE bash -c "cp /tmp/build/bin/nanoprobe /workdir"
+        - docker run -v /tmp/package:/workdir -it $DOCKER_IMAGE bash -c "cp /tmp/build/bin/sums /workdir"
+        - cd $TRAVIS_BUILD_DIR && ci/scripts/attach_asset.sh /tmp/package nanoprobe "v${DOCKER_TAG}"
+        - cd $TRAVIS_BUILD_DIR && ci/scripts/attach_asset.sh /tmp/package sums "v${DOCKER_TAG}"
+    - stage: package
+      name: debian
+      install:
+        - cd /tmp
+        - wget --quiet https://github.com/github/hub/releases/download/v2.14.2/hub-linux-amd64-2.14.2.tgz
+        - tar xvfz hub-linux-amd64-2.14.2.tgz
+        - cd hub-linux-amd64-2.14.2/
+        - sudo ./install
+      script:
+        - mkdir /tmp/package
+        - cd /tmp/package
+        - wget --quiet "https://github.com/assimilation/assimilation-official/releases/download/v${DOCKER_TAG}/nanoprobe"
+        - mkdir -p /tmp/package/usr/share/assimilation/discovery_agents
+        - mkdir -p /tmp/package/usr/share/crypto.d
+        - mkdir -p /tmp/package/usr/lib/ocf/resource.d/assimilation
+        - cp $TRAVIS_BUILD_DIR/ocf/neo4j /tmp/package/usr/lib/ocf/resource.d/assimilation/
+        - cp $TRAVIS_BUILD_DIR/legal/copyright /tmp/package/usr/share/assimilation/
+        - cp $TRAVIS_BUILD_DIR/ci/scripts/fix.sh /tmp/package
+        - rsync -a --exclude Windows $TRAVIS_BUILD_DIR/discovery_agents/ /tmp/package/usr/share/assimilation/discovery_agents/
+        - docker build --build-arg VERSION=$DOCKER_TAG -f $TRAVIS_BUILD_DIR/ci/Dockerfiles/ubuntu1804_fpm.dockerfile -t ubuntu_fpm /tmp/package/
+        - docker run -v /tmp/package:/output ubuntu_fpm bash -c "cp /workdir/*.deb /output"
+        - cd $TRAVIS_BUILD_DIR && ci/scripts/attach_asset.sh /tmp/package "nanoprobe_${DOCKER_TAG}_amd64.deb" "v${DOCKER_TAG}"
