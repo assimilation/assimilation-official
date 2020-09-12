@@ -1145,8 +1145,8 @@ class Store(object):
 
             assert self.weaknoderefs[node_id]() == subj
             self._audit_weaknodes_clients()
-        if hasattr(subj, "post_db_init"):
-            # print('POST_DB_INIT...[%s' % type(subj), file=stderr)
+        if node is None and hasattr(subj, "post_db_init"):
+            print('POST_DB_INIT...[%s' % type(subj), file=stderr)
             subj.post_db_init()
         return subj
 

@@ -493,6 +493,9 @@ class IOTestIO:
         self.readfails = 0
         self.initpackets = len(self.inframes)
 
+    def setup_config(self, *args, **kwargs):
+        pass
+
     @staticmethod
     def shutdown_on_timeout(io):
         if IOTestIO.mainloop is not None:

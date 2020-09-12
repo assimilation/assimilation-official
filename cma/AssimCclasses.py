@@ -130,6 +130,7 @@ from AssimCtypes import (
     CDP_TLV_TRUST_BITMAP,
     CDP_TLV_UNTRUSTED_COS,
     CDP_TLV_HELLO,
+    CMAADDR,
     ADDR_FAMILY_IPV4,
     ADDR_FAMILY_IPV6,
     ADDR_FAMILY_802,
@@ -2439,6 +2440,14 @@ class pyNetIO(pyAssimObj):
             self.config = pyConfigContext(Cstruct=base._configinfo)
             CCref(base._configinfo)
         pyAssimObj.__init__(self, Cstruct=cast(Cstruct, NetIO_p))
+
+    def setup_config(self, bind_addr_str: str) -> None:
+        bind_addr = pyNetAddr(bind_addr_str)
+        if not self.bindaddr(bind_addr):
+            raise NameError(f"Cannot bind to address {bind_addr}")
+        if not self.mcastjoin(pyNetAddr(CMAADDR)):
+            print(f"WARNING: Failed to join multicast at {CMAADDR}", file=stderr)
+        self.setblockio(False)
 
     def setblockio(self, mode):
         """Set this NetIO object to blocking IO mode"""

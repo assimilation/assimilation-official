@@ -75,13 +75,9 @@ class PacketListener(object):
             self.io = io
         dispatch.setconfig(self.io, config)
 
-        if not self.io.bindaddr(config[CONFIGNAME_CMAINIT]):
-            raise NameError("Cannot bind to address %s" % (str(config[CONFIGNAME_CMAINIT])))
-        if not self.io.mcastjoin(pyNetAddr(CMAADDR)):
-            CMAdb.log.warning("Failed to join multicast at %s" % CMAADDR)
-        self.io.setblockio(False)
+        self.io.setup_config(str(config[CONFIGNAME_CMAINIT]))
         # print "IO[socket=%d,maxpacket=%d] created." \
-        #%  (self.io.fileno(), self.io.getmaxpktsize())
+        # %  (self.io.fileno(), self.io.getmaxpktsize())
         self.dispatcher = dispatch
         self.iowatch = None
         self.mainloop = glib.MainLoop()
