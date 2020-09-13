@@ -27,13 +27,15 @@ A collection of classes which wrap our @ref C-Classes and provide Pythonic inter
 to these C-classes.
 """
 from __future__ import print_function, absolute_import
-from typing import Optional
+from typing import Optional, List, Union, Tuple
 import six
 import collections
 import traceback
 import types
 from sys import stderr
 import gc
+import pickle
+import ctypes
 import AssimCtypes
 from AssimCtypes import (
     POINTER,
@@ -1876,8 +1878,13 @@ class pyFrameSet(pyAssimObj):
         """Prepend a frame before the first frame in a @ref FrameSet"""
         frameset_prepend_frame(self._Cstruct, cast(frame._Cstruct, Frame_p))
 
-    def construct_packet(self, signframe, cryptframe=None, compressframe=None):
-        """Construct packet from curent frameset + special prefix frames"""
+    def construct_packet(self, signframe: pySignFrame,
+                         cryptframe: Optional[pyCryptFrame] = None,
+                         compressframe: Optional[pyCompressFrame] = None
+                         ) -> None:
+        """
+        Construct packet from curent frameset + special prefix frames
+        """
         cf = None
         cmpf = None
         if cryptframe is not None:
@@ -1995,6 +2002,29 @@ class pyFrameSet(pyAssimObj):
         result += "}"
         return result
 
+    def to_bytearray_packet(self,
+                            sign_frame: Optional[pySignFrame] = None,
+                            crypt_frame: Optional[pyCryptFrame] = None,
+                            compress_frame: Optional[pyCompressFrame] = None,
+                            ) -> bytes:
+        """
+        Return the bytearray representation of this packet, suitable for pickling
+
+        :param sign_frame: Optional[pySignFrame]: signature frame -- or None
+        :param crypt_frame: Optional[pyCryptFrame]: encryption frame -- or None
+        :param compress_frame: Optional[pyCompressFrame]: compression frame -- or None
+        """
+        if not sign_frame:
+            sign_frame = pySignFrame(1)
+
+        self.construct_packet(sign_frame, crypt_frame, compress_frame)
+        first, last = self.getpacket()
+        # Create a Ctypes type for this particular length of packet
+        fs_ctype_type = ctypes.c_ubyte * (last - first)
+        return bytearray(fs_ctype_type.from_address(first))
+
+
+
 
 class pyPacketDecoder(pyAssimObj):
     """Class for Decoding packets - for returning an array of FrameSets from a physical packet."""
@@ -2005,7 +2035,7 @@ class pyPacketDecoder(pyAssimObj):
             Cstruct = packetdecoder_new(0, None, 0)
         pyAssimObj.__init__(self, Cstruct=Cstruct)
 
-    def fslist_from_pktdata(self, pktlocation):
+    def fslist_from_pktdata(self, pktlocation: Tuple[int, int]) -> List[pyFrameSet]:
         """Make a list of FrameSets out of a packet."""
         base = self._Cstruct[0]
         while not_this_exact_type(base, AssimCtypes.PacketDecoder):
@@ -2013,24 +2043,22 @@ class pyPacketDecoder(pyAssimObj):
         fs_gslistint = base.pktdata_to_framesetlist(
             self._Cstruct, cast(pktlocation[0], cClass.guint8), cast(pktlocation[1], cClass.guint8)
         )
-        # How does the framesetlist relate to the packet data? Is it a pointer to inside the packet
-        # data? Or is it simply a new FrameSetList object?
         # fslist_to_pyfs_array() disposes of the s_list, while keeping the framesets
         return pyPacketDecoder.fslist_to_pyfs_array(fs_gslistint)
 
     @staticmethod
-    def fslist_to_pyfs_array(listheadint):
+    def fslist_to_pyfs_array(listheadint) -> List[pyFrameSet]:
         """
         Converts a GSList of FrameSets to a python array of pyFrameSets
         It frees the FrameSetList (GSList) it is passed as a parameter using g_slist_free().
-        This does _not_ free the objects being pointed to by the list.
+        This does _not_ free the objects pointed to by the list (and this is a good thing)
         https://developer.gnome.org/glib/stable/glib-Singly-Linked-Lists.html#g-slist-free
 
         The docs allude to a case where the list head might be dangling. I don't _think_
         that this is our case (?).
         """
         fs_gslist = cast(listheadint, cClass.GSList)
-        frameset_list = []
+        frameset_list: List[pyFrameSet] = []
         curfs = fs_gslist
         while curfs:
             cfs = cast(curfs[0].data, cClass.FrameSet)
@@ -2038,6 +2066,71 @@ class pyPacketDecoder(pyAssimObj):
             frameset_list.append(fs)
             curfs = g_slist_next(curfs)
         g_slist_free(fs_gslist)
+        return frameset_list
+
+    @staticmethod
+    def pickle_packet(frameset_list: Union[List[pyFrameSet], int],
+                      sign: Optional[pySignFrame] = None,
+                      crypt: Optional[pyCryptFrame] = None,
+                      compress: Optional[pyCompressFrame] = None,
+                      ) -> bytes:
+        """
+        Convert a frameset list into a pickled packet - since FrameSets aren't directly pickleable.
+        A pyFrameSet is a logical packet, and a "packet" is a physical packet, which consists
+        of one or more Framesets headed to the same destination at the same time.
+
+        To do this we construct a packet from the frameset list, then pickle the resulting
+        packet.
+
+        NOTE: PICKLING/UNPICKLING IS POTENTIALLY DANGEROUS - ONLY UNPICKLE FROM TRUSTED SOURCES
+
+        :param frameset_list: int: A list of Framesets or an int that points to a 'C' FrameSetList
+        :param sign: Optional[pySignFrame]: signature frame -- or None
+        :param crypt: Optional[pyCryptFrame]: encryption frame -- or None
+        :param compress: Optional[pyCompressFrame]: compression frame -- or None
+        :return:bytes: A pickled packet which is structured like this:
+            List[bytearray]
+            where each bytearray represents a single packetized FrameSet (logical packet)
+        """
+        if isinstance(frameset_list, int):
+            decoder = pyPacketDecoder()
+            frameset_list = decoder.fslist_to_pyfs_array(frameset_list)
+
+        frameset_buf_list = [fs.to_bytearray_packet(sign, crypt, compress) for fs in frameset_list]
+        return pickle.dumps(frameset_buf_list)
+
+    def unpickle_packet(self, pickled_packet: bytes) -> List[pyFrameSet]:
+        """
+        Convert a pickled packet from pickle_packet() back into a list of pyFrameSets.
+        NOTE: PICKLING/UNPICKLING IS POTENTIALLY DANGEROUS - ONLY UNPICKLE FROM TRUSTED SOURCES
+
+        :param pickled_packet: bytes: pickled Packet
+        :return: List[pyFrameSet]: List of framesets from the packet
+        """
+        frameset_list: List[pyFrameSet] = []
+        frameset_buf_list = pickle.loads(pickled_packet)
+
+        if not isinstance(frameset_buf_list, list):
+            raise ValueError(f"Pickled packet not a list: {type(frameset_buf_list)}")
+        for frameset_buf in frameset_buf_list:
+            if not isinstance(frameset_buf, bytearray):
+                raise ValueError(f"Pickled packet not a collection of bytearrays: "
+                                 f"{type(frameset_buf)}")
+            # Construct a Ctypes type for this particular FrameSet
+            packet_type = ctypes.c_ubyte * len(frameset_buf)
+            packet = packet_type.from_buffer(frameset_buf)
+            first = int(ctypes.addressof(packet))
+            last = first + len(frameset_buf)
+            decoder = pyPacketDecoder()
+            # Extract a frameset list from our "packet data"
+            fs_list = self.fslist_from_pktdata((first, last))
+            # There should only be a single frameset in this chunk...
+            if len(fs_list) != 1:
+                raise ValueError(f"Pickled FrameSetList length is incorrect {len(fs_list)}")
+            for fs in fs_list:
+                if not isinstance(fs, pyFrameSet):
+                    raise ValueError(f"Pickled FrameSet incorrect type {type(fs)}")
+                frameset_list.append(fs)
         return frameset_list
 
 

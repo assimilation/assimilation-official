@@ -156,13 +156,13 @@ frameset_append_frame(FrameSet* fs,	///< FrameSet to fetch flags for
 /// to reconstruct a packet later.
 ///
 void
-frameset_construct_packet(FrameSet* fs,		///< FrameSet for which we're creating a packet
-			  SignFrame* sigframe,	///< digital Signature method (cannot be NULL)
-			  CryptFrame* cryptframe,///< Optional Encryption method.
-						///< This method might change the packet size.
+frameset_construct_packet(FrameSet* fs, ///< FrameSet for which we're creating a packet
+			  SignFrame* sigframe,	    ///< digital Signature method (*cannot* be NULL)
+			  CryptFrame* cryptframe,   ///< Optional Encryption method.
+						                ///< This method might change the packet size.
 		  CompressFrame* compressframe)	///< Optional Compression method.
-						///< This object modifies the packet "in place",
-						///< and adjusts things accordingly.
+						                ///< This object modifies the packet "in place",
+						                ///< and adjusts things accordingly.
 {
 	GSList*		curframe;		// Current frame as we marshall packet...
 	int		curpktoffset;		// Current offset as we marshall packet...
@@ -181,7 +181,7 @@ frameset_construct_packet(FrameSet* fs,		///< FrameSet for which we're creating 
 	 * 2. Remove current Framelist signature, compression, and encryption frames (if any).
 	 * 3. Prepend a compression Frame if compm != NULL
 	 * 4. Prepend an encryption Frame if cryptm != NULL
-	 * 5. Prepend a signature Frame (sigm may not be NULL).
+	 * 5. Prepend a signature Frame (sigm may *not* be NULL).
 	 * 6. Figure out how much space we think we need to malloc for the packet using Frames.
 	 * 7. Malloc enough space.
 	 * 8. Populate all the frames into this new packet in reverse order.

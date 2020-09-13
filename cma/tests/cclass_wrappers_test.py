@@ -37,6 +37,7 @@ from AssimCclasses import *
 import gc
 import re
 from AssimCtypes import proj_class_incr_debug, proj_class_decr_debug
+from AssimCclasses import cClass
 
 CheckForDanglingClasses = True
 WorstDanglingCount = 0
@@ -843,7 +844,17 @@ class TestpyFrameSet(TestCase):
         pktdata = pyfs.getpacket()
         if DEBUG:
             print("getpacket done", pktdata, file=stderr)
-        cp_pyfs = decoder.fslist_from_pktdata(pktdata)
+        # Now pickle our packet...
+        first, last = pktdata
+        length = last - first
+        print(f"PACKET LENGTH: {length} bytes")
+        assert length == 145 # Good to know if this changes...
+        pickled_packet = decoder.pickle_packet([pyfs,])
+        frameset_list = decoder.unpickle_packet(pickled_packet)
+        assert isinstance(frameset_list, list)
+        assert len(frameset_list) == 1
+        cp_pyfs = frameset_list
+
         if DEBUG:
             print("decoder done", cp_pyfs, file=stderr)
         fs0 = cp_pyfs[0]
