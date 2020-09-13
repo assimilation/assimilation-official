@@ -507,7 +507,7 @@ class ClientQuery(GraphNode):
         """Return the value of a relationship type - if valid"""
         reltypes = set()
         for attr in dir(CMAconsts):
-            if attr.startswith("REL_") and isinstance(getattr(CMAconsts, attr), str)):
+            if attr.startswith("REL_") and isinstance(getattr(CMAconsts, attr), str):
                 reltypes.add(attr[4:])
                 reltypes.add(getattr(CMAconsts, attr))
         if reltype not in reltypes:

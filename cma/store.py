@@ -240,7 +240,8 @@ class Store(object):
         self.db_transaction.run(cypher).forward()
         node_id = subj.association.node_id
         subj._association = None
-        self.clients.remove(subj)
+        if subj in self.clients:
+            self.clients.remove(subj)
         if node_id in self.weaknoderefs:
             del self.weaknoderefs[node_id]
 
