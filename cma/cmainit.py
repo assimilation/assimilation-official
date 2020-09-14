@@ -205,9 +205,9 @@ class CMAInjectables(object):
         "LOG_LEVEL": logging.DEBUG,
         "LOG_DEVICE": "/dev/log",
         "LOG_FORMAT": "%(name)s %(levelname)s: %(message)s",
-        "NEO4J_HTTP": False,
+        "NEO4J_HTTP": True,
         "NEO4J_HTTPS": False,
-        "NEO4J_BOLT": True,
+        "NEO4J_BOLT": False,
         "NEO4J_HOST": "localhost",
         "NEO4J_PORT": 7687,
         "NEO4J_READONLY": False,
@@ -286,8 +286,8 @@ class CMAInjectables(object):
         protocol = "bolt" if bolt else ("https" if https else "http")
         # url = "%s://%s/db/data/" % (protocol, hostport)
         url = "%s://%s/db/data/" % ("http", "localhost:7474")
-        url = "http:/127.0.0.1:7474"
         url = "bolt://localhost:7687"
+        url = "http:/127.0.0.1:7474"
 
         trycount = 0
         NeoServer.wait_for_port("bolt")

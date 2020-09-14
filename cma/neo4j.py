@@ -110,6 +110,7 @@ class NeoServer(object):
         try:
             sock = socket.create_connection(("127.0.0.1", port), 1)
             sock.close()
+
         except socket.error:
             return False
 
