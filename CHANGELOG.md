@@ -34,7 +34,7 @@ Changes that have landed but are not yet released.	Changes that have landed but 
 ###  New Features
 - Added several <a href="https://trello.com/c/G1DSBE6U">queries for installed packages</a>
 - <a href="https://trello.com/c/s4vLO6Cv">Incorporate severities</a> into best practice score calculations.
-- Added <a href=https://trello.com/c/9NxqFAGG"">OUIs to some MAC queries</a>
+- Added <a href="https://trello.com/c/9NxqFAGG">OUIs to some MAC queries</a>
 - Added <a href="https://trello.com/c/10HLSbEP">DNS/hosts names to some IP queries</a>
 - Added a <a href="https://trello.com/c/IPIE00rw">query for MAC addresses without OUIs</a>
 - Added a <a href="https://trello.com/c/qeEpY0wY">query for IP addresses without DNS/hosts names</a>
@@ -147,7 +147,7 @@ So the joke is that it's not a joke ;-)
 - use with recent versions of Neo4j requires disabling authentication on Neo4j
 - Our current process only allows us to create 64-bit binaries. Feel free to build 32-bit binaries yourself. They still work for Ubuntu, and probably Debian and 7.0 and later versions of CentOS.
 
-## [1.1.1] - Nov 26, 201 - the Thanksgiving Release
+## [1.1.1] - Nov 26, 2011 - the Thanksgiving Release
 ### New Features
 - Added sample notification API client code - https://trello.com/c/LmBhODaa
 - Added –remote option to the installer - https://trello.com/c/P2czyw9x
