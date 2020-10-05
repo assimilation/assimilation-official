@@ -149,7 +149,7 @@ FSTATIC void
 quit_at_child_exit(GPid pid, gint status, gpointer logsourcefd)
 {
 	LogSourceFd*	logsrc = CASTTOCLASS(LogSourceFd, logsourcefd);
-	
+
 	(void)pid;
 	g_assert_cmpint(status, ==, 0);
 	g_assert_cmpint(logsrc->linecount, ==, 1);
@@ -490,7 +490,7 @@ test_safe_ocfops(void)
 		"{" OCFCLASS "," DUMMYTYPE "," RESOURCENAME "," MONOP "," HBPROVIDER "," NULLPARAMS  "}";
 	const char * metadata =
 		"{" OCFCLASS "," DUMMYTYPE "," RESOURCENAME "," METAOP "," HBPROVIDER "," NULLPARAMS  "}";
-	
+
 	struct ocf_expect success = {
 		-1, 		// gint		minstrlen;
 		0,		// gint		maxstrlen;
@@ -536,10 +536,13 @@ test_safe_ocfops(void)
 	for (j=0; j < DIMOF(operations); ++j) {
 		ResourceCmd*	cmd;
 		ConfigContext*	op = configcontext_new_JSON_string(operations[j]);
+		g_message("After new JSON string");
 
 		g_assert(op != NULL);
 		mainloop = g_main_loop_new(g_main_context_default(), TRUE);
+		g_message("After new JSON string");
 		cmd = resourcecmd_new(op, expectations[j], expect_ocf_callback);
+		g_message("After resourcecmd_new string");
 		if (NULL == cmd) {
 			g_message("Cannot create Dummy OCF resource agent object"
 			" -- is the Dummy RA installed? - test %s skipped.", __FUNCTION__);
@@ -548,8 +551,11 @@ test_safe_ocfops(void)
 			g_main_loop_unref(mainloop);
 			return;
 		}
+		g_message("Executing command");
 		cmd->execute(cmd);
+		g_message("Starting g_main_loop");
 		g_main_loop_run(mainloop);
+		g_message("unrefing g_main_loop");
 		g_main_loop_unref(mainloop);
 		UNREF(cmd);
 		UNREF(op);
@@ -569,7 +575,7 @@ test_safe_queue_ocfops(void)
 		"{" PREFIX "," MONOP "," HBPROVIDER "," NULLPARAMS "}";
 	const char * metadata =
 		"{" REQID "," OCFCLASS "," DUMMYTYPE "," RESOURCENAME "," METAOP "," HBPROVIDER "," NULLPARAMS "}";
-	
+
 	struct ocf_expect success = {
 		-1, 		// gint		minstrlen;
 		0,		// gint		maxstrlen;

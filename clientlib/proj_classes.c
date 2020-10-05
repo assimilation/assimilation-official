@@ -21,6 +21,9 @@
  *  You should have received a copy of the GNU General Public License
  *  along with the Assimilation Project software.  If not, see http://www.gnu.org/licenses/
  */
+#include <stdio.h>
+#include <stdlib.h>
+#include <memory.h>
 #include <projectcommon.h>
 #include <assimobj.h>
 
@@ -54,8 +57,8 @@
  *			which is keyed by object _addresses_ (ObjectClassAssociation) - not the objects pointed to
  *			The associated values are the quarks of the classes of the objects at those addresses.
  *				{object-address, object class quark}, keyed by object-address
- *				
- *		
+ *
+ *
  *		The second is the subclass-quark -> superclass-quark mapping,
  *			which is keyed by quarks of classes.
  *			Each associated value is the quark of a superclass.
@@ -66,11 +69,18 @@
 static GHashTable*	ObjectClassAssociation= NULL;	///< Map of objects -> class quarks
 static GHashTable*	SuperClassAssociation = NULL;	///< Map of subclass-quarks -> superclass-quarks
 static GHashTable*	DebugClassAssociation = NULL;	///< Map of class -> debug variables
-static GHashTable*	FreedClassAssociation = NULL;	///< Map of class -> freed 
+static GHashTable*	FreedClassAssociation = NULL;	///< Map of class -> freed
+static GHashTable*	ObjectSizeAssociation = NULL;	///< Map of objects -> sizes
 static guint32		proj_class_obj_count = 0;
 static guint32		proj_class_max_obj_count = 0;
+FSTATIC gpointer	proj_class_malloc_with_fencebytes(gsize objsize);
+FSTATIC void		proj_class_fencebytes_free(guint8* object);
+FSTATIC void		validate_fencebytes_memory(guint8* malloc_obj, gsize objsize, const char * msg);
+FSTATIC void		validate_fencebytes_class_object(guint8* malloc_obj);
+FSTATIC void		validate_all_fencebytes_objects(void);
 gboolean		badfree = FALSE;
 
+FSTATIC void  assim_dump_bytes(const char * prefix, gconstpointer p, int len);
 FSTATIC void _init_proj_class_module(void);
 FSTATIC void proj_class_change_debug(const char * Cclass, gint incr);
 
@@ -79,6 +89,7 @@ FSTATIC void
 _init_proj_class_module(void)
 {
 	ObjectClassAssociation  = g_hash_table_new(NULL, NULL); // same as g_direct_hash(), g_direct_equal().
+	ObjectSizeAssociation   = g_hash_table_new(NULL, NULL); // same as g_direct_hash(), g_direct_equal().
 	FreedClassAssociation	= g_hash_table_new(NULL, NULL); // same as g_direct_hash(), g_direct_equal().
 	SuperClassAssociation   = g_hash_table_new(NULL, NULL); // same as g_direct_hash(), g_direct_equal().
 	DebugClassAssociation   = g_hash_table_new(g_str_hash, g_str_equal);
@@ -88,6 +99,7 @@ void
 proj_class_finalize_sys(void)
 {
 	g_hash_table_destroy(ObjectClassAssociation);	ObjectClassAssociation = NULL;
+	g_hash_table_destroy(ObjectSizeAssociation);	ObjectSizeAssociation = NULL;
 	g_hash_table_destroy(FreedClassAssociation);	FreedClassAssociation = NULL;
 	g_hash_table_destroy(SuperClassAssociation);	SuperClassAssociation = NULL;
 	g_hash_table_destroy(DebugClassAssociation);	DebugClassAssociation = NULL;
@@ -100,7 +112,7 @@ void
 proj_class_register_object(gpointer object,			///< Object to be registered
 			   const char * static_classname)	///< Class to register it as
 {
-	
+
 	GQuark	classquark = g_quark_from_static_string(static_classname);	// Quark for the given classname
 
 	if (NULL == ObjectClassAssociation) {
@@ -192,7 +204,7 @@ gpointer
 proj_class_register_subclassed(gpointer object,				///< Object (currently registered as superclass)
 			       const char * static_subclassname)	///< Subclass to register it as
 {
-	
+
 	GQuark	subclassquark = g_quark_from_static_string(static_subclassname);	// Quark for the given classname
 	GQuark	superclassquark;
 
@@ -214,11 +226,17 @@ gpointer
 proj_class_new(gsize objsize,				///< Size of object to be allocated
 	       const char * static_classname)		///< Static string giving name of class
 {
-	gpointer	ret = MALLOC0(objsize);
+	gpointer	ret = proj_class_malloc_with_fencebytes(objsize);
 
 	if (ret != NULL) {
 		proj_class_register_object(ret, static_classname);
+		if (objsize == 0) {
+			g_message("%s object is size zero (!)\n", static_classname);
+			abort();
+		}
+		g_hash_table_insert(ObjectSizeAssociation, ret, GUINT_TO_POINTER(objsize));
 	}
+	validate_all_fencebytes_objects();
 	return ret;
 }
 /// Dissociate an object from the C class system (typically coupled with freeing it).
@@ -235,10 +253,12 @@ proj_class_dissociate(gpointer object) ///< Object be 'dissociated' from class
 		BADCASTMSG("Attempt to free memory not currently shown as allocated to a class object - former class: %s"
 		,	oldclass);
 		badfree = TRUE;
+		abort();
 	}else{
 		//g_warning("Freeing object %p of type %s", object, proj_class_classname(object));
 		g_hash_table_insert(FreedClassAssociation, object, GUINT_TO_POINTER(objquark));
 		g_hash_table_remove(ObjectClassAssociation, object);
+		g_hash_table_remove(ObjectSizeAssociation, object);
 	}
 }
 
@@ -246,10 +266,87 @@ proj_class_dissociate(gpointer object) ///< Object be 'dissociated' from class
 /// If it's not a registered C-class object, we abort.
 /// Better a semi-predictable abort than a random and unpredictable crash.
 void
-proj_class_free(gpointer object) ///< Object be freed
+proj_class_free(gpointer object) ///< Object to be freed
 {
+	validate_all_fencebytes_objects();
 	proj_class_dissociate(object);
-	FREE(object);
+	proj_class_fencebytes_free(object);
+}
+
+
+#define EXTRABYTES  16
+const unsigned char _fencebytes [EXTRABYTES] = {
+	0xfe, 0xed, 0xbe, 0xef, 0xde, 0xad, 0xbe, 0xef, 0xde, 0xad, 0xbe, 0xef, 0xfe, 0xed, 0xbe, 0xef
+};
+
+gpointer
+proj_class_malloc_with_fencebytes(gsize objsize) ///< Malloc object surrounding with fencebytes
+{
+	size_t new_objsize = objsize + EXTRABYTES + EXTRABYTES;
+	guint8* result = MALLOC0(new_objsize);
+	if (!result) {
+       		return NULL;
+        }
+        memcpy(result, _fencebytes, EXTRABYTES);
+        memcpy(result+objsize+EXTRABYTES, _fencebytes, sizeof(_fencebytes));
+	return result + EXTRABYTES;
+}
+
+void
+proj_class_fencebytes_free(guint8* malloc_obj)
+{
+	guint8* obj_start = (malloc_obj-EXTRABYTES);
+	FREE(obj_start);
+}
+
+void
+validate_fencebytes_memory(guint8* malloc_obj, gsize objsize, const char * msg) ///< Validate memory for fencebytes
+{
+	guint8* obj_start = (malloc_obj-EXTRABYTES);
+	gboolean all_good = TRUE;
+	if (memcmp(obj_start, _fencebytes, EXTRABYTES) != 0) {
+		fprintf(stderr, "Prefix fence bytes for %s [%zu byte object] are mangled at %p\n",
+				msg, objsize, obj_start);
+		all_good = FALSE;
+	}
+	if (memcmp(malloc_obj + objsize, _fencebytes, EXTRABYTES) != 0) {
+		fprintf(stderr, "Postfix fence bytes for %s [%zu byte object] are mangled at %p\n",
+				msg, objsize, malloc_obj + objsize);
+		all_good = FALSE;
+	}
+	if (!all_good) {
+		assim_dump_bytes("Prefix fence bytes ", obj_start, EXTRABYTES);
+		assim_dump_bytes("Postfix fence bytes ", malloc_obj + objsize, EXTRABYTES);;
+		assim_dump_bytes("Object bytes ", malloc_obj, objsize);
+		proj_class_dump_live_objects();
+		abort();
+	}
+}
+void
+validate_fencebytes_class_object(guint8* malloc_obj)
+{
+	const char * proj_class = proj_class_classname(malloc_obj);
+	size_t size = GPOINTER_TO_INT(g_hash_table_lookup(ObjectSizeAssociation, malloc_obj));
+	if (size == 0) {
+		if (proj_class_is_a(malloc_obj, "GSource")) {
+			// GSource objects are created by g_source_new() -- not us...
+			return;
+		}
+		g_message("'%s' object at %p is size zero (!)\n", proj_class, malloc_obj);
+	}
+	validate_fencebytes_memory(malloc_obj, size, proj_class);
+}
+
+void
+validate_all_fencebytes_objects(void)
+{
+	GHashTableIter	iter;
+	guint8*		object;
+	gpointer	quarkp;
+	g_hash_table_iter_init(&iter, ObjectClassAssociation);
+	while (g_hash_table_iter_next(&iter, (gpointer)(&object), &quarkp)) {
+		validate_fencebytes_class_object(object);
+	}
 }
 
 /// Return TRUE if the given <i>object</i> <b>ISA</b> <i>castclass</i> object.
@@ -293,6 +390,7 @@ proj_class_castas(gpointer     object,		///< Object to be "cast" as "castclass"
 		,	oldclass);
 		object = NULL;
 		badfree = TRUE;
+		abort();
 	}
 	return object;
 }
@@ -313,6 +411,7 @@ proj_class_castasconst(gconstpointer object,	///< Object to be "cast" to "castcl
 		,	oldclass);
 		object = NULL;
 		badfree = TRUE;
+		abort();
 	}
 	return object;
 }
@@ -325,7 +424,7 @@ proj_class_classname(gconstpointer object) ///< pointer to the object whose name
 {
 	GQuark		objquark = GPOINTER_TO_INT(g_hash_table_lookup(ObjectClassAssociation, object));
 	return (objquark == 0 ? "(unknown class)" : g_quark_to_string(objquark));
-	
+
 }
 
 /// Register a superclass/subclass relationship in our type system (using Quarks of the classes))
@@ -334,7 +433,7 @@ proj_class_quark_add_superclass_relationship(GQuark superclass,	///< Quark for S
 					     GQuark subclass)	///< Quark for Subclass
 {
 	g_hash_table_insert(SuperClassAssociation, GUINT_TO_POINTER(subclass), GUINT_TO_POINTER(superclass));
-	
+
 }
 /// Determine whether an 'objectclass' ISA member of 'testclass' - with quarks of types as arguments
 /// Since this little C-class system only supports single-inheritance, this isn't exactly rocket science.
@@ -409,7 +508,7 @@ proj_class_live_object_count(void)
 	gpointer	object;
 	gpointer	quarkp;
 	guint32		count = 0;
-	
+
 
 	if (ObjectClassAssociation) {
 		g_hash_table_iter_init(&iter, ObjectClassAssociation);

@@ -499,7 +499,7 @@ class DispatchJSDISCOVERY(DispatchTarget):
                 sysname = None
                 print(f"END Dispatch JSDISCOVER from {origaddr}")
             else:
-                print(f"UNHANDLED FRAMETYPE: {frametype}")
+                pass  # print(f"UNHANDLED FRAMETYPE: {frametype}")
 
 
 @DispatchTarget.register

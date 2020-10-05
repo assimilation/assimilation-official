@@ -98,7 +98,7 @@ assim_dump_bytes(char * prefix, gconstpointer p, int len)
 	int j;
 	const char * space = "";
 	fprintf(stderr, "%s", prefix);
-	
+
 	for (j=0; j < len; ++j) {
 		fprintf(stderr, "%s%02x", space, *(((const guint8*)p)+j));
 		space=" ";

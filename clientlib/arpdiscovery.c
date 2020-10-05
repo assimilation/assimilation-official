@@ -213,7 +213,7 @@ _arpdiscovery_dispatch(GSource_pcap_t* gsource, ///<[in] Gsource object causing 
 	static const guint8	zeroes[4] = {0, 0, 0, 0};
 
 	(void)gsource; (void)capstruct; (void)pkthdr; (void)capturedev;
-	DEBUGMSG3("** Got an incoming ARP packet! - dest is %p", dest);
+	DEBUGMSG4("** Got an incoming ARP packet!")
 
 	arppkt.arp_hrd_type =	tlv_get_guint16(pktstart, pend);
 	arppkt.arp_protocol =	tlv_get_guint16(pktstart+ARP_HRD_LEN, pend);

@@ -333,6 +333,7 @@ class FilesystemJSON(PersistentInvariantJSON):
         self.filemode = int(initial_args.get("filemode", 0o644))
         self.delayed_sync = bool(initial_args.get("delayed_sync", True))
         self.sync_all = bool(initial_args.get("sync_all", False))
+        print(f"JSON Root directory: {self.root_directory}")
         if not os.access(self.root_directory, os.W_OK):
             os.mkdir(self.root_directory, self.dirmode)
 
@@ -398,12 +399,15 @@ class FilesystemJSON(PersistentInvariantJSON):
         :exceptions: OSError:
         :return: Key for this data
         """
+        print(f"VALUE: {value} KEY: {key}")
         if key is None:
             key = self.hash(value).hexdigest()
+        print(f"VALUE2: {value} KEY: {key}")
         if self.audit:
             self._doaudit(key, value)
         pathname = self._pathname(key)
         if not self.is_valid_key(key):
+            print(f"VALUE3: {value} KEY: {key}")
             raise ValueError("key is not valid: %s" % key)
 
         try:
@@ -1018,8 +1022,9 @@ class PersistentJSON(object):
         :param key: str: hash of JSON blob - or None
         :return: str: key of the given JSON blob
         """
+        print(f"PersistentJSON.put(type={jsontype}, value={value} key={key})")
         self._make_bucket(jsontype)
-        return self.buckets[jsontype].put(value, key)
+        return self.buckets[jsontype].put(key, value)
 
     def delete(self, jsontype, key):
         """

@@ -347,7 +347,8 @@ class CMAInjectables(object):
         :param config: dict: or dict-like - configuration describing where to put jsonstorage
         :return: PersistentJSON: JSON store object
         """
-        from invariant_data import PersistentJSON, SQLiteJSON
+        from invariant_data import PersistentJSON, SQLiteJSON as JSONClass
+        # from invariant_data import PersistentJSON, FilesystemJSON as JSONClass
 
         store_filename = config.get("SQLiteFile", "/var/lib/assimilation/assim_json.sqlite")
         store_dirname = os.path.dirname(store_filename)
@@ -373,7 +374,8 @@ class CMAInjectables(object):
             except OSError:
                 pass
         return PersistentJSON(
-            cls=SQLiteJSON, audit=False, pathname=store_filename, delayed_sync=True
+            cls=JSONClass, audit=False, pathname=store_filename, delayed_sync=True,
+            root_directory="/var/lib/assimilation/json_store.d",
         )
 
     @staticmethod

@@ -1020,6 +1020,8 @@ class pySwitchDiscovery(object):
 class pyAssimObj(object):
     """The base object for all the C-class objects"""
 
+    object_map = {}
+
     def __init__(self, Cstruct=None):
         "Create a base pyAssimObj object"
         self._Cstruct = None
@@ -1028,7 +1030,22 @@ class pyAssimObj(object):
             self._Cstruct = Cstruct
         else:
             self._Cstruct = cast(assimobj_new(0), cClass.AssimObj)
+        addr = self.int_address()
+        # if addr in pyAssimObj.object_map:
+        #     addrmap = pyAssimObj.object_map[addr]
+        #     raise RuntimeError(f"Reallocating {addr:0x%x} {addrmap} "
+        #                        f"as {self.__class__.__name__}: address")
+        pyAssimObj.object_map[addr] = {
+            "Python class": self.__class__,
+            "C class": str(self.cclassname())
+        }
         # print 'ASSIMOBJ:init: %s' % (Cstruct)
+
+    def int_address(self):
+
+        # print(f"ATTRIBUTES OF OBJECT: {dir(ctypes.addressof(self._Cstruct))}", file=stderr)
+        # print(f"STR OF OBJECT: {str(ctypes.addressof(self._Cstruct))}", file=stderr)
+        return int(ctypes.addressof(self._Cstruct))
 
     def cclassname(self):
         "Return the 'C' class name for this object"
@@ -1051,6 +1068,11 @@ class pyAssimObj(object):
         "Free up the underlying Cstruct for this pyAssimObj object."
         if not self._Cstruct or self._Cstruct is None:
             return
+        addr = self.int_address()
+        if addr not in pyAssimObj.object_map:
+            traceback.print_stack()
+            raise ValueError(f"Bad {self.__class__.__name__} _Cstruct: {addr:0x%x}")
+        del pyAssimObj.object_map[addr]
         global badfree
         badfree = 0
         CCunref(self._Cstruct)
@@ -1150,7 +1172,7 @@ class pyNetAddr(pyAssimObj):
         base = self._Cstruct[0]
         while not_this_exact_type(base, NetAddr):
             base = base.baseclass
-        base.setport(self._Cstruct, port)
+        base.setport(self._Cstruct, int(port))
 
     def addrtype(self):
         """Return the type of address for this pyNetAddr object"""

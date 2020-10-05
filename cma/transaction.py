@@ -47,6 +47,7 @@ transactions - it does not worry about how they ought to be persisted.
 """
 import sys
 from datetime import datetime, timedelta
+import traceback
 from AssimCclasses import (
     pyNetAddr,
     pyConfigContext,
@@ -95,22 +96,23 @@ class NetTransaction(object):
         self.post_transaction_packets = []
         return self
 
-    def __exit__(self, exception_type, value, traceback):
+    def __exit__(self, exception_type, value, trace):
         """
         Context method to support "with" statements
         :param exception_type: type of exception from this context
         :param value:
-        :param traceback:
+        :param trace:
         :return: None
         """
-        print(f"__EXIT__ OF TRANSACTION {exception_type}, {value}, {traceback}")
         if exception_type is None:
             print("Committing Network transaction")
             self.commit_trans()
             print("Network transaction committed.")
             return True
         else:
-            print("ABORTING Network transaction")
+            extype = exception_type.__name__
+            print(f"ABORTING Net transaction: {extype}: {value}")
+            traceback.print_tb(trace)
             self.abort_trans()
             print("Network transaction ABORTED.")
             return True
