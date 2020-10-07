@@ -100,8 +100,8 @@ class DispatchHBDEAD(DispatchTarget):
         #  %      (FrameSetTypes.get(fstype)[0], str(origaddr), fromdrone.designation))
         for frame in frameset.iter():
             frametype = frame.frametype()
-            addr = frame.getnetaddr()
             if frametype == FrameTypes.IPPORT:
+                addr = frame.getnetaddr()
                 deaddrone = self.droneinfo.find(addr)
                 if deaddrone is None:
                     CMAdb.log.warning(f"DispatchHBDEAD: Unknown Drone@{addr} marked dead.")
