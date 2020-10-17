@@ -111,10 +111,13 @@ snap_pkgs() {
     printf '%s"snap":{' "$globalcomma"
     sort -u < $TMPFILE |
     cut -c1-36 $TMPFILE | grep -v '^Name.*Version.*Rev' |
-    sed -e 's%^%"%' -e 's%  *%":"%' -e 's%  *%-%' -e 's% *$%"%' -e 's%:%: %' | sort -u |
+    sed -e 's%^%"%' -e 's%  *%":"%' -e 's% *$%%' -e 's%  *%-%' -e 's% *$%"%' -e 's%:%: %' | sort -u |
     while
         read line
     do
+        case $line in
+            *Name*Version*) continue;;
+        esac
         printf '%s' "${comma}${line}"
         comma=',
 '
