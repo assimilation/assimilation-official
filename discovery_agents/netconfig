@@ -210,7 +210,7 @@ discover() {
         then
           value='(unknown)'
         fi
-        printf '	%s,\n' "$(scalarval "${field}" "$value")"
+        printf '	"%s": "%s",\n' "${field}" "$value"
       done
     fi
     BRIDGE=$(assim_run_in_context ls -l "$NETDIR/$device/brport/bridge" 2>/dev/null | sed 's%.*/%%')
