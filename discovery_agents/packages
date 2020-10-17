@@ -150,7 +150,8 @@ pip_pkgs() {
     printf '%s"pip":{' "$globalcomma"
     comma='
 '
-    sed -e 's%  *%%' -e 's%^%"%' -e 's%(%": "%' -e 's%)%"%' $TMPFILE |
+    sed -e 's%  *% %' -e 's%  *$%%' -e 's% %": "%' -e 's%^%"%' -e 's%(%": "%' -e 's%)%"%' \
+        $TMPFILE |
     while
         read line
     do
@@ -159,13 +160,15 @@ pip_pkgs() {
             '"Exception:'*) echo '"pip-list-got-an-exception": "0.0.p.s"'
                         break
                         ;;
+            *'--------'*)    continue;;
+            *'UNMET DEPENDENCY'*)   continue;;
         esac
         echo "$line"
     done | sort -u |
     while
         read line
     do
-        printf '%s%s' "${comma}" "${line}"
+        printf '%s%s"' "${comma}" "${line}"
         comma=',
 '
     done

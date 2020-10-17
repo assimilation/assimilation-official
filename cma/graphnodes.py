@@ -785,7 +785,7 @@ class Subnet(GraphNode):
         self.net_segment = net_segment
         self.name = str(self)
         if self.cidrmask > 128:
-            raise ValueError("Illigal CIDR mask")
+            raise ValueError("Illegal CIDR mask")
         # print('Subnet(domain=%s, ipaddr=%s, cidrmask=%s, context=%s, net_segment=%s) => %s'
         #       % (domain, ipaddr, cidrmask, context, net_segment, str(self)), file=stderr)
         assert context is None or isinstance(context, str)
@@ -1019,6 +1019,9 @@ class Subnet(GraphNode):
             pass
         else:
             ipaddr = pyNetAddr(str(ipaddr))
+        if self.cidrmask == 128:
+            return self._ipaddr == ipaddr
+
         base_ip = ipaddr.and_with_cidr(self.cidrmask)
         # print("Comparing subnet %s IPaddr %s anded with %s [%s]"
         #       % (self._ipaddr, ipaddr, self.cidrmask, base_ip), file=stderr)
