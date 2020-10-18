@@ -163,7 +163,8 @@ class TCPDiscoveryGenerateMonitoring(DiscoveryListener):
         d = hashlib.md5()
         # pylint mistakenly thinks md5 objects don't have update member
         # pylint: disable=E1101
-        d.update("%s:%s:%s:%s" % (drone.designation, monitorclass, monitortype, monitorprovider))
+        hash_str = "%s:%s:%s:%s" % (drone.designation, monitorclass, monitortype, monitorprovider)
+        d.update(hash_str.encode('utf-8'))
         if environ is not None:
             names = environ.keys()
             names.sort()

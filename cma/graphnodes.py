@@ -1321,7 +1321,7 @@ class JSONMapNode(GraphNode):
         self.jhash = jhash
         self.jsontype = jsontype
         self.is_current = is_current
-        self.create_time_ms = time_create_ms
+        self.time_create_ms = time_create_ms
         self.nodetype = nodetype
         if (jsontype, jhash) not in persistentjson:
             persistentjson.put(jsontype, jhash, json)

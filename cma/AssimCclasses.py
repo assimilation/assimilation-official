@@ -290,15 +290,19 @@ def CCref(obj):
     base = obj[0]
     while not_this_exact_type(base, AssimObj):
         base = base.baseclass
+    print(f"CCref-ing {base}.ref({obj})")
     base.ref(obj)
+    print(f"CCref-ed {base}.ref({obj}): {base._refcount}")
 
 
 def CCunref(obj):
     """Unref an AssimObj object (or subclass)"""
+    print(f"CCunref {obj.__class__.__name__}.unref({obj})")
     base = obj[0]
     # This 'hasattr' construct only works because we are the base C-class
     while hasattr(base, "baseclass"):
         base = base.baseclass
+    print(f"CCunref-ing {base.__class__.__name__}.unref({obj}): {base._refcount}")
     base.unref(obj)
 
 
@@ -1075,6 +1079,7 @@ class pyAssimObj(object):
         del pyAssimObj.object_map[addr]
         global badfree
         badfree = 0
+        print(f"{self.__class__.__name__}:PyAssimObj.CCunref{self._Cstruct}")
         CCunref(self._Cstruct)
         if badfree != 0:
             print("Attempt to free something already freed(%s)" % str(self._Cstruct), file=stderr)
@@ -1384,35 +1389,33 @@ class pyFrame(pyAssimObj):
         return "%s: %s" % (FrameTypes.get(self.frametype())[1], ret)
 
     @staticmethod
-    def Cstruct2Frame(frameptr):
+    def Cstruct2Frame(frameptr) -> 'pyFrame':
         """Unmarshalls a binary blob (Cstruct) into a Frame"""
+        print(f"Cstruct2Frame: {frameptr}")
         frameptr = cast(frameptr, cClass.Frame)
+        print(f"Cstruct2Frame: CCref-ing {frameptr}")
         CCref(frameptr)
         frametype = frameptr[0].type
+        print(f"Cstruct2Frame:  frametype {frametype}")
         Cclassname: str = proj_class_classname(frameptr).decode("utf8")
-        pyclassname = "py" + Cclassname
+        our_c_class = getattr(cClass, Cclassname)
+        print(f"OUR C CLASS: {our_c_class}, {type(our_c_class)}")
+        print(f"FRAMEPTR: {frameptr}, {type(frameptr)}")
+        class_frameptr = cast(frameptr, our_c_class)
         if Cclassname == "NetAddr":
-            statement = "%s(%d, None, Cstruct=cast(frameptr, cClass.%s))" % (
-                pyclassname,
-                frametype,
-                Cclassname,
-            )
-        elif Cclassname == Cclassname == "IpPortFrame":
-            statement = "%s(%d, None, None, Cstruct=cast(frameptr, cClass.%s))" % (
-                pyclassname,
-                frametype,
-                Cclassname,
-            )
+            frame_result = pyNetAddr(frametype, None, Cstruct=class_frameptr)
+        elif Cclassname == "IpPortFrame":
+            frame_result = pyIpPortFrame(frametype, None, None, Cstruct=class_frameptr)
         else:
-            statement = "%s(%d, Cstruct=cast(frameptr, cClass.%s))" % (
-                pyclassname,
-                frametype,
-                Cclassname,
-            )
-        # print("EVAL:", statement, file=stderr)
-        # We construct the string from our data, so it's trusted data...
-        # pylint: disable=W0123
-        return eval(statement)
+            pyclassname = "py" + Cclassname
+            assert pyclassname in globals()
+            pyobjclass = globals()[pyclassname]
+            print(f"PYOBJCLASS: {pyobjclass}")
+            assert issubclass(pyobjclass, pyFrame)
+            frame_result = pyobjclass(frametype, Cstruct=class_frameptr)
+        print(f"FRAME_RESULT w/o EVAL: {frame_result}: {type(frame_result)}")
+        return frame_result
+
 
 
 class pyCompressFrame(pyFrame):
@@ -2214,7 +2217,9 @@ class pyConfigContext(pyAssimObj):
             naddr = cast(naddr, cClass.NetAddr)
             # We're creating a new reference to the pre-existing NetAddr
             CCref(naddr)
-            return pyNetAddr(None, Cstruct=naddr)
+            gotten_addr = pyNetAddr(None, Cstruct=naddr)
+            print(f"CCref of NetAddr {gotten_addr}")
+            return gotten_addr
         raise IndexError("No such NetAddr value [%s]" % name)
 
     def setaddr(self, name, value):
@@ -2503,7 +2508,7 @@ class pyConfigValue(pyAssimObj):
         elif vtype == CFG_FLOAT:
             return float(self._Cstruct[0].u.floatvalue)
         elif vtype == CFG_CFGCTX:
-            # We're creating a new reference to the pre-existing NetAddr
+            # We're creating a new reference to the pre-existing ConfigContext value
             CCref(self._Cstruct[0].u.cfgctxvalue)
             return pyConfigContext(Cstruct=self._Cstruct[0].u.cfgctxvalue)
         elif vtype == CFG_NETADDR:

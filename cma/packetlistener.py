@@ -130,8 +130,9 @@ class PacketListener(object):
         We read from the highest priority queues first, moving down the
         priority scheme if there are no higher priority queues with packets to read.
         """
+        print("DEQUEUEING A FRAMESET")
         for prio_queue in self.prio_queues:
-            # print('PRIORITY QUEUE: Length %d' % len(prio_queue))
+            print('PRIORITY QUEUE: Length %d' % len(prio_queue))
             if len(prio_queue) == 0:
                 continue
             frameset_queue = prio_queue.pop(0)
