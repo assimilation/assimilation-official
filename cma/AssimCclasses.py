@@ -300,7 +300,9 @@ def CCunref(obj):
     print(f"CCunref {obj.__class__.__name__}.unref({obj})")
     base = obj[0]
     # This 'hasattr' construct only works because we are the base C-class
-    while hasattr(base, "baseclass"):
+    while not hasattr(base, "unref"):
+        print(f"CCunref: next class {base.__class__.__name__}: {base}")
+        print(f"CCunref: baseclass: {base.baseclass}")
         base = base.baseclass
     print(f"CCunref-ing {base.__class__.__name__}.unref({obj}): {base._refcount}")
     base.unref(obj)
@@ -1044,6 +1046,10 @@ class pyAssimObj(object):
             "C class": str(self.cclassname())
         }
         # print 'ASSIMOBJ:init: %s' % (Cstruct)
+        if isinstance(self, pyNetAddr):
+            self.creation_stack = traceback.extract_stack()
+        else:
+            self.creation_stack = []
 
     def int_address(self):
 
@@ -1053,7 +1059,7 @@ class pyAssimObj(object):
 
     def cclassname(self):
         "Return the 'C' class name for this object"
-        return proj_class_classname(self._Cstruct)
+        return proj_class_classname(self._Cstruct).decode("utf8")
 
     def __str__(self):
         "Convert this AssimObj into a printable string"
@@ -1080,6 +1086,15 @@ class pyAssimObj(object):
         global badfree
         badfree = 0
         print(f"{self.__class__.__name__}:PyAssimObj.CCunref{self._Cstruct}")
+        c_class_name: str = self.cclassname()
+        print(f"{self.__class__.__name__}:PyAssimObj.CCunref-class:{c_class_name}")
+        if c_class_name == '(unknown class)':
+            self.log(f"CRITICAL: Unrefing dead object {self.__class__.__name__}")
+            if self.creation_stack:
+                self.log(f"CRITICAL: Dead {self.__class__.__name__} object creation Traceback:")
+                print("".join(traceback.format_list(self.creation_stack)))
+            self._Cstruct = None
+            return
         CCunref(self._Cstruct)
         if badfree != 0:
             print("Attempt to free something already freed(%s)" % str(self._Cstruct), file=stderr)
@@ -2265,7 +2280,7 @@ class pyConfigContext(pyAssimObj):
         self._Cstruct[0].setstring(self._Cstruct, name, value)
 
     def getarray(self, name):
-        """Return the array value associated with "name\""""
+        """Return the array value associated with 'name' """
         curlist = cast(self._Cstruct[0].getarray(self._Cstruct, name), cClass.GSList)
         # print("CURLIST(initial) = %s" % curlist, file=stderr)
         ret = []
@@ -2276,6 +2291,8 @@ class pyConfigContext(pyAssimObj):
             # print("CURLIST->data = %s" % data, file=stderr)
             CCref(data)
             cfgval = pyConfigValue(data).get()
+            if isinstance(cfgval, pyNetAddr):
+                cfgval = str(cfgval)  # Work around an issue in object lifetime
             ret.append(cfgval.encode("utf8") if isinstance(cfgval, bytes) else cfgval)
             curlist = g_slist_next(curlist)
         return ret

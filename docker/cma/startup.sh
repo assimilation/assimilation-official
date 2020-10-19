@@ -1,5 +1,5 @@
 #!/bin/sh -eu
-: ${CMADEBUG=4}
+: ${CMADEBUG=3}
 
 set -e
 

@@ -1299,7 +1299,10 @@ class JSONMapNode(GraphNode):
             raise ValueError("Invariant storage object must be specified.")
         if json is None and (jhash is None or jsontype is None):
             raise ValueError("json and jhash can't both be None.")
-        GraphNode.__init__(self, domain="metadata")
+        GraphNode.__init__(
+            self, domain="metadata", time_create_ms=time_create_ms,
+            time_create_iso8601=time_create_iso8601
+        )
 
         if json is None:
             self._map = pyConfigContext(persistentjson.get(jsontype, jhash))
@@ -1321,7 +1324,6 @@ class JSONMapNode(GraphNode):
         self.jhash = jhash
         self.jsontype = jsontype
         self.is_current = is_current
-        self.time_create_ms = time_create_ms
         self.nodetype = nodetype
         if (jsontype, jhash) not in persistentjson:
             persistentjson.put(jsontype, jhash, json)
