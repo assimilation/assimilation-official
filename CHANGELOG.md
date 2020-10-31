@@ -4,8 +4,8 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-Changes that have landed but are not yet released.	Changes that have landed but are not yet released.
+## [1.99.1-pre] - Oct 30, 2020
+- Testing release automation
 
 ## [1.1.7] - Jun 12, 2016 - the "From The Heart" release
 ### New Features
