@@ -7,11 +7,11 @@ env:
 
 stages:
   - name: build
-    if: env(RELEASE) = true and type = api and branch = rel_2_dev
+    if: branch = release
   - name: package
-    if: env(RELEASE) = true and type = api and branch = rel_2_dev
+    if: branch = release
   - name: "test on different distributions"
-    if: env(RELEASE) = true and type = api and branch = rel_2_dev
+    if: branch = release
 
 script:
   - cd /tmp
