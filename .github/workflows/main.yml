@@ -4,7 +4,6 @@ jobs:
   job:
     runs-on: ubuntu-latest
     steps:
-      - name: nanoprobe
       - uses: actions/checkout@v1
 #      - run: cd $GITHUB_WORKSPACE/docker && ./dockit
       - run: DOCKER_IMAGE=$(grep -v '#' < $TRAVIS_BUILD_DIR/docker/nanoprobe/docker-tag.txt | head -n1)
