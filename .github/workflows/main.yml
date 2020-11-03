@@ -1,8 +1,15 @@
 name: build
-on: [push, pull_request]
+on: [push]
 jobs:
   job:
+    env:
+      - DOCKER_IMAGE=$(grep -v '#' < $TRAVIS_BUILD_DIR/docker/nanoprobe/docker-tag.txt | head -n1)
+      - DOCKER_TAG=$(cat CHANGELOG.md | perl -ne '/^## \[(\d+\.\d+\.\d+.*)\] -/ && print "$1\n"' | head -n1)
     runs-on: ubuntu-latest
     steps:
+      - name: nanoprobe
       - uses: actions/checkout@v1
-      - run: cd docker && ./dockit
+#      - run: cd $GITHUB_WORKSPACE/docker && ./dockit
+      - run: echo $DOCKER_IMAGE
+      - run: echo $DOCKER_TAG
+
