@@ -2,12 +2,15 @@ language: minimal
 
 env:
   DOCKER_IMAGE=$(grep -v '#' < $TRAVIS_BUILD_DIR/docker/nanoprobe/docker-tag.txt | head -n1)
-  DOCKER_TAG=${DOCKER_IMAGE#assimilationproject/nanoprobe:}
+  DOCKER_TAG=$(cat CHANGELOG.md | perl -ne '/^## \[(\d+\.\d+\.\d+.*)\] -/ && print "$1\n"' | head -n1)
 
 stages:
   - name: build
+    if: branch = release
   - name: package
+    if: branch = release
   - name: "test on different distributions"
+    if: branch = release
 
 script:
   - cd /tmp
