@@ -1,0 +1,6 @@
+name: build
+jobs:
+  job:
+    runs-on: ubuntu-latest
+    steps:
+      - run: cd docker && ./dockit
