@@ -11,6 +11,12 @@ OWNERSHIP=assimilation:assimilation
 DEFAULT_MODE=0755
 shares="/dev/log /var/run/docker.sock /var/lib/assimilation /var/run/assimilation"
 
+if 
+ [ -L /var/run -a ! -d /var/run/assimilation ]
+then
+  mkdir /var/run/assimilation
+fi
+
 make_user() {
   set -x
   if
@@ -44,7 +50,7 @@ fix_install() {
     for share in $shares
     do
         if
-            [ ! -S "${share}" -a ! -d "${share}" ]
+            [ ! -S "${share}" -a ! -d "${share}" -a ! -L "{share}" ]
         then
             critical "$share must be shared as a volume: -v $share:$share"
         fi

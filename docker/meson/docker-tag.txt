@@ -1,2 +1,2 @@
 # Tag for Meson build image
-assimilationproject/meson-centos6:0.0.2
+assimilationproject/meson-centos7:0.0.2

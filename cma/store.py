@@ -1165,7 +1165,18 @@ class Store(object):
         if True or self.debug:
             print("CREATE CYPHER: %s" % cypher, file=stderr)
             self._log.info("CREATE CYPHER: %s" % cypher)
-        node_id = self.db_transaction.evaluate(cypher)
+        # Let's work around a weird random failure in Neo4j
+        retry_times = 5
+        node_id = None
+        for j in range(retry_times):
+            try:
+                node_id = self.db_transaction.evaluate(cypher)
+                break
+            except AssertionError as failure:
+                if j == (retry_times - 1):
+                    raise failure
+                print(f"CRITICAL: Retrying Neo4j create on AssertionError: {j}")
+                time.sleep(0.5)
         assert node_id is not None
         # print('NODE_ID:', node_id, file=stderr)
         subj.association.node_id = node_id
