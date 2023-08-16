@@ -17,7 +17,7 @@ neotime==1.7.4
 netaddr==0.8.0
 prompt-toolkit==2.0.10
 py2neo==4.3.0
-Pygments==2.7.4
+Pygments==2.15.0
 pytz==2020.1
 requests==2.31.0
 six==1.15.0
