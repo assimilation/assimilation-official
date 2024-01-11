@@ -9,7 +9,7 @@ dpath==2.0.1
 flask>=2.2.5
 Inject==4.2.0
 itsdangerous==1.1.0
-Jinja2==2.11.3
+Jinja2==3.1.3
 MarkupSafe==1.1.1
 neobolt==1.7.17
 neotime==1.7.4
