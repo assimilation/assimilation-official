@@ -137,6 +137,8 @@ _decode_packet_framedata_to_frameobject(PacketDecoder* self,	///<[in/out] Packet
 		ret =  unknownframe_tlvconstructor(*pktstart, *pktend, newpacket, &newpacketend);
 	}
 	if (NULL == ret) {
+		g_warning("%s.%d: tlv contructor for frametype %d failed"
+		,	__FUNCTION__, __LINE__, frametype);
 		return NULL;
 	}
 	g_return_val_if_fail(ret != NULL, NULL);
@@ -247,6 +249,8 @@ _pktdata_to_framesetlist(PacketDecoder*self,		///<[in] PacketDecoder object
 				newframestart = newpacket;
 			}
 			if (NULL == newframe) {
+				g_warning("%s.%d: conversion from framedata to frameobject in frameset %d failed"
+				,	__FUNCTION__, __LINE__, fs->fstype);
 				UNREF(fs);
 				goto errout;
 			}
@@ -275,6 +279,8 @@ _pktdata_to_framesetlist(PacketDecoder*self,		///<[in] PacketDecoder object
 		}
 		if (fs) {
 			ret = g_slist_append(ret, fs); fs = NULL;
+		} else {
+			g_warning("%s.%d: no frameset found", __FUNCTION__, __LINE__);
 		}
 		curframeset = nextframeset;
 	}

@@ -83,6 +83,12 @@ _fsqueue_enq(FsQueue* self	///< us - the FsQueue we're operating on
 	frameset_prepend_frame(fs, &seqno->baseclass);
 	// And put this FrameSet at the end of the queue
 	g_queue_push_tail(self->_q, fs);
+	if (DEBUG >= 3) {
+		char *destaddr = self->_destaddr->baseclass.toString(&self->_destaddr->baseclass);
+		DEBUGMSG("%s.%d: queued frameset fstype=%d seqno="FMT_64BIT"d (dest=%s)", __FUNCTION__, __LINE__,
+				fs->fstype, self->_nextseqno-1, destaddr);
+		g_free(destaddr); destaddr = NULL;
+	}
 
 	// Now do all the paperwork :-D
 	// We need for the FrameSet to be kept around for potentially a long time...
